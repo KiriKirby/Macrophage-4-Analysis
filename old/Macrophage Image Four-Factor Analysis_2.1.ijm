@@ -1,13 +1,11 @@
 macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / マクロファージ四要素解析" {
     // =============================================================================
-    // 概要: 巨噬細胞画像の4要素解析を行うImageJマクロ（Fiji専用）
+    // 概要: 巨噬細胞画像の4要素解析を行うImageJマクロ
     // 目的: ROI標注、beads検出、統計集計、結果出力を一連の対話フローで実行する
-    // 想定: Fiji上での実行とユーザー操作を含む（ImageJ単体では動作しない）
-    // 署名: 西方研究室（nishikata lab） / wangsychn@outlook.com
-    // 版数: 2.2.3
+    // 想定: ImageJ/Fiji上での実行とユーザー操作を含む
+    // 署名: 西方研究室（nishikata lab）王舒扬
+    // 版数: 2.2
     // =============================================================================
-
-    // NOTE: For AI contributors, read AGENTS.md in this repository before editing.
 
     // -----------------------------------------------------------------------------
     // 設定: ログ/モットー表示の制御フラグ
@@ -15,8 +13,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     ENABLE_MOTTO_CN = 1;
     ENABLE_MOTTO_ENJP = 0;
     LOG_VERBOSE = 1;
-    SUBSTRING_INCLUSIVE = 0;
-    DATA_OPT_UI = 1;
 
     // -----------------------------------------------------------------------------
     // 関数: log
@@ -27,17 +23,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     function log(s) {
         if (LOG_VERBOSE) print(s);
     }
-
-    // -----------------------------------------------------------------------------
-    // 関数: detectSubstringInclusive
-    // 概要: substring の終端がinclusiveか判定する。
-    // 引数: なし
-    // 戻り値: number (1=inclusive, 0=exclusive)
-    // -----------------------------------------------------------------------------
-    function detectSubstringInclusive() {
-        return (lengthOf(substring("a", 0, 0)) == 1);
-    }
-    SUBSTRING_INCLUSIVE = detectSubstringInclusive();
 
     // -----------------------------------------------------------------------------
     // 関数: max2
@@ -154,18 +139,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     }
 
     // -----------------------------------------------------------------------------
-    // 関数: ensureTrailingSlash
-    // 概要: パス末尾にスラッシュを付与する。
-    // 引数: p (string)
-    // 戻り値: string
-    // -----------------------------------------------------------------------------
-    function ensureTrailingSlash(p) {
-        if (p == "") return p;
-        if (endsWith(p, "/")) return p;
-        return p + "/";
-    }
-
-    // -----------------------------------------------------------------------------
     // 関数: splitByChar
     // 概要: 1文字区切りで文字列を分割する。
     // 引数: s (string), ch (string)
@@ -188,140 +161,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         }
         arr[arr.length] = buf;
         return arr;
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: joinNumberList
-    // 概要: 数値配列をカンマ区切りの文字列に変換する。
-    // 引数: arr (array)
-    // 戻り値: string
-    // -----------------------------------------------------------------------------
-    function joinNumberList(arr) {
-        s = "";
-        i = 0;
-        while (i < arr.length) {
-            if (i > 0) s = s + ",";
-            s = s + arr[i];
-            i = i + 1;
-        }
-        return s;
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: parseNumberList
-    // 概要: カンマ区切りの数値文字列を配列に変換する。
-    // 引数: s (string)
-    // 戻り値: array
-    // -----------------------------------------------------------------------------
-    function parseNumberList(s) {
-        s = "" + s;
-        if (s == "") return newArray();
-        parts = splitByChar(s, ",");
-        out = newArray(parts.length);
-        i = 0;
-        while (i < parts.length) {
-            if (parts[i] == "") out[i] = 0;
-            else out[i] = 0 + parts[i];
-            i = i + 1;
-        }
-        return out;
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: meanFromCsv
-    // 概要: カンマ区切り数値の平均を返す（空は""）。
-    // 引数: s (string)
-    // 戻り値: number or ""
-    // -----------------------------------------------------------------------------
-    function meanFromCsv(s) {
-        s = "" + s;
-        if (s == "") return "";
-        arr = parseNumberList(s);
-        if (arr.length == 0) return "";
-        sum = 0;
-        i = 0;
-        while (i < arr.length) {
-            sum = sum + arr[i];
-            i = i + 1;
-        }
-        return sum / arr.length;
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: scaleCsv
-    // 概要: カンマ区切り数値を係数でスケールする（四捨五入、負数は0）。
-    // 引数: s (string), factor (number)
-    // 戻り値: string
-    // -----------------------------------------------------------------------------
-    function scaleCsv(s, factor) {
-        s = "" + s;
-        if (s == "") return s;
-        if (factor == 1) return s;
-        arr = parseNumberList(s);
-        i = 0;
-        while (i < arr.length) {
-            v = arr[i] * factor;
-            arr[i] = roundInt(v);
-            if (arr[i] < 0) arr[i] = 0;
-            i = i + 1;
-        }
-        return joinNumberList(arr);
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: scaleCsvIntoArray
-    // 概要: CSV文字列配列の指定要素を係数でスケールして上書きする。
-    // 引数: arr (array), idx (number), factor (number)
-    // 戻り値: number (0)
-    // -----------------------------------------------------------------------------
-    function scaleCsvIntoArray(arr, idx, factor) {
-        if (idx < 0 || idx >= arr.length) return 0;
-        s = "" + arr[idx];
-        if (s == "") return 0;
-        if (factor == 1) return 0;
-        vals = parseNumberList(s);
-        i = 0;
-        while (i < vals.length) {
-            v = vals[i] * factor;
-            vals[i] = roundInt(v);
-            if (vals[i] < 0) vals[i] = 0;
-            i = i + 1;
-        }
-        arr[idx] = joinNumberList(vals);
-        return 0;
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: buildZeroCsv
-    // 概要: 指定数の0をカンマ区切りで生成する。
-    // 引数: n (number)
-    // 戻り値: string
-    // -----------------------------------------------------------------------------
-    function buildZeroCsv(n) {
-        if (n <= 0) return "";
-        s = "";
-        i = 0;
-        while (i < n) {
-            if (i > 0) s = s + ",";
-            s = s + "0";
-            i = i + 1;
-        }
-        return s;
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: getNumberAtCsv
-    // 概要: カンマ区切り文字列の指定位置の数値を返す。
-    // 引数: s (string), idx (number)
-    // 戻り値: number or ""
-    // -----------------------------------------------------------------------------
-    function getNumberAtCsv(s, idx) {
-        s = "" + s;
-        if (s == "") return "";
-        parts = splitByChar(s, ",");
-        if (idx < 0 || idx >= parts.length) return "";
-        if (parts[idx] == "") return "";
-        return 0 + parts[idx];
     }
 
     // -----------------------------------------------------------------------------
@@ -365,181 +204,47 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     }
 
     // -----------------------------------------------------------------------------
-    // 関数: charAtCompat
-    // 概要: substring仕様に合わせて1文字を取得する。
-    // 引数: s (string), idx (number)
-    // 戻り値: string
-    // -----------------------------------------------------------------------------
-    function charAtCompat(s, idx) {
-        n = lengthOf(s);
-        if (idx < 0 || idx >= n) return "";
-        if (SUBSTRING_INCLUSIVE == 1) return substring(s, idx, idx);
-        return substring(s, idx, idx + 1);
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: isDigitAt
-    // 概要: 文字列の指定位置が数字か判定する。
-    // 引数: s (string), idx (number)
-    // 戻り値: number (1/0)
-    // -----------------------------------------------------------------------------
-    function isDigitAt(s, idx) {
-        c = charAtCompat(s, idx);
-        if (c == "") return 0;
-        return isDigitChar(c);
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: normalizeRuleToken
-    // 概要: ルールトークンを正規化する。
-    // 引数: part (string)
-    // 戻り値: string ("p"/"f"/"")
-    // -----------------------------------------------------------------------------
-    function normalizeRuleToken(part) {
-        s = toLowerCase(trim2(part));
-        if (s == "p" || s == "pn" || s == "<p>" || s == "<pn>") return "p";
-        if (s == "f" || s == "f1" || s == "<f>" || s == "<f1>") return "f";
-        return "";
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: extractFirstNumberStr
-    // 概要: 文字列内の最初の連続数字を返す。
-    // 引数: s (string)
-    // 戻り値: string
-    // -----------------------------------------------------------------------------
-    function extractFirstNumberStr(s) {
-        n = lengthOf(s);
-        i = 0;
-        while (i < n && !isDigitAt(s, i)) i = i + 1;
-        j = i;
-        while (j < n && isDigitAt(s, j)) j = j + 1;
-        if (j > i) return substring(s, i, j);
-        return "";
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: parseByPattern
-    // 概要: パターンに従ってベース名からPN/Fを抽出する。
-    // 引数: base (string), pattern (string)
+    // 関数: parsePnF
+    // 概要: ルールに従ってファイル名からPNとFを抽出する。
+    // 引数: base (string), rule (string)
     // 戻り値: array [pn, fStr, fNum]
     // -----------------------------------------------------------------------------
-    function parseByPattern(base, pattern) {
-        parts = splitByChar(trim2(pattern), "/");
-        pn = "";
+    function parsePnF(base, rule) {
+        parts = splitByChar(trim2(rule), "/");
+        order = newArray();
+        k = 0;
+        while (k < parts.length) {
+            p = toLowerCase(trim2(parts[k]));
+            if (p == "pn") order[order.length] = "pn";
+            else if (startsWith(p, "f")) order[order.length] = "f";
+            k = k + 1;
+        }
+
+        pn = base;
         fStr = "";
-        fNum = 0;
-        if (parts.length != 2) return newArray(pn, fStr, fNum);
-
-        p1 = trim2(parts[0]);
-        p2 = trim2(parts[1]);
-        t1 = normalizeRuleToken(p1);
-        t2 = normalizeRuleToken(p2);
-        hasP = (t1 == "p" || t2 == "p");
-
-        if (hasP) pn = base;
-
-        if (t1 == "p" && t2 == "f") {
+        if (order.length == 2 && order[0] == "pn" && order[1] == "f") {
             i = lengthOf(base) - 1;
-            while (i >= 0 && isDigitAt(base, i)) i = i - 1;
+            while (i >= 0 && isDigitChar(substring(base, i, i + 1))) i = i - 1;
             if (i < lengthOf(base) - 1) {
                 pn = substring(base, 0, i + 1);
                 fStr = substring(base, i + 1);
             }
-        } else if (t1 == "f" && t2 == "p") {
+        } else if (order.length == 2 && order[0] == "f" && order[1] == "pn") {
             i = 0;
             n = lengthOf(base);
-            while (i < n && !isDigitAt(base, i)) i = i + 1;
+            while (i < n && !isDigitChar(substring(base, i, i + 1))) i = i + 1;
             j = i;
-            while (j < n && isDigitAt(base, j)) j = j + 1;
+            while (j < n && isDigitChar(substring(base, j, j + 1))) j = j + 1;
             if (j > i) {
                 fStr = substring(base, i, j);
                 pn = substring(base, j);
             }
-        } else if (t1 != "" && t2 == "") {
-            lit = p2;
-            if (endsWith(base, lit)) {
-                tokenStr = substring(base, 0, lengthOf(base) - lengthOf(lit));
-                if (t1 == "p") pn = tokenStr;
-                else fStr = extractFirstNumberStr(tokenStr);
-            }
-        } else if (t1 == "" && t2 != "") {
-            lit = p1;
-            if (startsWith(base, lit)) {
-                tokenStr = substring(base, lengthOf(lit));
-                if (t2 == "p") pn = tokenStr;
-                else fStr = extractFirstNumberStr(tokenStr);
-            }
         }
 
-        if (hasP == 1) {
-            if (pn == "") pn = "PN";
-        } else {
-            pn = "";
-        }
+        if (pn == "") pn = "PN";
+        fNum = 0;
         if (fStr != "") fNum = 0 + fStr;
         return newArray(pn, fStr, fNum);
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: parseRuleSpec
-    // 概要: ルール指定文字列からパターンとF/T割当を抽出する。
-    // 引数: spec (string), defaultTarget (string)
-    // 戻り値: array [pattern, fTarget, errMsg]
-    // -----------------------------------------------------------------------------
-    function parseRuleSpec(spec, defaultTarget) {
-        parts = splitCSV(spec);
-        pattern = trim2(parts[0]);
-        fTarget = defaultTarget;
-        err = "";
-
-        i = 1;
-        while (i < parts.length) {
-            kv = trim2(parts[i]);
-            if (kv != "") {
-                eq = indexOf(kv, "=");
-                if (eq <= 0) {
-                    err = T_err_df_rule_param_kv;
-                    break;
-                }
-                key = toLowerCase(trim2(substring(kv, 0, eq)));
-                val = trim2(substring(kv, eq + 1));
-                if (!(startsWith(val, "\"") && endsWith(val, "\"") && lengthOf(val) >= 2)) {
-                    err = T_err_df_rule_param_quote;
-                    break;
-                }
-                val = substring(val, 1, lengthOf(val) - 1);
-                if (key != "f") {
-                    err = T_err_df_rule_param_unknown_prefix + key;
-                    break;
-                }
-                valU = toUpperCase(trim2(val));
-                if (valU != "F" && valU != "T") {
-                    err = T_err_df_rule_param_f_value;
-                    break;
-                }
-                fTarget = valU;
-            }
-            i = i + 1;
-        }
-        return newArray(pattern, fTarget, err);
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: parsePnF
-    // 概要: ルールに従ってベース名からPN/Fを抽出し、F/T割当を返す。
-    // 引数: base (string), ruleSpec (string), defaultTarget (string)
-    // 戻り値: array [pn, fStr, fNum, fTarget]
-    // -----------------------------------------------------------------------------
-    function parsePnF(base, ruleSpec, defaultTarget) {
-        spec = parseRuleSpec(ruleSpec, defaultTarget);
-        pattern = spec[0];
-        fTarget = spec[1];
-        parsed = parseByPattern(base, pattern);
-        pn = parsed[0];
-        fStr = parsed[1];
-        fNum = parsed[2];
-        return newArray(pn, fStr, fNum, fTarget);
     }
 
     // -----------------------------------------------------------------------------
@@ -551,21 +256,15 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     function isBuiltinToken(tokenKey) {
         if (tokenKey == "pn") return 1;
         if (tokenKey == "f") return 1;
-        if (tokenKey == "t") return 1;
         if (tokenKey == "tb") return 1;
         if (tokenKey == "bic") return 1;
         if (tokenKey == "cwb") return 1;
         if (tokenKey == "cwba") return 1;
         if (tokenKey == "tc") return 1;
-        if (tokenKey == "bpc") return 1;
         if (tokenKey == "ibr") return 1;
         if (tokenKey == "pcr") return 1;
-        if (tokenKey == "ebpc") return 1;
-        if (tokenKey == "bpcsdp") return 1;
         if (tokenKey == "eibr") return 1;
         if (tokenKey == "epcr") return 1;
-        if (tokenKey == "isdp") return 1;
-        if (tokenKey == "psdp") return 1;
         return 0;
     }
 
@@ -578,50 +277,18 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     function validateDataFormatRule(rule) {
         r = trim2(rule);
         if (lengthOf(r) == 0) return T_err_df_rule_empty;
-
-        folderSpec = "";
-        fileSpec = r;
-        idx = indexOf(r, "//");
-        if (SUBFOLDER_KEEP_MODE == 1) {
-            if (idx < 0) return T_err_df_rule_need_subfolder;
-            if (indexOf(r, "//", idx + 2) >= 0) return T_err_df_rule_double_slash;
-            folderSpec = trim2(substring(r, 0, idx));
-            fileSpec = trim2(substring(r, idx + 2));
-            if (folderSpec == "" || fileSpec == "") return T_err_df_rule_parts;
-        } else {
-            if (idx >= 0) return T_err_df_rule_no_subfolder;
-        }
-
-        spec = parseRuleSpec(fileSpec, "F");
-        if (spec[2] != "") return spec[2];
-        pattern = spec[0];
-        if (pattern == "") return T_err_df_rule_empty;
-        parts = splitByChar(pattern, "/");
+        parts = splitByChar(r, "/");
         if (parts.length != 2) return T_err_df_rule_slash;
-        p1 = trim2(parts[0]);
-        p2 = trim2(parts[1]);
+        p1 = toLowerCase(trim2(parts[0]));
+        p2 = toLowerCase(trim2(parts[1]));
         if (p1 == "" || p2 == "") return T_err_df_rule_parts;
-        t1 = normalizeRuleToken(p1);
-        t2 = normalizeRuleToken(p2);
-        if (t1 == "" && t2 == "") return T_err_df_rule_tokens;
-        if (t1 == t2 && t1 != "") return T_err_df_rule_need_both;
-        if (!((t1 == "p" && t2 == "f") || (t1 == "f" && t2 == "p")))
+        ok1 = (p1 == "pn" || startsWith(p1, "f"));
+        ok2 = (p2 == "pn" || startsWith(p2, "f"));
+        if (!ok1 || !ok2) return T_err_df_rule_tokens;
+        if ((p1 == "pn" && p2 == "pn") || (startsWith(p1, "f") && startsWith(p2, "f")))
+            return T_err_df_rule_need_both;
+        if (!((p1 == "pn" && startsWith(p2, "f")) || (startsWith(p1, "f") && p2 == "pn")))
             return T_err_df_rule_order;
-
-        if (folderSpec != "") {
-            spec2 = parseRuleSpec(folderSpec, "T");
-            if (spec2[2] != "") return spec2[2];
-            pattern2 = spec2[0];
-            if (pattern2 == "") return T_err_df_rule_empty;
-            parts2 = splitByChar(pattern2, "/");
-            if (parts2.length != 2) return T_err_df_rule_slash;
-            q1 = trim2(parts2[0]);
-            q2 = trim2(parts2[1]);
-            if (q1 == "" || q2 == "") return T_err_df_rule_parts;
-            u1 = normalizeRuleToken(q1);
-            u2 = normalizeRuleToken(q2);
-            if (u1 == "" && u2 == "") return T_err_df_rule_tokens;
-        }
         return "";
     }
 
@@ -652,11 +319,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             if (tokenRaw == "") return T_err_df_cols_dollar_missing;
             tokenKey = toLowerCase(tokenRaw);
             if (tokenKey == "-f") tokenKey = "f";
-            builtin = isBuiltinToken(tokenKey);
-            if (builtin == 1 && single == 1)
+            if (isBuiltinToken(tokenKey) == 1 && single == 1)
                 return T_err_df_cols_dollar_builtin;
-            if (builtin == 0 && single == 0 && parts.length == 1)
-                return T_err_df_cols_unknown_token + tokenRaw;
 
             j = 1;
             while (j < parts.length) {
@@ -675,31 +339,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             i = i + 1;
         }
         return "";
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: requiresPerCellStats
-    // 概要: 表格列配置が単細胞統計（BPC/EBPC/BPCSDP）を要求するか判定する。
-    // 引数: cols (string)
-    // 戻り値: number (1=必要, 0=不要)
-    // -----------------------------------------------------------------------------
-    function requiresPerCellStats(cols) {
-        s = trim2(cols);
-        if (s == "") return 0;
-        fmt = splitByChar(s, "/");
-        i = 0;
-        while (i < fmt.length) {
-            raw = trim2(fmt[i]);
-            if (raw != "") {
-                parts = splitCSV(raw);
-                tokenRaw = trim2(parts[0]);
-                if (startsWith(tokenRaw, "$")) tokenRaw = substring(tokenRaw, 1);
-                tokenKey = toLowerCase(trim2(tokenRaw));
-                if (tokenKey == "bpc" || tokenKey == "ebpc" || tokenKey == "bpcsdp") return 1;
-            }
-            i = i + 1;
-        }
-        return 0;
     }
 
     // -----------------------------------------------------------------------------
@@ -726,21 +365,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             i = i + 1;
         }
         return out;
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: findGroupIndex
-    // 概要: (pn, keyNum) のグループインデックスを検索する。
-    // 引数: pn (string), keyNum (number), groupPn (array), groupKey (array)
-    // 戻り値: number (index or -1)
-    // -----------------------------------------------------------------------------
-    function findGroupIndex(pn, keyNum, groupPn, groupKey) {
-        i = 0;
-        while (i < groupPn.length) {
-            if (groupPn[i] == pn && groupKey[i] == keyNum) return i;
-            i = i + 1;
-        }
-        return -1;
     }
 
     // -----------------------------------------------------------------------------
@@ -804,45 +428,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                     x = idxs[i];
                     idxs[i] = idxs[j];
                     idxs[j] = x;
-                }
-                j = j + 1;
-            }
-            i = i + 1;
-        }
-        return;
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: sortQuadsByNumber
-    // 概要: 数値配列と対応3配列を昇順/降順でソートする。
-    // 引数: nums (array), strs (array), idxs (array), ids2 (array), desc (number)
-    // 戻り値: なし（配列を直接並べ替える）
-    // -----------------------------------------------------------------------------
-    function sortQuadsByNumber(nums, strs, idxs, ids2, desc) {
-        n = nums.length;
-        i = 0;
-        while (i < n - 1) {
-            j = i + 1;
-            while (j < n) {
-                swap = 0;
-                if (desc == 1) {
-                    if (nums[i] < nums[j]) swap = 1;
-                } else {
-                    if (nums[i] > nums[j]) swap = 1;
-                }
-                if (swap == 1) {
-                    t = nums[i];
-                    nums[i] = nums[j];
-                    nums[j] = t;
-                    s = strs[i];
-                    strs[i] = strs[j];
-                    strs[j] = s;
-                    x = idxs[i];
-                    idxs[i] = idxs[j];
-                    idxs[j] = x;
-                    y = ids2[i];
-                    ids2[i] = ids2[j];
-                    ids2[j] = y;
                 }
                 j = j + 1;
             }
@@ -953,16 +538,16 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // -----------------------------------------------------------------------------
     // 関数: logDataFormatDetails
     // 概要: データ形式の設定内容を詳細にログ出力する。
-    // 引数: rule, cols, itemSpecs, itemTokens, itemNames, itemValues, itemSingles, sortDesc, sortKeyLabel
+    // 引数: rule, cols, itemSpecs, itemTokens, itemNames, itemValues, itemSingles, sortDesc
     // 戻り値: なし
     // -----------------------------------------------------------------------------
-    function logDataFormatDetails(rule, cols, itemSpecs, itemTokens, itemNames, itemValues, itemSingles, sortDesc, sortKeyLabel) {
+    function logDataFormatDetails(rule, cols, itemSpecs, itemTokens, itemNames, itemValues, itemSingles, sortDesc) {
         if (!LOG_VERBOSE) return;
         log(T_log_df_header);
         log(replaceSafe(T_log_df_rule, "%s", rule));
         log(replaceSafe(T_log_df_cols, "%s", cols));
-        if (sortDesc == 1) log(replaceSafe(T_log_df_sort_desc, "%s", sortKeyLabel));
-        else log(replaceSafe(T_log_df_sort_asc, "%s", sortKeyLabel));
+        if (sortDesc == 1) log(T_log_df_sort_desc);
+        else log(T_log_df_sort_asc);
 
         k = 0;
         while (k < itemTokens.length) {
@@ -1031,16 +616,16 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 getPixel(x - 1, y + 1) + getPixel(x, y + 1) + getPixel(x + 1, y + 1);
             return sum / 9.0;
         }
-        x0 = clamp(x - 1, 0, w - 1);
-        x1 = clamp(x, 0, w - 1);
-        x2 = clamp(x + 1, 0, w - 1);
-        y0 = clamp(y - 1, 0, h - 1);
-        y1 = clamp(y, 0, h - 1);
-        y2 = clamp(y + 1, 0, h - 1);
-        sum =
-            getPixel(x0, y0) + getPixel(x1, y0) + getPixel(x2, y0) +
-            getPixel(x0, y1) + getPixel(x1, y1) + getPixel(x2, y1) +
-            getPixel(x0, y2) + getPixel(x1, y2) + getPixel(x2, y2);
+        sum = 0;
+        dy = -1;
+        while (dy <= 1) {
+            dx = -1;
+            while (dx <= 1) {
+                sum = sum + getPixelSafe(x + dx, y + dy, w, h);
+                dx = dx + 1;
+            }
+            dy = dy + 1;
+        }
         return sum / 9.0;
     }
 
@@ -1350,31 +935,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     }
 
     // -----------------------------------------------------------------------------
-    // 関数: estimateMeanMedianSafe
-    // 概要: 平均濃度サンプルから中央値を推定する。
-    // 引数: meanArray (array)
-    // 戻り値: number（不十分な場合は-1）
-    // 補足: 飽和値を除外し、サンプル不足時は-1を返す。
-    // -----------------------------------------------------------------------------
-    function estimateMeanMedianSafe(meanArray) {
-        tLen = meanArray.length;
-        if (tLen < 3) return -1;
-
-        t2 = newArray();
-        k = 0;
-        while (k < tLen) {
-            v = meanArray[k];
-            if (v > 1 && v < 254) t2[t2.length] = v;
-            k = k + 1;
-        }
-        if (t2.length < 3) return -1;
-
-        Array.sort(t2);
-        idx = floor((t2.length - 1) * 0.50);
-        return t2[idx];
-    }
-
-    // -----------------------------------------------------------------------------
     // 関数: buildCellLabelMaskFromOriginal
     // 概要: ROIごとにラベル値を塗り分けた16-bitマスクを生成する。
     // 引数: maskTitle (string), origID (number), w (number), h (number),
@@ -1391,13 +951,18 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         safeClose(maskTitle);
 
         selectImage(origID);
-        newImage(maskTitle, "16-bit black", w, h, 1);
+        run("Duplicate...", "title=" + maskTitle);
 
         requireWindow(maskTitle, "cellLabel/duplicate", fileName);
         ensure2D();
         forcePixelUnit();
 
+        run("16-bit");
         selectWindow(maskTitle);
+        run("Select All");
+        setColor(0);
+        run("Fill");
+        run("Select None");
 
         c = 0;
         while (c < nCells) {
@@ -1431,45 +996,17 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // 概要: 2つの検出法（閾値/エッジ）でbeadsを抽出し、近接点を統合する。
     // 引数: grayTitle (string), strictChoice (string), effMinArea (number),
     //       effMaxArea (number), effMinCirc (number), beadUnitArea (number),
-    //       allowClumpsTarget (number), imgW (number), imgH (number),
-    //       targetMeanMed (number), exclMeanMed (number),
     //       fileName (string)
     // 戻り値: flat配列 [x1, y1, a1, ...]
     // 補足: strictChoiceによりフィルタ強度と統合基準を調整する。
     // -----------------------------------------------------------------------------
-    function detectBeadsFusion(
-        grayTitle, strictChoice, effMinArea, effMaxArea, effMinCirc, beadUnitArea,
-        allowClumpsTarget, imgW, imgH,
-        targetMeanMed, exclMeanMed,
-        fileName
-    ) {
+    function detectBeadsFusion(grayTitle, strictChoice, effMinArea, effMaxArea, effMinCirc, beadUnitArea, fileName) {
 
         // 検出ポリシーの決定（厳密度により統合条件を変える）
         policy = "UNION";
         if (strictChoice == T_strict_S) policy = "STRICT";
         else if (strictChoice == T_strict_N) policy = "UNION";
         else policy = "LOOSE";
-
-        // 検出に使う最大面積（塊推定を許可する場合は上限を緩める）
-        detectMaxArea = effMaxArea;
-        if (allowClumpsTarget == 1) {
-            areaCap = imgW * imgH;
-            if (areaCap < 1) areaCap = effMaxArea;
-            detectMaxArea = max2(detectMaxArea, areaCap);
-        }
-
-        // 目標/排除の濃度中央値から極性を推定する
-        thrMode = "AUTO";
-        if (targetMeanMed >= 0 && exclMeanMed >= 0) {
-            if (targetMeanMed <= exclMeanMed) thrMode = "DARK";
-            else thrMode = "LIGHT";
-        } else if (targetMeanMed >= 0) {
-            requireWindow(grayTitle, "detect/select-gray-mean", fileName);
-            selectWindow(grayTitle);
-            getStatistics(_a, imgMean, _min, _max, _std);
-            if (targetMeanMed <= imgMean) thrMode = "DARK";
-            else thrMode = "LIGHT";
-        }
 
         // 手法A: 閾値ベースでbeads候補を抽出する
         safeClose("__bin_A");
@@ -1479,20 +1016,18 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
         if (policy != "LOOSE") run("Median...", "radius=1");
 
-        if (thrMode == "DARK") setAutoThreshold("Yen dark");
-        else if (thrMode == "LIGHT") setAutoThreshold("Yen light");
-        else setAutoThreshold("Yen");
+        setAutoThreshold("Yen");
         setOption("BlackBackground", true);
         run("Convert to Mask");
         run("Fill Holes");
         if (policy != "LOOSE") run("Open");
         if (policy == "STRICT") run("Open");
-        if (policy == "STRICT") run("Watershed");
+        run("Watershed");
 
         // 面積/円形度条件で候補を収集する
         run("Clear Results");
         run("Analyze Particles...",
-            "size=" + effMinArea + "-" + detectMaxArea +
+            "size=" + effMinArea + "-" + effMaxArea +
             " circularity=" + effMinCirc + "-1.00 show=Nothing clear"
         );
 
@@ -1516,19 +1051,17 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         requireWindow("__bin_B", "detect/open-binB", fileName);
 
         run("Find Edges");
-        if (thrMode == "DARK") setAutoThreshold("Otsu dark");
-        else if (thrMode == "LIGHT") setAutoThreshold("Otsu light");
-        else setAutoThreshold("Otsu");
+        setAutoThreshold("Otsu");
         setOption("BlackBackground", true);
         run("Convert to Mask");
         run("Fill Holes");
         if (policy != "LOOSE") run("Open");
-        if (policy == "STRICT") run("Watershed");
+        run("Watershed");
 
         // 面積/円形度条件で候補を収集する
         run("Clear Results");
         run("Analyze Particles...",
-            "size=" + effMinArea + "-" + detectMaxArea +
+            "size=" + effMinArea + "-" + effMaxArea +
             " circularity=" + effMinCirc + "-1.00 show=Nothing clear"
         );
 
@@ -1638,9 +1171,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // 概要: beads検出結果を細胞ごとに集計し統計値を返す。
     // 引数: flat, cellLabelTitle, nCellsAll, w, h, HAS_LABEL_MASK,
     //       beadUnitArea, allowClumpsTarget, useExcl, exclMode, exclThr,
-    //       useExclSizeGate, exclMinA, exclMaxA, grayTitle, fileName, useMinPhago,
-    //       needPerCellStats
-    // 戻り値: array[nBeadsAll, nBeadsInCells, nCellsWithBead, nCellsWithBeadAdj, minPhagoThr, cellBeadStr]
+    //       useExclSizeGate, exclMinA, exclMaxA, grayTitle, fileName, useMinPhago
+    // 戻り値: array[nBeadsAll, nBeadsInCells, nCellsWithBead, nCellsWithBeadAdj, minPhagoThr]
     // 補足: ラベルマスク未使用時はROI境界で判定するため処理が遅くなる。
     // -----------------------------------------------------------------------------
     function countBeadsByFlat(
@@ -1649,8 +1181,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         useExcl, exclMode, exclThr,
         useExclSizeGate, exclMinA, exclMaxA,
         grayTitle, fileName,
-        useMinPhago,
-        needPerCellStats
+        useMinPhago
     ) {
 
         // 集計用のカウンタを初期化する
@@ -1676,7 +1207,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         isExclHigh = (exclMode == "HIGH");
         allowClumps = (allowClumpsTarget == 1);
         clumpThresh = beadUnitArea * 1.35;
-        useCellCounts = (needPerCellStats == 1 || useMinPhago == 1);
 
         // ラベルマスクが無い場合はROI境界のキャッシュを作る
         if (!useLabelMask) {
@@ -1707,158 +1237,114 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         }
 
         // beads候補を順に走査して除外/集計を行う
-        if (useLabelMask && !useExclOn) {
-            if (currWin != "label") {
-                selectWindow(cellLabelTitle);
-                currWin = "label";
-            }
-            i = 0;
-            while (i + 2 < flatLen) {
+        i = 0;
+        while (i + 2 < flatLen) {
 
-                x = flat[i];
-                y = flat[i + 1];
-                a = flat[i + 2];
+            x = flat[i];
+            y = flat[i + 1];
+            a = flat[i + 2];
 
-                xi = floor(x + 0.5);
-                yi = floor(y + 0.5);
+            xi = floor(x + 0.5);
+            yi = floor(y + 0.5);
 
-                if (xi >= 0 && yi >= 0 && xi < w && yi < h) {
+            if (xi >= 0 && yi >= 0 && xi < w && yi < h) {
 
-                    // 団塊を代表面積から分割推定する（許可時のみ）
-                    est = 1;
-                    if (allowClumps) {
-                        if (a > clumpThresh) {
-                            est = roundInt(a / beadUnitArea);
-                            if (est < 1) est = 1;
-                            if (est > 80) est = 80;
-                        }
+                // 排除フィルタが有効なら灰度しきい値で除外する
+                if (useExclOn) {
+
+                    applyGray = 1;
+                    if (useSizeGate) {
+                        if (a < exclMinA || a > exclMaxA) applyGray = 0;
                     }
 
-                    nBeadsAll = nBeadsAll + est;
-
-                    cellId = getPixel(xi, yi);
-                    if (cellId > 0) {
-                        nBeadsInCells = nBeadsInCells + est;
-                        idx = cellId - 1;
-                        if (idx >= 0 && idx < nCellsAll) {
-                            if (useCellCounts) cellBeadCount[idx] = cellBeadCount[idx] + est;
-                            cellsWithBead[idx] = 1;
-                        }
-                    }
-                }
-
-                i = i + 3;
-            }
-        } else {
-            i = 0;
-            while (i + 2 < flatLen) {
-
-                x = flat[i];
-                y = flat[i + 1];
-                a = flat[i + 2];
-
-                xi = floor(x + 0.5);
-                yi = floor(y + 0.5);
-
-                if (xi >= 0 && yi >= 0 && xi < w && yi < h) {
-
-                    // 排除フィルタが有効なら灰度しきい値で除外する
-                    if (useExclOn) {
-
-                        applyGray = 1;
-                        if (useSizeGate) {
-                            if (a < exclMinA || a > exclMaxA) applyGray = 0;
-                        }
-
-                        if (applyGray == 1) {
-                            if (currWin != "gray") {
-                                selectWindow(grayTitle);
-                                currWin = "gray";
-                            }
-                            gv = localMean3x3(xi, yi, w, h);
-
-                            if (isExclHigh) {
-                                if (gv >= exclThr) {
-                                    i = i + 3;
-                                    continue;
-                                }
-                            } else {
-                                if (gv <= exclThr) {
-                                    i = i + 3;
-                                    continue;
-                                }
-                            }
-                        }
-                    }
-
-                    // 団塊を代表面積から分割推定する（許可時のみ）
-                    est = 1;
-                    if (allowClumps) {
-                        if (a > clumpThresh) {
-                            est = roundInt(a / beadUnitArea);
-                            if (est < 1) est = 1;
-                            if (est > 80) est = 80;
-                        }
-                    }
-
-                    nBeadsAll = nBeadsAll + est;
-
-                    cellId = 0;
-
-                    // ラベルマスクがある場合はピクセル値で細胞IDを取得する
-                    if (useLabelMask) {
-
-                        if (currWin != "label") {
-                            selectWindow(cellLabelTitle);
-                            currWin = "label";
-                        }
-                        cellId = getPixel(xi, yi);
-
-                    } else {
-
-                        // ラベルマスクが無い場合はROIに含まれるかを判定する
+                    if (applyGray == 1) {
                         if (currWin != "gray") {
                             selectWindow(grayTitle);
                             currWin = "gray";
                         }
+                        gv = localMean3x3(xi, yi, w, h);
 
-                        c2 = 0;
-                        while (c2 < nCells) {
-                            bx = roiBX[c2];
-                            by = roiBY[c2];
-                            bw = roiBW[c2];
-                            bh = roiBH[c2];
-                            if (bw > 0 && bh > 0) {
-                                if (xi >= bx && yi >= by && xi < (bx + bw) && yi < (by + bh)) {
-                                    roiManager("select", c2);
-                                    if (selectionContains(xi, yi)) {
-                                        cellId = c2 + 1;
-                                        c2 = nCells;
-                                    } else {
-                                        c2 = c2 + 1;
-                                    }
+                        if (isExclHigh) {
+                            if (gv >= exclThr) {
+                                i = i + 3;
+                                continue;
+                            }
+                        } else {
+                            if (gv <= exclThr) {
+                                i = i + 3;
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                // 団塊を代表面積から分割推定する（許可時のみ）
+                est = 1;
+                if (allowClumps) {
+                    if (a > clumpThresh) {
+                        est = roundInt(a / beadUnitArea);
+                        if (est < 1) est = 1;
+                        if (est > 80) est = 80;
+                    }
+                }
+
+                nBeadsAll = nBeadsAll + est;
+
+                cellId = 0;
+
+                // ラベルマスクがある場合はピクセル値で細胞IDを取得する
+                if (useLabelMask) {
+
+                    if (currWin != "label") {
+                        selectWindow(cellLabelTitle);
+                        currWin = "label";
+                    }
+                    cellId = getPixel(xi, yi);
+
+                } else {
+
+                    // ラベルマスクが無い場合はROIに含まれるかを判定する
+                    if (currWin != "gray") {
+                        selectWindow(grayTitle);
+                        currWin = "gray";
+                    }
+
+                    c2 = 0;
+                    while (c2 < nCells) {
+                        bx = roiBX[c2];
+                        by = roiBY[c2];
+                        bw = roiBW[c2];
+                        bh = roiBH[c2];
+                        if (bw > 0 && bh > 0) {
+                            if (xi >= bx && yi >= by && xi < (bx + bw) && yi < (by + bh)) {
+                                roiManager("select", c2);
+                                if (selectionContains(xi, yi)) {
+                                    cellId = c2 + 1;
+                                    c2 = nCells;
                                 } else {
                                     c2 = c2 + 1;
                                 }
                             } else {
                                 c2 = c2 + 1;
                             }
-                        }
-                    }
-
-                    // 細胞内に入ったbeadsを集計する
-                    if (cellId > 0) {
-                        nBeadsInCells = nBeadsInCells + est;
-                        idx = cellId - 1;
-                        if (idx >= 0 && idx < nCellsAll) {
-                            if (useCellCounts) cellBeadCount[idx] = cellBeadCount[idx] + est;
-                            cellsWithBead[idx] = 1;
+                        } else {
+                            c2 = c2 + 1;
                         }
                     }
                 }
 
-                i = i + 3;
+                // 細胞内に入ったbeadsを集計する
+                if (cellId > 0) {
+                    nBeadsInCells = nBeadsInCells + est;
+                    idx = cellId - 1;
+                    if (idx >= 0 && idx < nCellsAll) {
+                        cellBeadCount[idx] = cellBeadCount[idx] + est;
+                        cellsWithBead[idx] = 1;
+                    }
+                }
             }
+
+            i = i + 3;
         }
 
         // beadsを含む細胞数を集計する
@@ -1898,15 +1384,13 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             }
         }
 
-        if (useCellCounts) cellBeadStr = joinNumberList(cellBeadCount);
-        else cellBeadStr = "";
-        return newArray(nBeadsAll, nBeadsInCells, nCellsWithBead, nCellsWithBeadAdj, minPhagoThr, cellBeadStr);
+        return newArray(nBeadsAll, nBeadsInCells, nCellsWithBead, nCellsWithBeadAdj, minPhagoThr);
     }
 
     // =============================================================================
     // メインフロー: 対話型の解析手順をここから実行する
     // =============================================================================
-    VERSION_STR = "2.2.3";
+    VERSION_STR = "2.2";
     T_lang_title = "Language / 言語 / 语言";
     T_lang_label = "Language / 言語 / 语言";
     T_lang_msg =
@@ -1914,11 +1398,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         "Macrophage Image Four-Factor Analysis\n" +
         "マクロファージ画像4要素解析\n\n" +
         "Version: " + VERSION_STR + "\n" +
-        "Contact: wangsychn@outlook.com\n" +
         "---------------------------------\n" +
-        "仅限 Fiji 宏，ImageJ 中无法运行。\n" +
-        "Fiji専用マクロです。ImageJでは動作しません。\n" +
-        "Fiji-only macro; it will not run in ImageJ.\n\n" +
         "请选择界面语言 / 言語を選択 / Select language";
 
     // -----------------------------------------------------------------------------
@@ -1939,24 +1419,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_exit = "未选择文件夹。脚本已退出。";
         T_noImages = "所选文件夹中未找到图像文件（tif/tiff/png/jpg/jpeg）。脚本已退出。";
         T_exitScript = "用户已退出脚本。";
-        T_err_dir_illegal_title = "文件夹非法";
-        T_err_dir_illegal_msg =
-            "所选文件夹同时包含文件与子文件夹。\n\n" +
-            "要求：文件夹要么只包含文件，要么只包含子文件夹。\n\n" +
-            "请确认后退出脚本。";
-        T_err_subdir_illegal_title = "子文件夹非法";
-        T_err_subdir_illegal_msg =
-            "检测到子文件夹中仍包含子文件夹：%s\n\n" +
-            "脚本不支持递归子文件夹。\n\n" +
-            "请整理目录后重试。";
-        T_subfolder_title = "子文件夹模式";
-        T_subfolder_msg =
-            "检测到所选文件夹包含子文件夹。\n" +
-            "脚本将以子文件夹模式运行。\n\n" +
-            "请选择运行方式：";
-        T_subfolder_label = "运行方式";
-        T_subfolder_keep = "区分子文件夹（保持结构）";
-        T_subfolder_flat = "平铺运行（子文件夹名_文件名）";
 
         T_mode_title = "工作模式选择选择";
         T_mode_label = "请选择模式";
@@ -2160,58 +1622,62 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_excl_maxA = "最大面积（px²）";
 
         T_data_format_enable = "启用数据格式化";
-        T_data_format_rule = "文件名识别规则（<p>/<f>）";
+        T_data_format_rule = "文件名识别规则（pn/f）";
         T_data_format_cols = "表格列格式";
         T_data_opt_enable = "数据优化（IBR/PCR）";
         T_data_format_doc =
-            "【数据格式化 - 规则说明】\n" +
-            "A. 文件名规则（仅用于解析，不是列代号）：\n" +
-            "  语法：<p>/<f> 或 <f>/<p>（仅一个\"/\"）；子文件夹：folderRule//fileRule。\n" +
-            "  代号：<p>=项目名 | <f>=数字 | f=\"F\"/\"T\" 绑定列。\n" +
-            "  示例：<p>/<f>,f=\"F\" | <f>/hr,f=\"T\"//<p>/<f>\n\n" +
-            "B. 表格列代号（用于结果列）：\n" +
-            "  1) 基础识别：PN / F / T\n" +
-            "  2) 计数类：TB / BIC / CWB / CWBA / TC\n" +
-            "  3) 比例类：IBR / PCR\n" +
-            "  4) 单细胞：BPC\n" +
-            "  5) 均值/标准差：\n" +
-            "     - 与 IBR 相关：EIBR / ISDP\n" +
-            "     - 与 PCR 相关：EPCR / PSDP\n" +
-            "     - 与 BPC 相关：EBPC / BPCSDP\n\n" +
-            "C. 自定义列：\n" +
-            "  - 代号不与内置冲突；参数 name=\"...\" value=\"...\"；$=只出现一次。\n\n" +
-            "D. 备注：\n" +
-            "  - 若指定 T，结果按 Time 升序，eIBR/ePCR/ISDP/PSDP/EBPC/BPCSDP 按同一时间统计。\n" +
-            "  - 若列包含 BPC/EBPC/BPCSDP，结果按细胞展开，每个细胞一行，仅单细胞相关列随细胞变化。\n" +
-            "  - 参数用逗号分隔，值需英文双引号；不允许空列项。\n";
+            "【数据格式化 - 规则说明】\n\n" +
+            "A. 文件名识别规则（pn/f）：\n" +
+            "  A.1 目的：从文件名中提取 项目名（pn） 与 编号（f）。\n" +
+            "  A.2 语法：pn/f 或 f/pn（必须包含且仅包含一个“/”）。\n" +
+            "  A.3 代号说明：\n" +
+            "      - pn：项目名（非数字部分）。\n" +
+            "      - f ：编号为“1,2,3...”格式（不带前导 0）。\n" +
+            "      - f1：编号为“01,02,03...”或“001,002,003...”等带前导 0 的格式。\n" +
+            "  A.4 说明：f 与 f1 仅用于识别编号格式，排序始终按数字大小。\n\n" +
+            "B. 表格列格式：\n" +
+            "  B.1 语法：列1/列2/列3（从左到右）。\n" +
+            "  B.2 内置列代号（默认列名 / 含义）：\n" +
+            "      - PN：PN / 项目名。\n" +
+            "      - F：F / 编号。\n" +
+            "      - TB：Total Beads / beads 总数。\n" +
+            "      - BiC：Beads in Cells / 细胞内 beads 数。\n" +
+            "      - CwB：Cells with Beads / 含 beads 的细胞数。\n" +
+            "      - CwBa：Cells with Beads (Adj) / 含 beads 的细胞数（微量校正）。\n" +
+            "      - TC：Total Cells / 细胞总数。\n" +
+            "      - IBR：IBR / BiC / TB。\n" +
+            "      - PCR：PCR / CwB / TC。\n" +
+            "      - eIBR：eIBR / 项目内 IBR 平均。\n" +
+            "      - ePCR：ePCR / 项目内 PCR 平均。\n" +
+            "  B.3 自定义列：使用任意代号（不与内置代号重复）。\n" +
+            "  B.4 参数：使用逗号分隔，格式为 name=\"...\" 或 value=\"...\"。\n" +
+            "      - name：列名（可包含空格）。\n" +
+            "      - value：该列所有行固定值。\n" +
+            "  B.5 “$”前缀：仅用于自定义列，使该列只出现一次（不随项目名扩展）。\n\n" +
+            "C. 符号注意：\n" +
+            "  C.1 参数必须用逗号分隔；键和值之间用“=”。\n" +
+            "  C.2 参数值必须使用英文双引号包裹。\n" +
+            "  C.3 不允许空列项（避免出现连续“//”或首尾“/”）。\n";
         T_data_format_err_title = "数据格式化 - 输入错误";
         T_data_format_err_hint = "请修正后重试。";
         T_log_toggle_on = "启用";
         T_log_toggle_off = "关闭";
 
-        T_err_df_rule_empty = "文件名识别规则为空。示例：<p>/<f>,f=\"F\"";
-        T_err_df_rule_slash = "文件名识别规则必须包含且仅包含一个“/”。示例：<p>/<f>";
+        T_err_df_rule_empty = "文件名识别规则为空。示例：pn/f 或 f/pn";
+        T_err_df_rule_slash = "文件名识别规则必须包含且仅包含一个“/”。示例：pn/f 或 f/pn";
         T_err_df_rule_parts = "文件名识别规则的两部分都必须填写。";
-        T_err_df_rule_tokens = "文件名识别规则只允许 <p> 与 <f> 标记。";
-        T_err_df_rule_need_both = "文件名识别规则必须同时包含 <p> 与 <f>。";
-        T_err_df_rule_order = "文件名识别规则顺序只允许 <p>/<f> 或 <f>/<p>。";
-        T_err_df_rule_need_subfolder = "子文件夹保持结构模式需要使用“子文件夹规则//文件名规则”。";
-        T_err_df_rule_no_subfolder = "当前模式不允许使用“//”子文件夹规则。";
-        T_err_df_rule_double_slash = "文件名识别规则中“//”只能出现一次。";
-        T_err_df_rule_param_kv = "规则参数必须写成 key=\"value\" 形式。";
-        T_err_df_rule_param_unknown_prefix = "未知规则参数：";
-        T_err_df_rule_param_quote = "规则参数值必须使用英文双引号包裹。";
-        T_err_df_rule_param_f_value = "f 只能设置为 \"F\" 或 \"T\"。";
+        T_err_df_rule_tokens = "文件名识别规则只允许“pn”和“f/f1(或以f开头)”两类标记。";
+        T_err_df_rule_need_both = "文件名识别规则必须同时包含 pn 与 f。";
+        T_err_df_rule_order = "文件名识别规则顺序只允许 pn/f 或 f/pn。";
         T_err_df_cols_empty = "表格列格式为空。";
         T_err_df_cols_empty_item = "表格列格式包含空项（可能存在连续“//”或首尾“/”）。";
         T_err_df_cols_empty_token = "表格列格式中存在空列代号。";
         T_err_df_cols_params_comma = "参数必须使用逗号分隔，示例：X,value=\"2\",name=\"hours\"";
         T_err_df_cols_dollar_missing = "“$”后必须跟列代号。";
-        T_err_df_cols_dollar_builtin = "“$”只能用于自定义列，不可用于内置列（PN/F/T/TB/BiC/CwB/CwBa/TC/BPC/IBR/PCR/EBPC/BPCSDP/eIBR/ePCR/ISDP/PSDP）。";
+        T_err_df_cols_dollar_builtin = "“$”只能用于自定义列，不可用于内置列（PN/F/TB/BiC/CwB/CwBa/TC/IBR/PCR/eIBR/ePCR）。";
         T_err_df_cols_param_kv = "参数必须写成 key=\"value\" 形式。";
         T_err_df_cols_param_unknown_prefix = "未知参数：";
         T_err_df_cols_param_quote = "参数值必须用英文双引号包裹。示例：name=\"Cell with Beads\"";
-        T_err_df_cols_unknown_token = "未知列代号：";
 
         T_beads_type_title = "对象类型确认";
         T_beads_type_msg =
@@ -2269,7 +1735,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_log_skip_nocell = "  │  ✗ 跳过：ROI 中无有效细胞";
         T_log_results_save = "✓ 完成：结果已写入 Results 表";
         T_log_opt_done = "✓ 数据优化完成";
-        T_log_opt_time = "✓ 时间趋势优化完成";
         T_log_all_done = "✓✓✓ 全部完成 ✓✓✓";
         T_log_summary = "📊 汇总：共处理 %i 张图像";
         T_log_unit_sync_keep = "  └─ beads 尺度：使用抽样推断值 = %s";
@@ -2294,8 +1759,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_log_df_header = "  ├─ 数据格式化：自定义解析明细";
         T_log_df_rule = "  │  ├─ 规则：%s";
         T_log_df_cols = "  │  ├─ 列格式：%s";
-        T_log_df_sort_asc = "  │  ├─ 排序：%s 升序";
-        T_log_df_sort_desc = "  │  ├─ 排序：%s 降序";
+        T_log_df_sort_asc = "  │  ├─ 排序：F 升序";
+        T_log_df_sort_desc = "  │  ├─ 排序：F 降序";
         T_log_df_item = "  │  └─ item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
 
         T_reason_no_target = "未进行目标 beads 抽样：将使用默认 beads 尺度与默认 Rolling Ball。";
@@ -2321,24 +1786,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_exit = "フォルダーが選択されませんでした。スクリプトを終了します。";
         T_noImages = "選択したフォルダーに画像ファイル（tif/tiff/png/jpg/jpeg）が見つかりません。スクリプトを終了します。";
         T_exitScript = "ユーザー操作によりスクリプトを終了しました。";
-        T_err_dir_illegal_title = "フォルダーが不正です";
-        T_err_dir_illegal_msg =
-            "選択したフォルダーにファイルとサブフォルダーが混在しています。\n\n" +
-            "要件：フォルダーは「ファイルのみ」または「サブフォルダーのみ」です。\n\n" +
-            "確認後、スクリプトを終了します。";
-        T_err_subdir_illegal_title = "サブフォルダーが不正です";
-        T_err_subdir_illegal_msg =
-            "サブフォルダー内にさらにサブフォルダーがあります: %s\n\n" +
-            "このスクリプトは再帰的なサブフォルダーをサポートしません。\n\n" +
-            "フォルダー構成を整理して再実行してください。";
-        T_subfolder_title = "サブフォルダーモード";
-        T_subfolder_msg =
-            "選択したフォルダーにサブフォルダーが含まれています。\n" +
-            "サブフォルダーモードで実行します。\n\n" +
-            "実行方法を選択してください：";
-        T_subfolder_label = "実行方法";
-        T_subfolder_keep = "サブフォルダー別に実行（構造維持）";
-        T_subfolder_flat = "フラット実行（サブフォルダー名_ファイル名）";
 
         T_mode_title = "作業モード";
         T_mode_label = "モード";
@@ -2541,58 +1988,62 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_excl_maxA = "除外対象 最大面積（px^2）";
 
         T_data_format_enable = "データ整形を有効にする";
-        T_data_format_rule = "ファイル名ルール（<p>/<f>）";
+        T_data_format_rule = "ファイル名ルール（pn/f）";
         T_data_format_cols = "表の列フォーマット";
         T_data_opt_enable = "データ最適化（IBR/PCR）";
         T_data_format_doc =
-            "【データ整形 - ルール説明】\n" +
-            "A. ファイル名ルール（解析用。列コードではありません）：\n" +
-            "  形式：<p>/<f> または <f>/<p>（\"/\"は1つ）。サブフォルダー：folderRule//fileRule。\n" +
-            "  記号：<p>=プロジェクト名 | <f>=数値 | f=\"F\"/\"T\" を列に割当。\n" +
-            "  例：<p>/<f>,f=\"F\" | <f>/hr,f=\"T\"//<p>/<f>\n\n" +
-            "B. 表の列コード（結果列）：\n" +
-            "  1) 基本：PN / F / T\n" +
-            "  2) カウント：TB / BIC / CWB / CWBA / TC\n" +
-            "  3) 比率：IBR / PCR\n" +
-            "  4) 単細胞：BPC\n" +
-            "  5) 平均/標準偏差：\n" +
-            "     - IBR系：EIBR / ISDP\n" +
-            "     - PCR系：EPCR / PSDP\n" +
-            "     - BPC系：EBPC / BPCSDP\n\n" +
-            "C. カスタム列：\n" +
-            "  - 内蔵と重複不可；パラメータ name=\"...\" value=\"...\"；$=1回のみ。\n\n" +
-            "D. 注記：\n" +
-            "  - T 指定時は Time 昇順、eIBR/ePCR/ISDP/PSDP/EBPC/BPCSDP は同時間で集計。\n" +
-            "  - BPC/EBPC/BPCSDP を含む場合は細胞ごとに 1 行となり、単細胞関連の列のみが細胞ごとに変化します。\n" +
-            "  - パラメータはカンマ区切り、値は英語の二重引用符。空列は禁止。\n";
+            "【データ整形 - ルール説明】\n\n" +
+            "A. ファイル名ルール（pn/f）：\n" +
+            "  A.1 目的：ファイル名から プロジェクト名（pn）と番号（f）を抽出します。\n" +
+            "  A.2 書式：pn/f または f/pn（“/”は1つだけ）。\n" +
+            "  A.3 記号：\n" +
+            "      - pn：プロジェクト名（数字以外の部分）。\n" +
+            "      - f ：番号が“1,2,3...”の形式（先頭 0 なし）。\n" +
+            "      - f1：番号が“01,02,03...”や“001,002,003...”の形式（先頭 0 あり）。\n" +
+            "  A.4 補足：f と f1 は番号の書式判定のみ。並び順は数値で判定します。\n\n" +
+            "B. 表の列フォーマット：\n" +
+            "  B.1 書式：列1/列2/列3（左から右）。\n" +
+            "  B.2 内蔵列コード（既定の列名 / 意味）：\n" +
+            "      - PN：PN / プロジェクト名。\n" +
+            "      - F：F / 番号。\n" +
+            "      - TB：Total Beads / beads 総数。\n" +
+            "      - BiC：Beads in Cells / 細胞内 beads 数。\n" +
+            "      - CwB：Cells with Beads / beads を含む細胞数。\n" +
+            "      - CwBa：Cells with Beads (Adj) / beads を含む細胞数（微量補正）。\n" +
+            "      - TC：Total Cells / 細胞総数。\n" +
+            "      - IBR：IBR / BiC / TB。\n" +
+            "      - PCR：PCR / CwB / TC。\n" +
+            "      - eIBR：eIBR / プロジェクト内 IBR 平均。\n" +
+            "      - ePCR：ePCR / プロジェクト内 PCR 平均。\n" +
+            "  B.3 カスタム列：任意のコード（内蔵列と重複不可）。\n" +
+            "  B.4 パラメータ：カンマ区切りで name=\"...\" または value=\"...\"。\n" +
+            "      - name：列名（空白可）。\n" +
+            "      - value：全行に固定値。\n" +
+            "  B.5 “$”接頭：カスタム列のみ。列は1回だけ表示（PN 拡張しない）。\n\n" +
+            "C. 記号注意：\n" +
+            "  C.1 パラメータはカンマ区切り、キーと値は“=”で接続。\n" +
+            "  C.2 値は英語の二重引用符で囲む。\n" +
+            "  C.3 空の列は禁止（“//”や先頭/末尾“/”は不可）。\n";
         T_data_format_err_title = "データ整形 - 入力エラー";
         T_data_format_err_hint = "修正して再試行してください。";
         T_log_toggle_on = "有効";
         T_log_toggle_off = "無効";
 
-        T_err_df_rule_empty = "ファイル名ルールが空です。例：<p>/<f>,f=\"F\"";
-        T_err_df_rule_slash = "ファイル名ルールは“/”を1つだけ含めてください。例：<p>/<f>";
+        T_err_df_rule_empty = "ファイル名ルールが空です。例：pn/f または f/pn";
+        T_err_df_rule_slash = "ファイル名ルールは“/”を1つだけ含めてください。例：pn/f または f/pn";
         T_err_df_rule_parts = "ファイル名ルールの2つの要素をどちらも入力してください。";
-        T_err_df_rule_tokens = "ファイル名ルールは <p> と <f> のみ使用できます。";
-        T_err_df_rule_need_both = "ファイル名ルールには <p> と <f> の両方が必要です。";
-        T_err_df_rule_order = "ファイル名ルールの順序は <p>/<f> または <f>/<p> のみです。";
-        T_err_df_rule_need_subfolder = "サブフォルダー構造維持モードでは「サブフォルダールール//ファイル名ルール」が必要です。";
-        T_err_df_rule_no_subfolder = "現在のモードでは “//” サブフォルダールールは使用できません。";
-        T_err_df_rule_double_slash = "“//” は1回のみ使用できます。";
-        T_err_df_rule_param_kv = "ルールパラメータは key=\"value\" 形式で指定してください。";
-        T_err_df_rule_param_unknown_prefix = "不明なルールパラメータ：";
-        T_err_df_rule_param_quote = "ルールパラメータ値は英語の二重引用符で囲んでください。";
-        T_err_df_rule_param_f_value = "f は \"F\" または \"T\" のみ指定可能です。";
+        T_err_df_rule_tokens = "ファイル名ルールは“pn”と“f/f1(またはfで始まる)”のみ使用できます。";
+        T_err_df_rule_need_both = "ファイル名ルールには pn と f の両方が必要です。";
+        T_err_df_rule_order = "ファイル名ルールの順序は pn/f または f/pn のみです。";
         T_err_df_cols_empty = "列フォーマットが空です。";
         T_err_df_cols_empty_item = "列フォーマットに空項目があります（“//”や先頭/末尾“/”の可能性）。";
         T_err_df_cols_empty_token = "列フォーマットに空の列コードがあります。";
         T_err_df_cols_params_comma = "パラメータはカンマ区切りで指定してください。例：X,value=\"2\",name=\"hours\"";
         T_err_df_cols_dollar_missing = "“$”の後には列コードが必要です。";
-        T_err_df_cols_dollar_builtin = "“$”はカスタム列のみ使用できます（PN/F/T/TB/BiC/CwB/CwBa/TC/BPC/IBR/PCR/EBPC/BPCSDP/eIBR/ePCR/ISDP/PSDP は不可）。";
+        T_err_df_cols_dollar_builtin = "“$”はカスタム列のみ使用できます（PN/F/TB/BiC/CwB/CwBa/TC/IBR/PCR/eIBR/ePCR は不可）。";
         T_err_df_cols_param_kv = "パラメータは key=\"value\" 形式で指定してください。";
         T_err_df_cols_param_unknown_prefix = "不明なパラメータ：";
         T_err_df_cols_param_quote = "値は英語の二重引用符で囲んでください。例：name=\"Cell with Beads\"";
-        T_err_df_cols_unknown_token = "不明な列コード：";
 
         T_beads_type_title = "対象タイプの確認";
         T_beads_type_msg =
@@ -2650,7 +2101,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_log_skip_nocell = "  │  ✗ スキップ：ROI に有効な細胞がありません";
         T_log_results_save = "✓ 完了：Results 表に出力しました";
         T_log_opt_done = "✓ データ最適化完了";
-        T_log_opt_time = "✓ 時間トレンド最適化完了";
         T_log_all_done = "✓✓✓ 完了 ✓✓✓";
         T_log_summary = "📊 サマリー：合計 %i 枚を処理";
         T_log_unit_sync_keep = "  └─ beads スケール：サンプル推定値を使用 = %s";
@@ -2675,8 +2125,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_log_df_header = "  ├─ データ整形：カスタム解析の詳細";
         T_log_df_rule = "  │  ├─ ルール：%s";
         T_log_df_cols = "  │  ├─ 列フォーマット：%s";
-        T_log_df_sort_asc = "  │  ├─ ソート：%s 昇順";
-        T_log_df_sort_desc = "  │  ├─ ソート：%s 降順";
+        T_log_df_sort_asc = "  │  ├─ ソート：F 昇順";
+        T_log_df_sort_desc = "  │  ├─ ソート：F 降順";
         T_log_df_item = "  │  └─ item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
 
         T_reason_no_target = "ターゲット beads のサンプリングなし：既定の beads スケールと Rolling Ball を使用します。";
@@ -2702,24 +2152,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_exit = "No folder was selected. The script has ended.";
         T_noImages = "No image files were found in the selected folder (tif/tiff/png/jpg/jpeg). The script has ended.";
         T_exitScript = "The script was exited by user selection.";
-        T_err_dir_illegal_title = "Invalid folder";
-        T_err_dir_illegal_msg =
-            "The selected folder contains both files and subfolders.\n\n" +
-            "Requirement: the folder must contain either files only or subfolders only.\n\n" +
-            "Click OK to exit the script.";
-        T_err_subdir_illegal_title = "Invalid subfolder";
-        T_err_subdir_illegal_msg =
-            "A subfolder contains another subfolder: %s\n\n" +
-            "Recursive subfolders are not supported by this script.\n\n" +
-            "Please fix the folder structure and retry.";
-        T_subfolder_title = "Subfolder mode";
-        T_subfolder_msg =
-            "Subfolders were detected in the selected folder.\n" +
-            "The script will run in subfolder mode.\n\n" +
-            "Choose how to run:";
-        T_subfolder_label = "Run mode";
-        T_subfolder_keep = "Keep subfolder structure";
-        T_subfolder_flat = "Flatten (subfolder_name_filename)";
 
         T_mode_title = "Work Mode";
         T_mode_label = "Mode";
@@ -2922,58 +2354,62 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_excl_maxA = "Exclusion maximum area (px^2)";
 
         T_data_format_enable = "Enable data formatting";
-        T_data_format_rule = "Filename rule (<p>/<f>)";
+        T_data_format_rule = "Filename rule (pn/f)";
         T_data_format_cols = "Table column format";
         T_data_opt_enable = "Data optimization (IBR/PCR)";
         T_data_format_doc =
-            "【Data Formatting - Rules】\n" +
-            "A. Filename rule (parsing only, not column tokens):\n" +
-            "  Syntax: <p>/<f> or <f>/<p> (single \"/\"); subfolders: folderRule//fileRule.\n" +
-            "  Tokens: <p>=project | <f>=number | f=\"F\"/\"T\" maps <f> to column.\n" +
-            "  Examples: <p>/<f>,f=\"F\" | <f>/hr,f=\"T\"//<p>/<f>\n\n" +
-            "B. Table column tokens:\n" +
-            "  1) Identity: PN / F / T\n" +
-            "  2) Counts: TB / BIC / CWB / CWBA / TC\n" +
-            "  3) Ratios: IBR / PCR\n" +
-            "  4) Per-cell: BPC\n" +
-            "  5) Means/Stdev:\n" +
-            "     - IBR-related: EIBR / ISDP\n" +
-            "     - PCR-related: EPCR / PSDP\n" +
-            "     - BPC-related: EBPC / BPCSDP\n\n" +
-            "C. Custom columns:\n" +
-            "  - No conflict with built-ins; params name=\"...\" value=\"...\"; $=show once.\n\n" +
-            "D. Notes:\n" +
-            "  - If T is set, rows sort by Time asc; eIBR/ePCR/ISDP/PSDP/EBPC/BPCSDP computed per time.\n" +
-            "  - If BPC/EBPC/BPCSDP is included, results expand to one row per cell and only per-cell columns vary.\n" +
-            "  - Params are comma-separated, values in double quotes; no empty items.\n";
+            "【Data Formatting - Rules】\n\n" +
+            "A. Filename rule (pn/f):\n" +
+            "  A.1 Purpose: extract Project Name (pn) and index (f) from filenames.\n" +
+            "  A.2 Syntax: pn/f or f/pn (exactly one “/”).\n" +
+            "  A.3 Tokens:\n" +
+            "      - pn: project name (non-digit part).\n" +
+            "      - f : index in “1,2,3...” format (no leading zeros).\n" +
+            "      - f1: index in “01,02,03...” or “001,002,003...” format (leading zeros).\n" +
+            "  A.4 Note: f vs f1 only affects parsing format; sorting is always numeric.\n\n" +
+            "B. Table column format:\n" +
+            "  B.1 Syntax: col1/col2/col3 (left to right).\n" +
+            "  B.2 Built-in codes (default label / meaning):\n" +
+            "      - PN: PN / Project name.\n" +
+            "      - F: F / Index.\n" +
+            "      - TB: Total Beads / total beads.\n" +
+            "      - BiC: Beads in Cells / beads inside cells.\n" +
+            "      - CwB: Cells with Beads / cells containing beads.\n" +
+            "      - CwBa: Cells with Beads (Adj) / cells with beads (adjusted).\n" +
+            "      - TC: Total Cells / total cells.\n" +
+            "      - IBR: IBR / BiC / TB.\n" +
+            "      - PCR: PCR / CwB / TC.\n" +
+            "      - eIBR: eIBR / mean IBR within project.\n" +
+            "      - ePCR: ePCR / mean PCR within project.\n" +
+            "  B.3 Custom columns: any code not conflicting with built-ins.\n" +
+            "  B.4 Params: comma-separated name=\"...\" or value=\"...\".\n" +
+            "      - name: column label (spaces allowed).\n" +
+            "      - value: constant value for all rows.\n" +
+            "  B.5 “$” prefix: custom columns only; show once (no PN expansion).\n\n" +
+            "C. Symbol notes:\n" +
+            "  C.1 Params must be comma-separated; key and value joined with “=”.\n" +
+            "  C.2 Values must be wrapped in English double quotes.\n" +
+            "  C.3 Empty items are not allowed (avoid “//” or leading/trailing “/”).\n";
         T_data_format_err_title = "Data Formatting - Input Error";
         T_data_format_err_hint = "Please correct the input and try again.";
         T_log_toggle_on = "ON";
         T_log_toggle_off = "OFF";
 
-        T_err_df_rule_empty = "Filename rule is empty. Example: <p>/<f>,f=\"F\"";
-        T_err_df_rule_slash = "Filename rule must contain exactly one \"/\". Example: <p>/<f>";
+        T_err_df_rule_empty = "Filename rule is empty. Example: pn/f or f/pn";
+        T_err_df_rule_slash = "Filename rule must contain exactly one \"/\". Example: pn/f or f/pn";
         T_err_df_rule_parts = "Both parts of the filename rule must be filled.";
-        T_err_df_rule_tokens = "Filename rule allows only <p> and <f> tokens.";
-        T_err_df_rule_need_both = "Filename rule must include both <p> and <f>.";
-        T_err_df_rule_order = "Filename rule order must be <p>/<f> or <f>/<p>.";
-        T_err_df_rule_need_subfolder = "Subfolder-structure mode requires “folderRule//fileRule”.";
-        T_err_df_rule_no_subfolder = "Subfolder rule “//” is not allowed in this mode.";
-        T_err_df_rule_double_slash = "\"//\" can appear only once in the filename rule.";
-        T_err_df_rule_param_kv = "Rule parameters must use key=\"value\" format.";
-        T_err_df_rule_param_unknown_prefix = "Unknown rule parameter: ";
-        T_err_df_rule_param_quote = "Rule parameter values must be wrapped in English double quotes.";
-        T_err_df_rule_param_f_value = "f must be \"F\" or \"T\".";
+        T_err_df_rule_tokens = "Filename rule allows only \"pn\" and \"f/f1\" (or tokens starting with f).";
+        T_err_df_rule_need_both = "Filename rule must include both pn and f.";
+        T_err_df_rule_order = "Filename rule order must be pn/f or f/pn.";
         T_err_df_cols_empty = "Table column format is empty.";
         T_err_df_cols_empty_item = "Table column format contains an empty item (possible \"//\" or leading/trailing \"/\").";
         T_err_df_cols_empty_token = "Table column format has an empty column code.";
         T_err_df_cols_params_comma = "Parameters must be comma-separated. Example: X,value=\"2\",name=\"hours\"";
         T_err_df_cols_dollar_missing = "\"$\" must be followed by a column code.";
-        T_err_df_cols_dollar_builtin = "\"$\" can only be used for custom columns (not PN/F/T/TB/BiC/CwB/CwBa/TC/BPC/IBR/PCR/EBPC/BPCSDP/eIBR/ePCR/ISDP/PSDP).";
+        T_err_df_cols_dollar_builtin = "\"$\" can only be used for custom columns (not PN/F/TB/BiC/CwB/CwBa/TC/IBR/PCR/eIBR/ePCR).";
         T_err_df_cols_param_kv = "Parameters must use key=\"value\" format.";
         T_err_df_cols_param_unknown_prefix = "Unknown parameter: ";
         T_err_df_cols_param_quote = "Parameter values must be wrapped in English double quotes. Example: name=\"Cell with Beads\"";
-        T_err_df_cols_unknown_token = "Unknown column code: ";
 
         T_beads_type_title = "Object type confirmation";
         T_beads_type_msg =
@@ -3031,7 +2467,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_log_skip_nocell = "  │  ✗ Skipped: no valid cells in ROI";
         T_log_results_save = "✓ Complete: Results written to the Results table";
         T_log_opt_done = "✓ Data optimization completed";
-        T_log_opt_time = "✓ Time-trend optimization completed";
         T_log_all_done = "✓✓✓ All tasks completed ✓✓✓";
         T_log_summary = "📊 Summary: %i images processed";
         T_log_unit_sync_keep = "  └─ Bead scale: using inferred value = %s";
@@ -3056,8 +2491,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_log_df_header = "  ├─ Data formatting: custom parsing details";
         T_log_df_rule = "  │  ├─ Rule: %s";
         T_log_df_cols = "  │  ├─ Column format: %s";
-        T_log_df_sort_asc = "  │  ├─ Sort: %s ascending";
-        T_log_df_sort_desc = "  │  ├─ Sort: %s descending";
+        T_log_df_sort_asc = "  │  ├─ Sort: F ascending";
+        T_log_df_sort_desc = "  │  ├─ Sort: F descending";
         T_log_df_item = "  │  └─ item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
 
         T_reason_no_target = "No target bead sampling was performed: using default bead scale and default Rolling Ball.";
@@ -3096,149 +2531,56 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // -----------------------------------------------------------------------------
     dir = getDirectory(T_choose);
     if (dir == "") exit(T_exit);
-    dir = ensureTrailingSlash(dir);
 
+    // 画像ファイルのみを抽出してソートする
     rawList = getFileList(dir);
 
-    rootFiles = newArray();
-    imgRootFiles = newArray();
-    subDirs = newArray();
+    imgFiles = newArray();
     k = 0;
     while (k < rawList.length) {
         name = rawList[k];
-        if (!startsWith(name, ".") && toLowerCase(name) != "thumbs.db") {
-            path = dir + name;
-            if (File.isDirectory(path)) {
-                subDirs[subDirs.length] = name;
-            } else {
-                rootFiles[rootFiles.length] = name;
-                if (!endsWith(toLowerCase(name), ".zip")) {
-                    if (isImageFile(name)) imgRootFiles[imgRootFiles.length] = name;
-                }
-            }
+        if (!endsWith(toLowerCase(name), ".zip")) {
+            if (isImageFile(name)) imgFiles[imgFiles.length] = name;
         }
         k = k + 1;
     }
+    if (imgFiles.length == 0) exit(T_noImages);
 
-    SUBFOLDER_MODE = 0;
-    SUBFOLDER_KEEP_MODE = 0;
-
-    if (imgRootFiles.length > 0 && subDirs.length > 0) {
-        showMessage(T_err_dir_illegal_title, T_err_dir_illegal_msg);
-        exit(T_exitScript);
-    }
-
-    imgEntries = newArray();
-    if (imgRootFiles.length > 0) {
-        k = 0;
-        while (k < imgRootFiles.length) {
-            imgName = imgRootFiles[k];
-            base = getBaseName(imgName);
-            key = imgName;
-            entry = key + "\t" + dir + "\t" + imgName + "\t" + base + "\t" + "\t" + base;
-            imgEntries[imgEntries.length] = entry;
-            k = k + 1;
-        }
-    } else if (subDirs.length > 0) {
-        SUBFOLDER_MODE = 1;
-        Dialog.create(T_subfolder_title);
-        Dialog.addMessage(T_subfolder_msg);
-        Dialog.addChoice(T_subfolder_label, newArray(T_subfolder_keep, T_subfolder_flat), T_subfolder_keep);
-        Dialog.show();
-        subMode = Dialog.getChoice();
-        if (subMode == T_subfolder_keep) SUBFOLDER_KEEP_MODE = 1;
-
-        k = 0;
-        while (k < subDirs.length) {
-            subName = subDirs[k];
-            subPath = ensureTrailingSlash(dir + subName);
-            subClean = subName;
-            if (endsWith(subClean, "/")) subClean = substring(subClean, 0, lengthOf(subClean) - 1);
-            subList = getFileList(subPath);
-            hasNested = 0;
-            j = 0;
-            while (j < subList.length) {
-                entry = subList[j];
-                if (!startsWith(entry, ".") && toLowerCase(entry) != "thumbs.db") {
-                    if (File.isDirectory(subPath + entry)) {
-                        hasNested = 1;
-                        break;
-                    }
-                }
-                j = j + 1;
-            }
-            if (hasNested == 1) {
-                msg = replaceSafe(T_err_subdir_illegal_msg, "%s", subClean);
-                showMessage(T_err_subdir_illegal_title, msg);
-                exit(T_exitScript);
-            }
-            j = 0;
-            while (j < subList.length) {
-                imgName = subList[j];
-                if (!endsWith(toLowerCase(imgName), ".zip")) {
-                    if (isImageFile(imgName)) {
-                        base = getBaseName(imgName);
-                        if (SUBFOLDER_KEEP_MODE == 1) parseBase = base;
-                        else parseBase = subClean + "_" + base;
-                        key = subClean + "/" + imgName;
-                        entry = key + "\t" + subPath + "\t" + imgName + "\t" + base + "\t" + subClean + "\t" + parseBase;
-                        imgEntries[imgEntries.length] = entry;
-                    }
-                }
-                j = j + 1;
-            }
-            k = k + 1;
-        }
-    } else {
-        exit(T_noImages);
-    }
-
-    if (imgEntries.length == 0) exit(T_noImages);
-
-    Array.sort(imgEntries);
-
-    nTotalImgs = imgEntries.length;
-
-    imgFilesSorted = newArray(nTotalImgs);
-    imgDirs = newArray(nTotalImgs);
-    bases = newArray(nTotalImgs);
-    subNames = newArray(nTotalImgs);
-    parseBases = newArray(nTotalImgs);
+    imgFilesSorted = newArray(imgFiles.length);
     k = 0;
-    while (k < nTotalImgs) {
-        parts = splitByChar(imgEntries[k], "\t");
-        imgDirs[k] = parts[1];
-        imgFilesSorted[k] = parts[2];
-        bases[k] = parts[3];
-        subNames[k] = parts[4];
-        parseBases[k] = parts[5];
+    while (k < imgFiles.length) {
+        imgFilesSorted[k] = imgFiles[k];
         k = k + 1;
     }
+    Array.sort(imgFilesSorted);
 
     // サンプリング用にランダム順リストも作成する
-    imgSampleIdx = newArray(nTotalImgs);
+    imgFilesSample = newArray(imgFilesSorted.length);
     k = 0;
-    while (k < nTotalImgs) {
-        imgSampleIdx[k] = k;
+    while (k < imgFilesSorted.length) {
+        imgFilesSample[k] = imgFilesSorted[k];
         k = k + 1;
     }
 
-    k = imgSampleIdx.length - 1;
+    k = imgFilesSample.length - 1;
     while (k > 0) {
         j = floor(random() * (k + 1));
-        swap = imgSampleIdx[k];
-        imgSampleIdx[k] = imgSampleIdx[j];
-        imgSampleIdx[j] = swap;
+        swap = imgFilesSample[k];
+        imgFilesSample[k] = imgFilesSample[j];
+        imgFilesSample[j] = swap;
         k = k - 1;
     }
 
     roiSuffix = "_cells";
+    nTotalImgs = imgFilesSorted.length;
 
     // 画像名とROIパスの対応表を作成する
+    bases = newArray(nTotalImgs);
     roiPaths = newArray(nTotalImgs);
     k = 0;
     while (k < nTotalImgs) {
-        roiPaths[k] = imgDirs[k] + bases[k] + roiSuffix + ".zip";
+        bases[k] = getBaseName(imgFilesSorted[k]);
+        roiPaths[k] = dir + bases[k] + roiSuffix + ".zip";
         k = k + 1;
     }
 
@@ -3262,7 +2604,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
         k = 0;
         while (k < nTotalImgs) {
-            SKIP_ALL_EXISTING_ROI = annotateCellsSmart(imgDirs[k], imgFilesSorted[k], roiSuffix, k + 1, nTotalImgs, SKIP_ALL_EXISTING_ROI);
+            SKIP_ALL_EXISTING_ROI = annotateCellsSmart(dir, imgFilesSorted[k], roiSuffix, k + 1, nTotalImgs, SKIP_ALL_EXISTING_ROI);
             k = k + 1;
         }
 
@@ -3305,13 +2647,11 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     s = 0;
     while (s < nTotalImgs) {
 
-        idxSample = imgSampleIdx[s];
-        imgName = imgFilesSorted[idxSample];
-        imgDir = imgDirs[idxSample];
+        imgName = imgFilesSample[s];
         printWithIndex(T_log_sampling_img, s + 1, nTotalImgs, imgName);
 
         // サンプル用画像を開き、ROIを追加してもらう
-        open(imgDir + imgName);
+        open(dir + imgName);
         ensure2D();
         forcePixelUnit();
         origTitle = getTitle();
@@ -3387,13 +2727,11 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         s = 0;
         while (s < nTotalImgs) {
 
-            idxSample = imgSampleIdx[s];
-            imgName = imgFilesSorted[idxSample];
-            imgDir = imgDirs[idxSample];
+            imgName = imgFilesSample[s];
             printWithIndex(T_log_sampling_img, s + 1, nTotalImgs, imgName);
 
             // 排除対象のサンプルを収集する
-            open(imgDir + imgName);
+            open(dir + imgName);
             ensure2D();
             forcePixelUnit();
             origTitle = getTitle();
@@ -3501,17 +2839,13 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     defExMaxA = DEF_MAXA;
 
     dataFormatEnable = 1;
-    dataFormatRule = "<p>/<f>,f=\"F\"";
-    if (SUBFOLDER_KEEP_MODE == 1) dataFormatRule = "<f>/hr,f=\"T\"//<p>/<f>";
-    dataFormatCols = "TB/BIC/CWBA,name=\"Cell with Beads\"/TC/IBR/PCR/EIBR/EPCR/ISDP/PSDP";
+    dataFormatRule = "pn/f";
+    dataFormatCols = "TB/BiC/CwBa,name=\"Cell with Beads\"/TC/IBR/PCR/eIBR/ePCR";
     dataOptimizeEnable = 1;
 
     // -----------------------------------------------------------------------------
     // フェーズ8: パラメータ推定（面積・閾値・Rolling Ball）
     // -----------------------------------------------------------------------------
-    targetMeanMed = estimateMeanMedianSafe(targetMeans);
-    exclMeanMed = estimateMeanMedianSafe(exclMeansAll);
-
     if (targetAreas.length == 0) {
         reasonMsg = reasonMsg + "• " + T_reason_no_target + "\n";
     } else {
@@ -3642,7 +2976,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     k = 0;
     while (k < nTotalImgs) {
-        roiPaths[k] = imgDirs[k] + bases[k] + roiSuffix + ".zip";
+        roiPaths[k] = dir + bases[k] + roiSuffix + ".zip";
         k = k + 1;
     }
 
@@ -3728,21 +3062,15 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         Dialog.addCheckbox(T_data_format_enable, (dataFormatEnable == 1));
         Dialog.addString(T_data_format_rule, dataFormatRule);
         Dialog.addString(T_data_format_cols, dataFormatCols);
-        if (DATA_OPT_UI == 1) {
-            Dialog.addCheckbox(T_data_opt_enable, (dataOptimizeEnable == 1));
-        }
+        Dialog.addCheckbox(T_data_opt_enable, (dataOptimizeEnable == 1));
         Dialog.show();
 
         if (Dialog.getCheckbox()) dataFormatEnable = 1;
         else dataFormatEnable = 0;
         dataFormatRule = Dialog.getString();
         dataFormatCols = Dialog.getString();
-        if (DATA_OPT_UI == 1) {
-            if (Dialog.getCheckbox()) dataOptimizeEnable = 1;
-            else dataOptimizeEnable = 0;
-        } else {
-            dataOptimizeEnable = 1;
-        }
+        if (Dialog.getCheckbox()) dataOptimizeEnable = 1;
+        else dataOptimizeEnable = 0;
 
         errMsg = "";
         if (dataFormatEnable == 1) {
@@ -3752,11 +3080,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
         if (errMsg == "") break;
         showMessage(T_data_format_err_title, errMsg + "\n\n" + T_data_format_err_hint);
-    }
-
-    NEED_PER_CELL_STATS = 0;
-    if (dataFormatEnable == 1) {
-        NEED_PER_CELL_STATS = requiresPerCellStats(dataFormatCols);
     }
 
     waitForUser(T_step_main_title, T_step_main_msg);
@@ -3779,7 +3102,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     cellA = newArray(nTotalImgs);
     allcellA = newArray(nTotalImgs);
     cellAdjA = newArray(nTotalImgs);
-    cellBeadStrA = newArray(nTotalImgs);
 
     k = 0;
     while (k < nTotalImgs) {
@@ -3789,7 +3111,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         roiPath = roiPaths[k];
 
         printWithIndex(T_log_processing, k + 1, nTotalImgs, imgName);
-        imgNameA[k] = parseBases[k];
+        imgNameA[k] = base;
 
         if (!File.exists(roiPath)) {
 
@@ -3822,8 +3144,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 }
 
                 if (missingAction == T_missing_anno) {
-                    SKIP_ALL_EXISTING_ROI = annotateCellsSmart(imgDirs[k], imgName, roiSuffix, k + 1, nTotalImgs, 0);
-                    roiPath = imgDirs[k] + base + roiSuffix + ".zip";
+                    SKIP_ALL_EXISTING_ROI = annotateCellsSmart(dir, imgName, roiSuffix, k + 1, nTotalImgs, 0);
+                    roiPath = dir + base + roiSuffix + ".zip";
                     roiPaths[k] = roiPath;
                 }
 
@@ -3837,13 +3159,12 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             incellA[k] = "";
             cellA[k] = "";
             allcellA[k] = "";
-            cellBeadStrA[k] = "";
             k = k + 1;
             continue;
         }
 
         // 解析対象画像を開き、ROIを読み込む
-        open(imgDirs[k] + imgName);
+        open(dir + imgName);
         ensure2D();
         forcePixelUnit();
         origID = getImageID();
@@ -3859,7 +3180,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             incellA[k] = "";
             cellA[k] = "";
             allcellA[k] = "";
-            cellBeadStrA[k] = "";
             k = k + 1;
             continue;
         }
@@ -3959,12 +3279,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         }
 
         // beads検出と細胞内集計を実行する
-        flat = detectBeadsFusion(
-            "__bead_gray", strictChoice, effMinArea, effMaxArea, effMinCirc, beadUnitArea,
-            allowClumpsTarget, w, h,
-            targetMeanMed, exclMeanMed,
-            imgName
-        );
+        flat = detectBeadsFusion("__bead_gray", strictChoice, effMinArea, effMaxArea, effMinCirc, beadUnitArea, imgName);
 
         cnt = countBeadsByFlat(
             flat, cellLabelTitle, nCellsAll, w, h, HAS_LABEL_MASK,
@@ -3972,8 +3287,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             useExcl, exclMode, exclThrImg,
             useExclSizeGate, exclMinA, exclMaxA,
             "__bead_gray", imgName,
-            useMinPhago,
-            NEED_PER_CELL_STATS
+            useMinPhago
         );
 
         nBeadsAll = cnt[0];
@@ -3995,8 +3309,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         allcellA[k] = nCellsAll;
         if (cnt.length > 3) cellAdjA[k] = cnt[3];
         else cellAdjA[k] = "";
-        if (cnt.length > 5) cellBeadStrA[k] = "" + cnt[5];
-        else cellBeadStrA[k] = "";
 
         log(T_log_complete);
 
@@ -4022,94 +3334,29 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     if (dataFormatEnable == 1) {
         ruleTmp = trim2(dataFormatRule);
-        defaultRule = "<p>/<f>,f=\"F\"";
-        if (SUBFOLDER_KEEP_MODE == 1) defaultRule = "<f>/hr,f=\"T\"//<p>/<f>";
-        if (lengthOf(ruleTmp) == 0) dataFormatRule = defaultRule;
+        if (lengthOf(ruleTmp) == 0) dataFormatRule = "pn/f";
         else dataFormatRule = ruleTmp;
+        ruleCheck = toLowerCase(dataFormatRule);
+        if (indexOf(ruleCheck, "pn") < 0 || indexOf(ruleCheck, "f") < 0) dataFormatRule = "pn/f";
         colsTmp = trim2(dataFormatCols);
         if (lengthOf(colsTmp) == 0)
-            dataFormatCols = "TB/BIC/CWBA,name=\"Cell with Beads\"/TC/IBR/PCR/EIBR/EPCR/ISDP/PSDP";
+            dataFormatCols = "TB/BiC/CwBa,name=\"Cell with Beads\"/TC/IBR/PCR/eIBR/ePCR";
         else dataFormatCols = colsTmp;
 
         pnA = newArray(nTotalImgs);
         fStrA = newArray(nTotalImgs);
         fNumA = newArray(nTotalImgs);
-        tStrA = newArray(nTotalImgs);
-        tNumA = newArray(nTotalImgs);
-
-        ruleFileSpec = dataFormatRule;
-        ruleFolderSpec = "";
-        idxRule = indexOf(dataFormatRule, "//");
-        if (SUBFOLDER_KEEP_MODE == 1 && idxRule >= 0) {
-            ruleFolderSpec = trim2(substring(dataFormatRule, 0, idxRule));
-            ruleFileSpec = trim2(substring(dataFormatRule, idxRule + 2));
-        }
-
-        fileSpec = parseRuleSpec(ruleFileSpec, "F");
-        filePattern = fileSpec[0];
-        fileTarget = fileSpec[1];
-        folderPattern = "";
-        folderTarget = "T";
-        if (ruleFolderSpec != "") {
-            folderSpec = parseRuleSpec(ruleFolderSpec, "T");
-            folderPattern = folderSpec[0];
-            folderTarget = folderSpec[1];
-        }
-        hasTimeRule = (fileTarget == "T" || folderTarget == "T");
 
         k = 0;
         while (k < nTotalImgs) {
-            pn = "";
-            fStr = "";
-            fNum = 0;
-            tStr = "";
-            tNum = 0;
-
-            parsedFile = parseByPattern(imgNameA[k], filePattern);
-            if (parsedFile[0] != "") pn = parsedFile[0];
-            if (parsedFile[1] != "") {
-                if (fileTarget == "T") {
-                    tStr = parsedFile[1];
-                    tNum = parsedFile[2];
-                } else {
-                    fStr = parsedFile[1];
-                    fNum = parsedFile[2];
-                }
+            parsed = parsePnF(imgNameA[k], dataFormatRule);
+            pnA[k] = parsed[0];
+            fStrA[k] = parsed[1];
+            fNumA[k] = parsed[2];
+            if (fStrA[k] == "") {
+                fNumA[k] = k + 1;
+                fStrA[k] = "" + fNumA[k];
             }
-
-            if (folderPattern != "") {
-                parsedFolder = parseByPattern(subNames[k], folderPattern);
-                if ((pn == "" || pn == "PN") && parsedFolder[0] != "") pn = parsedFolder[0];
-                if (parsedFolder[1] != "") {
-                    if (folderTarget == "T" && tStr == "") {
-                        tStr = parsedFolder[1];
-                        tNum = parsedFolder[2];
-                    } else if (folderTarget == "F" && fStr == "") {
-                        fStr = parsedFolder[1];
-                        fNum = parsedFolder[2];
-                    }
-                }
-            }
-
-            if (pn == "") pn = "PN";
-
-            if (hasTimeRule == 1) {
-                if (tStr == "") {
-                    tNum = 0;
-                    tStr = "";
-                }
-            } else {
-                if (fStr == "") {
-                    fNum = k + 1;
-                    fStr = "" + fNum;
-                }
-            }
-
-            pnA[k] = pn;
-            fStrA[k] = fStr;
-            fNumA[k] = fNum;
-            tStrA[k] = tStr;
-            tNumA[k] = tNum;
             k = k + 1;
         }
 
@@ -4151,31 +3398,24 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 }
                 tokenKey = toLowerCase(tokenRaw);
                 if (tokenKey == "-f") {
-                    if (hasTimeRule == 0) sortDesc = 1;
+                    sortDesc = 1;
                     tokenKey = "f";
                 }
-                if (tokenKey == "pn" || tokenKey == "f" || tokenKey == "t" || tokenKey == "tb" || tokenKey == "bic" ||
-                    tokenKey == "cwb" || tokenKey == "cwba" || tokenKey == "tc" || tokenKey == "bpc" ||
-                    tokenKey == "ibr" || tokenKey == "pcr" || tokenKey == "ebpc" || tokenKey == "bpcsdp" ||
-                    tokenKey == "eibr" || tokenKey == "epcr" || tokenKey == "isdp" || tokenKey == "psdp") {
+                if (tokenKey == "pn" || tokenKey == "f" || tokenKey == "tb" || tokenKey == "bic" || tokenKey == "cwb" ||
+                    tokenKey == "cwba" || tokenKey == "tc" || tokenKey == "ibr" || tokenKey == "pcr" ||
+                    tokenKey == "eibr" || tokenKey == "epcr") {
                     if (single == 1) single = 0;
                     if (tokenKey == "pn") token = "PN";
                     else if (tokenKey == "f") token = "F";
-                    else if (tokenKey == "t") token = "T";
                     else if (tokenKey == "tb") token = "TB";
                     else if (tokenKey == "bic") token = "BIC";
                     else if (tokenKey == "cwb") token = "CWB";
                     else if (tokenKey == "cwba") token = "CWBA";
                     else if (tokenKey == "tc") token = "TC";
-                    else if (tokenKey == "bpc") token = "BPC";
                     else if (tokenKey == "ibr") token = "IBR";
                     else if (tokenKey == "pcr") token = "PCR";
-                    else if (tokenKey == "ebpc") token = "EBPC";
-                    else if (tokenKey == "bpcsdp") token = "BPCSDP";
                     else if (tokenKey == "eibr") token = "EIBR";
                     else if (tokenKey == "epcr") token = "EPCR";
-                    else if (tokenKey == "isdp") token = "ISDP";
-                    else if (tokenKey == "psdp") token = "PSDP";
                 } else {
                     token = tokenRaw;
                 }
@@ -4209,40 +3449,13 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             k = k + 1;
         }
 
-        hasBpcToken = 0;
-        k = 0;
-        while (k < itemTokens.length) {
-            if (itemTokens[k] == "BPC" || itemTokens[k] == "EBPC" || itemTokens[k] == "BPCSDP") {
-                hasBpcToken = 1;
-                break;
-            }
-            k = k + 1;
-        }
-        perCellMode = (hasBpcToken == 1);
-
         adjIncellA = newArray(nTotalImgs);
         adjCellA = newArray(nTotalImgs);
-        adjCellBeadStrA = newArray(nTotalImgs);
         k = 0;
         while (k < nTotalImgs) {
             adjIncellA[k] = incellA[k];
             adjCellA[k] = cellA[k];
-            adjCellBeadStrA[k] = "" + cellBeadStrA[k];
             k = k + 1;
-        }
-
-        if (perCellMode == 1) {
-            k = 0;
-            while (k < nTotalImgs) {
-                nCellTmp = allcellA[k];
-                if (nCellTmp != "") {
-                    nCellVal = 0 + nCellTmp;
-                    if (adjCellBeadStrA[k] == "" && nCellVal > 0) {
-                        adjCellBeadStrA[k] = buildZeroCsv(nCellVal);
-                    }
-                }
-                k = k + 1;
-            }
         }
 
         if (dataOptimizeEnable == 1) {
@@ -4352,411 +3565,51 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 k = k + 1;
             }
 
-            if (perCellMode == 1) {
-                bpcOrig = newArray(nTotalImgs);
-                sumBPC = 0;
-                cntBPC = 0;
-
-                k = 0;
-                while (k < nTotalImgs) {
-                    bpcOrig[k] = meanFromCsv(adjCellBeadStrA[k]);
-                    if (bpcOrig[k] != "") {
-                        sumBPC = sumBPC + bpcOrig[k];
-                        cntBPC = cntBPC + 1;
-                    }
-                    k = k + 1;
-                }
-
-                gBPC = 0;
-                if (cntBPC > 0) gBPC = sumBPC / cntBPC;
-
-                pnBPC = newArray(pnList.length);
-                pnSumBPC = newArray(pnList.length);
-                pnCntBPC = newArray(pnList.length);
-
-                k = 0;
-                while (k < nTotalImgs) {
-                    idxPn = pnIndexA[k];
-                    if (idxPn >= 0 && bpcOrig[k] != "") {
-                        pnSumBPC[idxPn] = pnSumBPC[idxPn] + bpcOrig[k];
-                        pnCntBPC[idxPn] = pnCntBPC[idxPn] + 1;
-                    }
-                    k = k + 1;
-                }
-
-                p = 0;
-                while (p < pnList.length) {
-                    if (pnCntBPC[p] > 0) pnBPC[p] = pnSumBPC[p] / pnCntBPC[p];
-                    else pnBPC[p] = "";
-                    p = p + 1;
-                }
-
-                k = 0;
-                while (k < nTotalImgs) {
-                    idxPn = pnIndexA[k];
-                    if (idxPn >= 0 && bpcOrig[k] != "" && pnBPC[idxPn] != "") {
-                        nPn = pnCounts[idxPn];
-                        withinFactor = 0.75;
-                        if (nPn > 1) {
-                            withinFactor = 0.55 + 0.20 / sqrt(nPn);
-                        }
-                        withinFactor = clamp(withinFactor, 0.35, 0.75);
-
-                        tBPC = gBPC + (pnBPC[idxPn] - gBPC) * betweenFactor + (bpcOrig[k] - pnBPC[idxPn]) * withinFactor;
-                        if (tBPC < 0) tBPC = 0;
-                        if (bpcOrig[k] > 0) {
-                            factor = tBPC / bpcOrig[k];
-                            scaleCsvIntoArray(adjCellBeadStrA, k, factor);
-                        }
-                    }
-                    k = k + 1;
-                }
-            }
-
-            if (hasTimeRule == 1) {
-                if (perCellMode == 1) {
-                    p = 0;
-                    while (p < pnList.length) {
-                        pnNow = pnList[p];
-                        timeNums = newArray();
-                        timeStrs = newArray();
-                        timeIdxs = newArray();
-
-                        k = 0;
-                        while (k < nTotalImgs) {
-                            if (pnA[k] == pnNow) {
-                                tNum = tNumA[k];
-                                tStr = tStrA[k];
-                                found = 0;
-                                j = 0;
-                                while (j < timeNums.length) {
-                                    if (timeNums[j] == tNum) {
-                                        found = 1;
-                                        if (timeStrs[j] == "" && tStr != "") timeStrs[j] = tStr;
-                                        break;
-                                    }
-                                    j = j + 1;
-                                }
-                                if (found == 0) {
-                                    timeNums[timeNums.length] = tNum;
-                                    timeStrs[timeStrs.length] = tStr;
-                                    timeIdxs[timeIdxs.length] = k;
-                                }
-                            }
-                            k = k + 1;
-                        }
-
-                        sortTriplesByNumber(timeNums, timeStrs, timeIdxs, 0);
-
-                        prevMean = "";
-                        t = 0;
-                        while (t < timeNums.length) {
-                            tNow = timeNums[t];
-                            sumBPC = 0;
-                            cntBPC = 0;
-                            k = 0;
-                            while (k < nTotalImgs) {
-                                if (pnA[k] == pnNow && tNumA[k] == tNow && adjCellBeadStrA[k] != "") {
-                                    cellArr = parseNumberList(adjCellBeadStrA[k]);
-                                    c = 0;
-                                    while (c < cellArr.length) {
-                                        sumBPC = sumBPC + cellArr[c];
-                                        cntBPC = cntBPC + 1;
-                                        c = c + 1;
-                                    }
-                                }
-                                k = k + 1;
-                            }
-                            if (cntBPC > 0) {
-                                meanBPC = sumBPC / cntBPC;
-                                if (prevMean != "" && meanBPC < prevMean) {
-                                    target = prevMean;
-                                    if (meanBPC > 0) {
-                                        factor = target / meanBPC;
-                                        k = 0;
-                                        while (k < nTotalImgs) {
-                                            if (pnA[k] == pnNow && tNumA[k] == tNow && adjCellBeadStrA[k] != "") {
-                                                scaleCsvIntoArray(adjCellBeadStrA, k, factor);
-                                            }
-                                            k = k + 1;
-                                        }
-                                    }
-                                    meanBPC = target;
-                                }
-                                prevMean = meanBPC;
-                            }
-                            t = t + 1;
-                        }
-                        p = p + 1;
-                    }
-                } else {
-                    p = 0;
-                    while (p < pnList.length) {
-                        pnNow = pnList[p];
-                        timeNums = newArray();
-                        timeStrs = newArray();
-                        timeIdxs = newArray();
-
-                        k = 0;
-                        while (k < nTotalImgs) {
-                            if (pnA[k] == pnNow) {
-                                tNum = tNumA[k];
-                                tStr = tStrA[k];
-                                found = 0;
-                                j = 0;
-                                while (j < timeNums.length) {
-                                    if (timeNums[j] == tNum) {
-                                        found = 1;
-                                        if (timeStrs[j] == "" && tStr != "") timeStrs[j] = tStr;
-                                        break;
-                                    }
-                                    j = j + 1;
-                                }
-                                if (found == 0) {
-                                    timeNums[timeNums.length] = tNum;
-                                    timeStrs[timeStrs.length] = tStr;
-                                    timeIdxs[timeIdxs.length] = k;
-                                }
-                            }
-                            k = k + 1;
-                        }
-
-                        sortTriplesByNumber(timeNums, timeStrs, timeIdxs, 0);
-
-                        prevMean = "";
-                        t = 0;
-                        while (t < timeNums.length) {
-                            tNow = timeNums[t];
-                            sumIBR = 0;
-                            cntIBR = 0;
-                            k = 0;
-                            while (k < nTotalImgs) {
-                                if (pnA[k] == pnNow && tNumA[k] == tNow && adjIncellA[k] != "" && allA[k] != "") {
-                                    ibrTmp = calcRatio(adjIncellA[k], allA[k]);
-                                    if (ibrTmp != "") {
-                                        sumIBR = sumIBR + ibrTmp;
-                                        cntIBR = cntIBR + 1;
-                                    }
-                                }
-                                k = k + 1;
-                            }
-                            if (cntIBR > 0) {
-                                meanIBR = sumIBR / cntIBR;
-                                if (prevMean != "" && meanIBR < prevMean) {
-                                    target = prevMean;
-                                    k = 0;
-                                    while (k < nTotalImgs) {
-                                        if (pnA[k] == pnNow && tNumA[k] == tNow && allA[k] != "") {
-                                            adj = roundInt(target * allA[k]);
-                                            if (adj < 0) adj = 0;
-                                            if (adj > allA[k]) adj = allA[k];
-                                            adjIncellA[k] = adj;
-                                        }
-                                        k = k + 1;
-                                    }
-                                    meanIBR = target;
-                                }
-                                prevMean = meanIBR;
-                            }
-                            t = t + 1;
-                        }
-                        p = p + 1;
-                    }
-                }
-            }
-
+            log(T_log_opt_done);
         }
 
         ibrOut = newArray(nTotalImgs);
         pcrOut = newArray(nTotalImgs);
-        bpcOut = newArray(nTotalImgs);
         k = 0;
         while (k < nTotalImgs) {
             ibrOut[k] = calcRatio(adjIncellA[k], allA[k]);
             pcrOut[k] = calcRatio(adjCellA[k], allcellA[k]);
-            bpcOut[k] = calcRatio(adjIncellA[k], allcellA[k]);
             k = k + 1;
         }
 
-        if (hasTimeRule == 1) {
-            groupPn = newArray();
-            groupKey = newArray();
-            groupSumIBR = newArray();
-            groupSumPCR = newArray();
-            groupSumBPC = newArray();
-            groupSumIBR2 = newArray();
-            groupSumPCR2 = newArray();
-            groupSumBPC2 = newArray();
-            groupCntIBR = newArray();
-            groupCntPCR = newArray();
-            groupCntBPC = newArray();
-
+        pnEIBR = newArray(pnList.length);
+        pnEPCR = newArray(pnList.length);
+        p = 0;
+        while (p < pnList.length) {
+            sumIBR = 0;
+            sumPCR = 0;
+            cntIBR = 0;
+            cntPCR = 0;
             k = 0;
             while (k < nTotalImgs) {
-                pnNow = pnA[k];
-                keyNow = tNumA[k];
-                g = findGroupIndex(pnNow, keyNow, groupPn, groupKey);
-                if (g < 0) {
-                    g = groupPn.length;
-                    groupPn[g] = pnNow;
-                    groupKey[g] = keyNow;
-                    groupSumIBR[g] = 0;
-                    groupSumPCR[g] = 0;
-                    groupSumBPC[g] = 0;
-                    groupSumIBR2[g] = 0;
-                    groupSumPCR2[g] = 0;
-                    groupSumBPC2[g] = 0;
-                    groupCntIBR[g] = 0;
-                    groupCntPCR[g] = 0;
-                    groupCntBPC[g] = 0;
-                }
-                if (ibrOut[k] != "") {
-                    groupSumIBR[g] = groupSumIBR[g] + ibrOut[k];
-                    groupSumIBR2[g] = groupSumIBR2[g] + ibrOut[k] * ibrOut[k];
-                    groupCntIBR[g] = groupCntIBR[g] + 1;
-                }
-                if (pcrOut[k] != "") {
-                    groupSumPCR[g] = groupSumPCR[g] + pcrOut[k];
-                    groupSumPCR2[g] = groupSumPCR2[g] + pcrOut[k] * pcrOut[k];
-                    groupCntPCR[g] = groupCntPCR[g] + 1;
-                }
-                cellArr = parseNumberList(adjCellBeadStrA[k]);
-                c = 0;
-                while (c < cellArr.length) {
-                    v = cellArr[c];
-                    groupSumBPC[g] = groupSumBPC[g] + v;
-                    groupSumBPC2[g] = groupSumBPC2[g] + v * v;
-                    groupCntBPC[g] = groupCntBPC[g] + 1;
-                    c = c + 1;
+                if (pnA[k] == pnList[p]) {
+                    if (ibrOut[k] != "") {
+                        sumIBR = sumIBR + ibrOut[k];
+                        cntIBR = cntIBR + 1;
+                    }
+                    if (pcrOut[k] != "") {
+                        sumPCR = sumPCR + pcrOut[k];
+                        cntPCR = cntPCR + 1;
+                    }
                 }
                 k = k + 1;
             }
-
-            groupEIBR = newArray(groupPn.length);
-            groupEPCR = newArray(groupPn.length);
-            groupEBPC = newArray(groupPn.length);
-            groupISDP = newArray(groupPn.length);
-            groupPSDP = newArray(groupPn.length);
-            groupBPCSDP = newArray(groupPn.length);
-            g = 0;
-            while (g < groupPn.length) {
-                if (groupCntIBR[g] > 0) {
-                    meanIBR = groupSumIBR[g] / groupCntIBR[g];
-                    groupEIBR[g] = meanIBR;
-                    varIBR = (groupSumIBR2[g] / groupCntIBR[g]) - meanIBR * meanIBR;
-                    if (varIBR < 0) varIBR = 0;
-                    groupISDP[g] = sqrt(varIBR);
-                } else {
-                    groupEIBR[g] = "";
-                    groupISDP[g] = "";
-                }
-                if (groupCntPCR[g] > 0) {
-                    meanPCR = groupSumPCR[g] / groupCntPCR[g];
-                    groupEPCR[g] = meanPCR;
-                    varPCR = (groupSumPCR2[g] / groupCntPCR[g]) - meanPCR * meanPCR;
-                    if (varPCR < 0) varPCR = 0;
-                    groupPSDP[g] = sqrt(varPCR);
-                } else {
-                    groupEPCR[g] = "";
-                    groupPSDP[g] = "";
-                }
-                if (groupCntBPC[g] > 0) {
-                    meanBPC = groupSumBPC[g] / groupCntBPC[g];
-                    groupEBPC[g] = meanBPC;
-                    varBPC = (groupSumBPC2[g] / groupCntBPC[g]) - meanBPC * meanBPC;
-                    if (varBPC < 0) varBPC = 0;
-                    groupBPCSDP[g] = sqrt(varBPC);
-                } else {
-                    groupEBPC[g] = "";
-                    groupBPCSDP[g] = "";
-                }
-                g = g + 1;
-            }
-        } else {
-            pnEIBR = newArray(pnList.length);
-            pnEPCR = newArray(pnList.length);
-            pnEBPC = newArray(pnList.length);
-            pnISDP = newArray(pnList.length);
-            pnPSDP = newArray(pnList.length);
-            pnBPCSDP = newArray(pnList.length);
-            p = 0;
-            while (p < pnList.length) {
-                sumIBR = 0;
-                sumPCR = 0;
-                sumBPC = 0;
-                sumIBR2 = 0;
-                sumPCR2 = 0;
-                sumBPC2 = 0;
-                cntIBR = 0;
-                cntPCR = 0;
-                cntBPC = 0;
-                k = 0;
-                while (k < nTotalImgs) {
-                    if (pnA[k] == pnList[p]) {
-                        if (ibrOut[k] != "") {
-                            sumIBR = sumIBR + ibrOut[k];
-                            sumIBR2 = sumIBR2 + ibrOut[k] * ibrOut[k];
-                            cntIBR = cntIBR + 1;
-                        }
-                        if (pcrOut[k] != "") {
-                            sumPCR = sumPCR + pcrOut[k];
-                            sumPCR2 = sumPCR2 + pcrOut[k] * pcrOut[k];
-                            cntPCR = cntPCR + 1;
-                        }
-                        cellArr = parseNumberList(adjCellBeadStrA[k]);
-                        c = 0;
-                        while (c < cellArr.length) {
-                            v = cellArr[c];
-                            sumBPC = sumBPC + v;
-                            sumBPC2 = sumBPC2 + v * v;
-                            cntBPC = cntBPC + 1;
-                            c = c + 1;
-                        }
-                    }
-                    k = k + 1;
-                }
-                if (cntIBR > 0) {
-                    meanIBR = sumIBR / cntIBR;
-                    pnEIBR[p] = meanIBR;
-                    varIBR = (sumIBR2 / cntIBR) - meanIBR * meanIBR;
-                    if (varIBR < 0) varIBR = 0;
-                    pnISDP[p] = sqrt(varIBR);
-                } else {
-                    pnEIBR[p] = "";
-                    pnISDP[p] = "";
-                }
-                if (cntPCR > 0) {
-                    meanPCR = sumPCR / cntPCR;
-                    pnEPCR[p] = meanPCR;
-                    varPCR = (sumPCR2 / cntPCR) - meanPCR * meanPCR;
-                    if (varPCR < 0) varPCR = 0;
-                    pnPSDP[p] = sqrt(varPCR);
-                } else {
-                    pnEPCR[p] = "";
-                    pnPSDP[p] = "";
-                }
-                if (cntBPC > 0) {
-                    meanBPC = sumBPC / cntBPC;
-                    pnEBPC[p] = meanBPC;
-                    varBPC = (sumBPC2 / cntBPC) - meanBPC * meanBPC;
-                    if (varBPC < 0) varBPC = 0;
-                    pnBPCSDP[p] = sqrt(varBPC);
-                } else {
-                    pnEBPC[p] = "";
-                    pnBPCSDP[p] = "";
-                }
-                p = p + 1;
-            }
+            if (cntIBR > 0) pnEIBR[p] = sumIBR / cntIBR;
+            else pnEIBR[p] = "";
+            if (cntPCR > 0) pnEPCR[p] = sumPCR / cntPCR;
+            else pnEPCR[p] = "";
+            p = p + 1;
         }
 
         colLabels = newArray();
         colTokens = newArray();
         colPns = newArray();
         colValues = newArray();
-        colRowToken = newArray();
-        colTimeNums = newArray();
-        colTimeIdx = newArray();
-        colPnIdx = newArray();
 
         k = 0;
         while (k < itemTokens.length) {
@@ -4771,480 +3624,166 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 else if (token == "CWB") name = "Cells with Beads";
                 else if (token == "CWBA") name = "Cells with Beads (Adj)";
                 else if (token == "TC") name = "Total Cells";
-                else if (token == "BPC") name = "Beads per Cell";
                 else if (token == "IBR") name = "IBR";
                 else if (token == "PCR") name = "PCR";
-                else if (token == "EBPC") name = "eBPC";
-                else if (token == "BPCSDP") name = "BPCstdevp";
                 else if (token == "EIBR") name = "eIBR";
                 else if (token == "EPCR") name = "ePCR";
-                else if (token == "ISDP") name = "IBRstdevp";
-                else if (token == "PSDP") name = "PCRstdevp";
                 else if (token == "PN") name = "PN";
                 else if (token == "F") name = "F";
-                else if (token == "T") name = "Time";
                 else name = token;
             }
             itemNames[k] = name;
 
             k = k + 1;
         }
-        sortKeyLabel = "F";
-        if (hasTimeRule == 1) {
-            sortDesc = 0;
-            sortKeyLabel = "T";
-        }
-        logDataFormatDetails(dataFormatRule, dataFormatCols, itemSpecs, itemTokens, itemNames, itemValues, itemSingles, sortDesc, sortKeyLabel);
+        logDataFormatDetails(dataFormatRule, dataFormatCols, itemSpecs, itemTokens, itemNames, itemValues, itemSingles, sortDesc);
 
-        if (hasTimeRule == 1) {
-            timeNums = newArray();
-            timeStrs = newArray();
+        k = 0;
+        while (k < itemTokens.length) {
+            if (itemSingles[k] == 1) {
+                colLabels[colLabels.length] = itemNames[k];
+                colTokens[colTokens.length] = itemTokens[k];
+                colPns[colPns.length] = "";
+                colValues[colValues.length] = itemValues[k];
+            }
+            k = k + 1;
+        }
+
+        p = 0;
+        while (p < pnList.length) {
             k = 0;
-            while (k < nTotalImgs) {
-                tNum = tNumA[k];
-                tStr = tStrA[k];
-                found = 0;
-                j = 0;
-                while (j < timeNums.length) {
-                    if (timeNums[j] == tNum) {
-                        found = 1;
-                        if (timeStrs[j] == "" && tStr != "") timeStrs[j] = tStr;
-                        break;
-                    }
-                    j = j + 1;
-                }
-                if (found == 0) {
-                    timeNums[timeNums.length] = tNum;
-                    timeStrs[timeStrs.length] = tStr;
+            while (k < itemTokens.length) {
+                if (itemSingles[k] == 0) {
+                    name = itemNames[k];
+                    label = name;
+                    if (pnList.length > 1) label = label + "_" + pnList[p];
+                    colLabels[colLabels.length] = label;
+                    colTokens[colTokens.length] = itemTokens[k];
+                    colPns[colPns.length] = pnList[p];
+                    colValues[colValues.length] = itemValues[k];
                 }
                 k = k + 1;
             }
-            timeIdxs = newArray(timeNums.length);
+            p = p + 1;
+        }
+
+        fNumsByPnStart = newArray(pnList.length);
+        fNumsByPnLen = newArray(pnList.length);
+        fNumsFlat = newArray();
+        fStrsFlat = newArray();
+        fIdxFlat = newArray();
+        maxRows = 0;
+
+        p = 0;
+        while (p < pnList.length) {
+            pnNow = pnList[p];
+            fNums = newArray();
+            fStrs = newArray();
+            fIdxs = newArray();
+            k = 0;
+            while (k < nTotalImgs) {
+                if (pnA[k] == pnNow) {
+                    fNum = fNumA[k];
+                    found = 0;
+                    j = 0;
+                    while (j < fNums.length) {
+                        if (fNums[j] == fNum) {
+                            found = 1;
+                            break;
+                        }
+                        j = j + 1;
+                    }
+                    if (found == 0) {
+                        fNums[fNums.length] = fNum;
+                        fStrs[fStrs.length] = fStrA[k];
+                        fIdxs[fIdxs.length] = k;
+                    }
+                }
+                k = k + 1;
+            }
+            sortTriplesByNumber(fNums, fStrs, fIdxs, sortDesc);
+            fNumsByPnStart[p] = fNumsFlat.length;
+            fNumsByPnLen[p] = fNums.length;
             j = 0;
-            while (j < timeNums.length) {
-                timeIdxs[j] = j;
+            while (j < fNums.length) {
+                fNumsFlat[fNumsFlat.length] = fNums[j];
+                fStrsFlat[fStrsFlat.length] = fStrs[j];
+                fIdxFlat[fIdxFlat.length] = fIdxs[j];
                 j = j + 1;
             }
-            sortTriplesByNumber(timeNums, timeStrs, timeIdxs, 0);
-
-            k = 0;
-            while (k < itemTokens.length) {
-                if (itemSingles[k] == 1) {
-                    colLabels[colLabels.length] = itemNames[k];
-                    colTokens[colTokens.length] = itemTokens[k];
-                    colPns[colPns.length] = "";
-                    colValues[colValues.length] = itemValues[k];
-                    colRowToken[colRowToken.length] = 1;
-                    colTimeNums[colTimeNums.length] = "";
-                    colTimeIdx[colTimeIdx.length] = -1;
-                    colPnIdx[colPnIdx.length] = -1;
-                }
-                k = k + 1;
-            }
-
-            k = 0;
-            while (k < itemTokens.length) {
-                token = itemTokens[k];
-                if (itemSingles[k] == 0 && (token == "T" || token == "F")) {
-                    colLabels[colLabels.length] = itemNames[k];
-                    colTokens[colTokens.length] = token;
-                    colPns[colPns.length] = "";
-                    colValues[colValues.length] = itemValues[k];
-                    colRowToken[colRowToken.length] = 1;
-                    colTimeNums[colTimeNums.length] = "";
-                    colTimeIdx[colTimeIdx.length] = -1;
-                    colPnIdx[colPnIdx.length] = -1;
-                }
-                k = k + 1;
-            }
-
-            p = 0;
-            while (p < pnList.length) {
-                pnNow = pnList[p];
-                k = 0;
-                while (k < itemTokens.length) {
-                    token = itemTokens[k];
-                    if (itemSingles[k] == 0 && token != "T" && token != "F") {
-                        name = itemNames[k];
-                        label = name;
-                        if (pnList.length > 1) label = label + "_" + pnNow;
-                        colLabels[colLabels.length] = label;
-                        colTokens[colTokens.length] = token;
-                        colPns[colPns.length] = pnNow;
-                        colValues[colValues.length] = itemValues[k];
-                        colRowToken[colRowToken.length] = 0;
-                        colTimeNums[colTimeNums.length] = "";
-                        colTimeIdx[colTimeIdx.length] = -1;
-                        colPnIdx[colPnIdx.length] = p;
-                    }
-                    k = k + 1;
-                }
-                p = p + 1;
-            }
-        } else {
-            k = 0;
-            while (k < itemTokens.length) {
-                if (itemSingles[k] == 1) {
-                    colLabels[colLabels.length] = itemNames[k];
-                    colTokens[colTokens.length] = itemTokens[k];
-                    colPns[colPns.length] = "";
-                    colValues[colValues.length] = itemValues[k];
-                    colRowToken[colRowToken.length] = 1;
-                    colTimeNums[colTimeNums.length] = "";
-                    colTimeIdx[colTimeIdx.length] = -1;
-                    colPnIdx[colPnIdx.length] = -1;
-                }
-                k = k + 1;
-            }
-
-            p = 0;
-            while (p < pnList.length) {
-                k = 0;
-                while (k < itemTokens.length) {
-                    if (itemSingles[k] == 0) {
-                        name = itemNames[k];
-                        label = name;
-                        if (pnList.length > 1) label = label + "_" + pnList[p];
-                        colLabels[colLabels.length] = label;
-                        colTokens[colTokens.length] = itemTokens[k];
-                        colPns[colPns.length] = pnList[p];
-                        colValues[colValues.length] = itemValues[k];
-                        colRowToken[colRowToken.length] = 0;
-                        colTimeNums[colTimeNums.length] = "";
-                        colTimeIdx[colTimeIdx.length] = -1;
-                        colPnIdx[colPnIdx.length] = p;
-                    }
-                    k = k + 1;
-                }
-                p = p + 1;
-            }
+            if (fNums.length > maxRows) maxRows = fNums.length;
+            p = p + 1;
         }
 
-        if (hasTimeRule == 1) {
-            nPn = pnList.length;
-            nT = timeNums.length;
-            idxCounts = newArray(nPn * nT);
-            k = 0;
-            while (k < nTotalImgs) {
-                idxPn = pnIndexA[k];
-                if (idxPn >= 0) {
-                    t = 0;
-                    while (t < nT) {
-                        if (timeNums[t] == tNumA[k]) {
-                            bucket = idxPn * nT + t;
-                            if (perCellMode == 1) {
-                                cellArr = parseNumberList(adjCellBeadStrA[k]);
-                                idxCounts[bucket] = idxCounts[bucket] + cellArr.length;
-                            } else {
-                                idxCounts[bucket] = idxCounts[bucket] + 1;
-                            }
-                            break;
-                        }
-                        t = t + 1;
-                    }
+        row = 0;
+        while (row < maxRows) {
+
+            c = 0;
+            while (c < colLabels.length) {
+                if (colPns[c] == "" && colValues[c] != "") {
+                    setResult(colLabels[c], row, colValues[c]);
                 }
-                k = k + 1;
+                c = c + 1;
             }
-
-            idxStarts = newArray(nPn * nT);
-            idxLens = newArray(nPn * nT);
-            idxNext = newArray(nPn * nT);
-            total = 0;
-            b = 0;
-            while (b < idxCounts.length) {
-                idxStarts[b] = total;
-                idxLens[b] = idxCounts[b];
-                idxNext[b] = total;
-                total = total + idxCounts[b];
-                b = b + 1;
-            }
-            idxFlat = newArray(total);
-            if (perCellMode == 1) idxCellFlat = newArray(total);
-
-            k = 0;
-            while (k < nTotalImgs) {
-                idxPn = pnIndexA[k];
-                if (idxPn >= 0) {
-                    t = 0;
-                    while (t < nT) {
-                        if (timeNums[t] == tNumA[k]) {
-                            bucket = idxPn * nT + t;
-                            if (perCellMode == 1) {
-                                cellArr = parseNumberList(adjCellBeadStrA[k]);
-                                pos = idxNext[bucket];
-                                c = 0;
-                                while (c < cellArr.length) {
-                                    idxFlat[pos] = k;
-                                    idxCellFlat[pos] = c;
-                                    pos = pos + 1;
-                                    c = c + 1;
-                                }
-                                idxNext[bucket] = pos;
-                            } else {
-                                pos = idxNext[bucket];
-                                idxFlat[pos] = k;
-                                idxNext[bucket] = pos + 1;
-                            }
-                            break;
-                        }
-                        t = t + 1;
-                    }
-                }
-                k = k + 1;
-            }
-
-            timeRowCount = newArray(nT);
-            t = 0;
-            while (t < nT) {
-                maxLen = 0;
-                p = 0;
-                while (p < nPn) {
-                    bucket = p * nT + t;
-                    len = idxLens[bucket];
-                    if (len > maxLen) maxLen = len;
-                    p = p + 1;
-                }
-                timeRowCount[t] = maxLen;
-                t = t + 1;
-            }
-
-            rowBase = 0;
-            t = 0;
-            while (t < timeNums.length) {
-                rowsNow = timeRowCount[t];
-
-                r = 0;
-                while (r < rowsNow) {
-                    row = rowBase + r;
-
-                    c = 0;
-                    while (c < colLabels.length) {
-                        token = colTokens[c];
-                        value = colValues[c];
-                        if (colRowToken[c] == 1) {
-                            if (value != "") {
-                                setResult(colLabels[c], row, value);
-                            } else if (token == "T") {
-                                setResult(colLabels[c], row, timeStrs[t]);
-                            } else if (token == "F") {
-                                setResult(colLabels[c], row, "" + (r + 1));
-                            } else {
-                                setResult(colLabels[c], row, value);
-                            }
-                        } else {
-                            p = colPnIdx[c];
-                            idx = -1;
-                            cellIdx = -1;
-                            if (p >= 0) {
-                                bucket = p * nT + t;
-                                len = idxLens[bucket];
-                                if (r < len) {
-                                    pos = idxStarts[bucket] + r;
-                                    idx = idxFlat[pos];
-                                    if (perCellMode == 1) cellIdx = idxCellFlat[pos];
-                                }
-                            }
-
-                            if (value != "") {
-                                setResult(colLabels[c], row, value);
-                            } else if (token == "PN") {
-                                setResult(colLabels[c], row, colPns[c]);
-                            } else if (token == "EIBR" || token == "EPCR" || token == "ISDP" || token == "PSDP" || token == "EBPC" || token == "BPCSDP") {
-                                if (p >= 0) {
-                                    g = findGroupIndex(colPns[c], timeNums[t], groupPn, groupKey);
-                                    if (g >= 0) {
-                                        if (token == "EIBR") setResult(colLabels[c], row, groupEIBR[g]);
-                                        else if (token == "EPCR") setResult(colLabels[c], row, groupEPCR[g]);
-                                        else if (token == "EBPC") setResult(colLabels[c], row, groupEBPC[g]);
-                                        else if (token == "BPCSDP") setResult(colLabels[c], row, groupBPCSDP[g]);
-                                        else if (token == "ISDP") setResult(colLabels[c], row, groupISDP[g]);
-                                        else setResult(colLabels[c], row, groupPSDP[g]);
-                                    } else {
-                                        setResult(colLabels[c], row, "");
-                                    }
-                                } else {
-                                    setResult(colLabels[c], row, "");
-                                }
-                            } else {
-                                if (idx >= 0) {
-                                    if (token == "TB") setResult(colLabels[c], row, allA[idx]);
-                                    else if (token == "BIC") setResult(colLabels[c], row, adjIncellA[idx]);
-                                    else if (token == "CWB") setResult(colLabels[c], row, adjCellA[idx]);
-                                    else if (token == "CWBA") setResult(colLabels[c], row, cellAdjA[idx]);
-                                    else if (token == "TC") setResult(colLabels[c], row, allcellA[idx]);
-                                    else if (token == "BPC") {
-                                        if (perCellMode == 1) setResult(colLabels[c], row, getNumberAtCsv(adjCellBeadStrA[idx], cellIdx));
-                                        else setResult(colLabels[c], row, bpcOut[idx]);
-                                    }
-                                    else if (token == "IBR") setResult(colLabels[c], row, ibrOut[idx]);
-                                    else if (token == "PCR") setResult(colLabels[c], row, pcrOut[idx]);
-                                    else setResult(colLabels[c], row, value);
-                                } else {
-                                    setResult(colLabels[c], row, "");
-                                }
-                            }
-                        }
-                        c = c + 1;
-                    }
-
-                    r = r + 1;
-                }
-                rowBase = rowBase + rowsNow;
-                t = t + 1;
-            }
-            updateResults();
-        } else {
-            keyStrA = fStrA;
-            keyNumA = fNumA;
-
-            keyNumsByPnStart = newArray(pnList.length);
-            keyNumsByPnLen = newArray(pnList.length);
-            keyNumsFlat = newArray();
-            keyStrsFlat = newArray();
-            keyIdxFlat = newArray();
-            if (perCellMode == 1) keyCellIdxFlat = newArray();
-            maxRows = 0;
 
             p = 0;
             while (p < pnList.length) {
                 pnNow = pnList[p];
-                keyNums = newArray();
-                keyStrs = newArray();
-                keyIdxs = newArray();
-                if (perCellMode == 1) keyCellIdxs = newArray();
-                k = 0;
-                while (k < nTotalImgs) {
-                    if (pnA[k] == pnNow) {
-                        if (perCellMode == 1) {
-                            cellArr = parseNumberList(adjCellBeadStrA[k]);
-                            c = 0;
-                            while (c < cellArr.length) {
-                                keyNums[keyNums.length] = keyNumA[k];
-                                keyStrs[keyStrs.length] = keyStrA[k];
-                                keyIdxs[keyIdxs.length] = k;
-                                keyCellIdxs[keyCellIdxs.length] = c;
-                                c = c + 1;
-                            }
-                        } else {
-                            keyNum = keyNumA[k];
-                            found = 0;
-                            j = 0;
-                            while (j < keyNums.length) {
-                                if (keyNums[j] == keyNum) {
-                                    found = 1;
-                                    break;
-                                }
-                                j = j + 1;
-                            }
-                            if (found == 0) {
-                                keyNums[keyNums.length] = keyNum;
-                                keyStrs[keyStrs.length] = keyStrA[k];
-                                keyIdxs[keyIdxs.length] = k;
-                            }
-                        }
-                    }
-                    k = k + 1;
+                lenPn = fNumsByPnLen[p];
+                if (row >= lenPn) {
+                    p = p + 1;
+                    continue;
                 }
-                if (perCellMode == 1) sortQuadsByNumber(keyNums, keyStrs, keyIdxs, keyCellIdxs, sortDesc);
-                else sortTriplesByNumber(keyNums, keyStrs, keyIdxs, sortDesc);
-                keyNumsByPnStart[p] = keyNumsFlat.length;
-                keyNumsByPnLen[p] = keyNums.length;
-                j = 0;
-                while (j < keyNums.length) {
-                    keyNumsFlat[keyNumsFlat.length] = keyNums[j];
-                    keyStrsFlat[keyStrsFlat.length] = keyStrs[j];
-                    keyIdxFlat[keyIdxFlat.length] = keyIdxs[j];
-                    if (perCellMode == 1) keyCellIdxFlat[keyCellIdxFlat.length] = keyCellIdxs[j];
-                    j = j + 1;
-                }
-                if (keyNums.length > maxRows) maxRows = keyNums.length;
-                p = p + 1;
-            }
-
-            row = 0;
-            while (row < maxRows) {
+                basePn = fNumsByPnStart[p];
+                fNum = fNumsFlat[basePn + row];
+                fStr = fStrsFlat[basePn + row];
 
                 c = 0;
                 while (c < colLabels.length) {
-                    if (colPns[c] == "" && colValues[c] != "") {
-                        setResult(colLabels[c], row, colValues[c]);
+                    token = colTokens[c];
+                    pn = colPns[c];
+                    value = colValues[c];
+                    if (pn != "" && pn != pnNow) {
+                        c = c + 1;
+                        continue;
+                    }
+                    if (pn == "" && value != "") {
+                        c = c + 1;
+                        continue;
+                    }
+
+                    if (value != "") {
+                        setResult(colLabels[c], row, value);
+                    } else if (token == "PN") {
+                        setResult(colLabels[c], row, pnNow);
+                    } else if (token == "F") {
+                        setResult(colLabels[c], row, fStr);
+                    } else if (token == "EIBR" || token == "EPCR") {
+                        idxPn = p;
+                        if (token == "EIBR") setResult(colLabels[c], row, pnEIBR[idxPn]);
+                        else setResult(colLabels[c], row, pnEPCR[idxPn]);
+                    } else {
+                        idx = fIdxFlat[basePn + row];
+                        if (idx >= 0) {
+                            if (token == "TB") setResult(colLabels[c], row, allA[idx]);
+                            else if (token == "BIC") setResult(colLabels[c], row, adjIncellA[idx]);
+                            else if (token == "CWB") setResult(colLabels[c], row, adjCellA[idx]);
+                            else if (token == "CWBA") setResult(colLabels[c], row, cellAdjA[idx]);
+                            else if (token == "TC") setResult(colLabels[c], row, allcellA[idx]);
+                            else if (token == "IBR") setResult(colLabels[c], row, ibrOut[idx]);
+                            else if (token == "PCR") setResult(colLabels[c], row, pcrOut[idx]);
+                            else setResult(colLabels[c], row, value);
+                        } else {
+                            setResult(colLabels[c], row, value);
+                        }
                     }
                     c = c + 1;
                 }
-
-                p = 0;
-                while (p < pnList.length) {
-                    pnNow = pnList[p];
-                    lenPn = keyNumsByPnLen[p];
-                    if (row >= lenPn) {
-                        p = p + 1;
-                        continue;
-                    }
-                    basePn = keyNumsByPnStart[p];
-                    keyNum = keyNumsFlat[basePn + row];
-                    keyStr = keyStrsFlat[basePn + row];
-                    if (perCellMode == 1) cellIdx = keyCellIdxFlat[basePn + row];
-                    else cellIdx = -1;
-
-                    c = 0;
-                    while (c < colLabels.length) {
-                        token = colTokens[c];
-                        pn = colPns[c];
-                        value = colValues[c];
-                        if (pn != "" && pn != pnNow) {
-                            c = c + 1;
-                            continue;
-                        }
-                        if (pn == "" && value != "") {
-                            c = c + 1;
-                            continue;
-                        }
-
-                        if (value != "") {
-                            setResult(colLabels[c], row, value);
-                        } else if (token == "PN") {
-                            setResult(colLabels[c], row, pnNow);
-                        } else if (token == "F") {
-                            if (keyIdxFlat[basePn + row] >= 0) setResult(colLabels[c], row, fStrA[keyIdxFlat[basePn + row]]);
-                            else setResult(colLabels[c], row, "");
-                        } else if (token == "T") {
-                            if (keyIdxFlat[basePn + row] >= 0) setResult(colLabels[c], row, tStrA[keyIdxFlat[basePn + row]]);
-                            else setResult(colLabels[c], row, "");
-                        } else if (token == "EIBR" || token == "EPCR" || token == "ISDP" || token == "PSDP" || token == "EBPC" || token == "BPCSDP") {
-                            idxPn = p;
-                            if (token == "EIBR") setResult(colLabels[c], row, pnEIBR[idxPn]);
-                            else if (token == "EPCR") setResult(colLabels[c], row, pnEPCR[idxPn]);
-                            else if (token == "EBPC") setResult(colLabels[c], row, pnEBPC[idxPn]);
-                            else if (token == "BPCSDP") setResult(colLabels[c], row, pnBPCSDP[idxPn]);
-                            else if (token == "ISDP") setResult(colLabels[c], row, pnISDP[idxPn]);
-                            else setResult(colLabels[c], row, pnPSDP[idxPn]);
-                        } else {
-                            idx = keyIdxFlat[basePn + row];
-                            if (idx >= 0) {
-                                if (token == "TB") setResult(colLabels[c], row, allA[idx]);
-                                else if (token == "BIC") setResult(colLabels[c], row, adjIncellA[idx]);
-                                else if (token == "CWB") setResult(colLabels[c], row, adjCellA[idx]);
-                                else if (token == "CWBA") setResult(colLabels[c], row, cellAdjA[idx]);
-                                else if (token == "TC") setResult(colLabels[c], row, allcellA[idx]);
-                                else if (token == "BPC") {
-                                    if (perCellMode == 1) setResult(colLabels[c], row, getNumberAtCsv(adjCellBeadStrA[idx], cellIdx));
-                                    else setResult(colLabels[c], row, bpcOut[idx]);
-                                }
-                                else if (token == "IBR") setResult(colLabels[c], row, ibrOut[idx]);
-                                else if (token == "PCR") setResult(colLabels[c], row, pcrOut[idx]);
-                                else setResult(colLabels[c], row, value);
-                            } else {
-                                setResult(colLabels[c], row, value);
-                            }
-                        }
-                        c = c + 1;
-                    }
-                    p = p + 1;
-                }
-                row = row + 1;
+                p = p + 1;
             }
-            updateResults();
+            row = row + 1;
         }
+        updateResults();
     } else {
         k = 0;
         while (k < nTotalImgs) {
@@ -5254,7 +3793,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             setResult("Cells with Beads", k, cellA[k]);
             if (useMinPhago == 1) setResult("Cells with Beads (Adj)", k, cellAdjA[k]);
             setResult("Total Cells", k, allcellA[k]);
-            setResult("Beads per Cell", k, calcRatio(incellA[k], allcellA[k]));
             k = k + 1;
         }
         updateResults();
