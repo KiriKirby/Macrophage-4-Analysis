@@ -2,6 +2,8 @@
 
 Language: [中文](README.zh-CN.md) | [English](README.en.md) | [日本語](README.ja.md)
 
+Note for AI contributors: Read `AGENTS.md` in this repository before making any edits.
+
 A Fiji/ImageJ macro for semi-automated quantitative analysis of macrophage images with beads (v2.2).
 
 Key features:

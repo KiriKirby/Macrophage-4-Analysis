@@ -1,6 +1,45 @@
 # AGENTS
 
+## Language Requirement
+- Use English for all new narrative content in this file (AGENTS.md).
+- Quoted strings and code/comment examples may remain in their original language.
+
 These instructions apply to this repository.
+
+## IMPORTANT: Script Module Index (Update Required)
+- This repository maintains a module index for `Macrophage Image Four-Factor Analysis_2.2.3.ijm`.
+- Every code change that adds/moves/removes logic must update the index line numbers below.
+- Keep the index in sync so future AI can locate modules quickly.
+
+### Module Index (Macrophage Image Four-Factor Analysis_2.2.3.ijm)
+- Header + settings: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:1`
+- Log + math utilities: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:24`
+- File/string/CSV helpers: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:113`
+- Token/rule parsing + data-format validation: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:471`
+- Grouping/sorting/ratio helpers: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:811`
+- Image/window safety helpers: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:972`
+- Data-format logging + mottos: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:1045`
+- ROI annotation helper: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:1153`
+- Sampling + parameter estimation: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:1222`
+- Cell label mask: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:1607`
+- Bead detection (fusion): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:2005`
+- Bead counting + exclusion filter: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:2378`
+- Main flow entry: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:2656`
+- Phases:
+  - Phase 1 (UI language): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:2676`
+  - Phase 2 (UI text definitions): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:2685`
+  - Phase 3 (mode select): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:3999`
+  - Phase 4 (folder + file list): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4011`
+  - Phase 5 (ROI annotation): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4173`
+  - Phase 6 (target sampling): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4198`
+- Phase 7 (exclusion sampling): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4489`
+- Phase 8 (parameter estimation): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4673`
+- Phase 9 (parameter dialog): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4770`
+- Phase 10 (parameter validation): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4883`
+- Phase 11 (data format): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4996`
+- Phase 12 (batch loop): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:5044`
+- Phase 13 (results output): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:5309`
+- Phase 14 (finish): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:6567`
 
 ## Code Style
 - Language: ImageJ macro (.ijm). Script is designed for Fiji and should be treated as Fiji-only.
@@ -10,6 +49,7 @@ These instructions apply to this repository.
   - "// -----------------------------------------------------------------------------"
   - "// 関数: name" and short Japanese description lines.
 - Keep naming consistent: camelCase for functions, lowerCamel for locals, ALL_CAPS for constants and UI labels (T_*).
+- Legacy identifiers may include bead/beads; do not rename functions/variables/constants during terminology cleanup—only update user-facing strings (UI/logs/errors/docs).
 - Avoid introducing Unicode unless the file already uses it and it is necessary for UI text.
 - Favor clear step-by-step control flow over clever tricks; avoid nested ternaries or compact one-liners.
 - Use explicit temporaries for intermediate values when it improves readability or mirrors existing patterns.
@@ -17,12 +57,47 @@ These instructions apply to this repository.
 - Maintain existing error handling style: build message strings with replaceSafe and exit/showMessage.
 - Keep numeric thresholds and default values grouped with related phase blocks or UI sections.
 - Keep the top-of-file header block with the existing fields (概要/目的/想定/署名/版数) and the same separator style.
+- Prefer parameter grouping for function interfaces: bundle related values into arrays (e.g., targetParams, imgParams, featureFlags) and unpack inside the function to avoid argument-count limits and keep call sites stable.
 
-## UI/Localization
+## Code Layout / Formatting
+- Indentation uses 4 spaces; do not use tabs.
+- Brace style is K&R: opening brace on the same line, closing brace aligned with the block start.
+- Keep one statement per line; avoid chained assignments.
+- Prefer single-line function signatures when they fit; if wrapping is needed, align parameters and place one parameter per line.
+- Use the standard phase banner format:
+  - "// -----------------------------------------------------------------------------"
+  - "// フェーズX: ..."
+  - "// -----------------------------------------------------------------------------"
+- Use the standard major header format with "// =============================================================================" above and below the title line.
+- Keep one blank line between function blocks; within long functions, separate logical blocks with a short Japanese comment header and a blank line.
+- For long run()/Dialog calls, break lines after commas/concats and align continued lines; close the call on its own line.
+- Multi-line strings should be built with `+` on each new line, aligned with the first line, and end with an explicit `\n` where needed.
+
+## Logging Style
+- Logging is structured and tree-like using `T_log_*` labels; do not inline raw log strings in logic.
+- Preserve the separator line format (e.g., "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━") and use it at phase boundaries.
+- Use a consistent prefix scheme:
+  - Phase start/end: "✓ ..."
+  - Per-image entries: "  ├─ ..." and nested details with "  │  ├─"/"  │  └─"
+  - Skips/errors: "  │  ✗ ..." or "  │  ⚠ ..."
+- Keep log density similar to the current/old script: phase-level summaries plus per-image key stats; avoid adding verbose per-ROI logs unless explicitly requested.
+- Log parameter summaries with labeled placeholders (e.g., `%mode`, `%thr`, `%min-%max`) using `replaceSafe`.
+
+## UI Text / Localization Style
+- UI text is instructional and professional; avoid casual tone or slang in any language.
+- Terminology: use 目标物/対象物/target object in user-facing strings; do not rename identifiers, tokens, functions, or variables during terminology updates.
+- Feature selection dialog text must state: feature 4 is in-cell only, feature 1 & 5 are mutually exclusive, and selected features control which feature-threshold parameters appear.
+- Use consistent structure in multi-line dialogs:
+  - Short title, then sections like "目的/操作要求/操作步骤/说明" (CN), "目的/手順/説明" (JP), "Purpose/Steps/Notes" (EN).
+  - Use numbered steps with `1）` (CN/JP) and `1)` (EN); use bullet points with `•`.
+- Keep language parity: CN/JP/EN versions should convey the same intent and detail level, with terminology matched (beads, ROI, sampling, exclusion, parameters).
+- Preserve punctuation conventions from the old script:
+  - CN/JP text uses full-width punctuation and quoted keys like “OK”/“T”.
+  - EN uses ASCII punctuation and quoted keys like "OK"/"T".
+- Keep messages concise but complete; avoid long single paragraphs—prefer short blocks with clear line breaks.
 - UI strings are grouped by language blocks (CN/JP/EN). When adding new UI text, add it to all three blocks.
 - Use existing label keys (T_*) where possible; do not hardcode UI text in logic.
 - Keep dialog order and grouping consistent with existing sections (target/bg/roi/excl/format).
-- Keep UI text concise but instructional; use full-width punctuation only where already present in the language block.
 - When adding options, also add matching log labels and error strings if referenced in logic.
 
 ## Behavior
@@ -30,9 +105,11 @@ These instructions apply to this repository.
 - Do not change logging verbosity or batch mode unless requested.
 - Preserve backward compatibility for existing column tokens and data format rules.
 - Keep sampling flow and user prompts in the current sequence unless explicitly requested.
+- Target sampling treats non-round or large ROIs as clump samples; when cell ROI data is available, in-cell samples inform Feature 4 clump defaults.
 - Preserve ROI suffix behavior and default values unless explicitly asked to change them.
 - Preserve algorithmic outputs unless explicitly requested; even “refactors” must keep counts, thresholds, grouping, and sorting identical.
 - Avoid changing Results table ordering, grouping, or row counts; keep side-by-side PN layout and time grouping rules intact.
+- Exclusion definition: exclusion is a post-detection filter that removes candidates already detected by the target algorithm based on learned exclusion samples (similarity/likeness); it must not replace or expand target detection.
 
 ## Output/Results
 - Keep result columns and tokens stable unless explicitly asked to change them.
@@ -57,6 +134,7 @@ These instructions apply to this repository.
 - Do not remove existing author or version notes.
 - New comments should explain intent or non-obvious assumptions, not re-state code.
 - Comment language: Japanese for code comments and doc blocks; avoid English "NOTE:"-style comments in logic.
+- Exception: the AI edit notice at the top of the main script should be present in CN/JP/EN.
 - Use full-sentence comments with Japanese punctuation where the surrounding block does so.
 - Prefer block-level comments ahead of a logical step or phase; avoid end-of-line comments.
 - Typical comment density: one header per phase/section, and occasional inline comments for heuristics, thresholds, or non-obvious control flow.
@@ -77,6 +155,21 @@ These instructions apply to this repository.
 - For token parsing, prefer a single case-normalization strategy (typically `toLowerCase`) to reduce version-specific API risks.
 - When using `replace()`, remember it is regex-based; escape user/content strings via `replaceSafe` to avoid `$` and `\` issues.
 - Do not introduce new ImageJ macro features outside the supported subset (no regex, no advanced data structures, no ternary tricks).
+
+## Repository Structure
+- `Macrophage Image Four-Factor Analysis_2.2.3.ijm` is the active script to modify unless told otherwise.
+- `old/` contains archived legacy scripts for reference only; do not treat it as active work unless explicitly requested.
+- `Macrophage Image Four-Factor Analysis2.1.ijm` and similar versioned scripts are historical snapshots; avoid edits unless asked.
+- `README*.md` files are documentation entry points and should retain the AI edit notice.
+
+## Repository Notes
+- AI contributors must read `AGENTS.md` before making any edits.
+- Keep the AI edit notice at the top of the main script and the README.* entry points.
+## Maintenance Requirements
+- Keep the Script Module Index current after any change that adds/moves/removes logic.
+
+## Lessons Learned
+- ImageJ/Fiji macro functions have a hard limit on the number of arguments; exceeding it triggers "Too many arguments". Pack related parameters into arrays and unpack inside the function to avoid hitting the limit.
 
 ## Explanations
 - When asked to explain the script, provide structured summaries (overview -> phases -> key functions).

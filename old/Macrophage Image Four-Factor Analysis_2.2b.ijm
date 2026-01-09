@@ -7,7 +7,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // 版数: 2.2.3
     // =============================================================================
 
-    // NOTE: For AI contributors, read AGENTS.md in this repository before editing.
+    // AI编辑提示：修改前请先阅读本仓库的AGENTS.md。
+    // AIによる編集前に、このリポジトリのAGENTS.mdを必ず確認すること。
+    // Note for AI contributors: Read AGENTS.md in this repository before editing.
 
     // -----------------------------------------------------------------------------
     // 設定: ログ/モットー表示の制御フラグ

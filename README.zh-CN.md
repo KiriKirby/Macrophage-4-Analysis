@@ -1,6 +1,8 @@
 # 巨噬细胞图像四元素值分析
 **Macrophage Image Four-Factor Analysis**
 
+AI 编辑提示：修改前请先阅读本仓库的 `AGENTS.md`。
+
 ---
 
 ## 0. 项目概览

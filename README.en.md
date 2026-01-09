@@ -1,6 +1,8 @@
 # Macrophage Image Four-Factor Analysis
 **README (English Version)**
 
+Note for AI contributors: Read `AGENTS.md` in this repository before making any edits.
+
 ---
 
 ## 0. Overview
