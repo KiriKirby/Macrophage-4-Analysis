@@ -187,3 +187,68 @@ These instructions apply to this repository.
 - **Results:** keep column order stable; avoid breaking existing tokens; maintain per-cell expansion rules.
 - **Comments:** only when intent is non-obvious; keep existing author/version notes.
 - **Compatibility:** no nested arrays; avoid regex pitfalls in `replace`; use `lengthOf` for empty checks; keep parsing/formatting logic stable.
+
+## Update Log (Reference)
+- Scope: algorithm-focused deltas across archived versions and current script. UI changes are omitted. Data-optimization functions are listed without detail.
+
+### Version 1.0 (old/Macrophage Image Four-Factor Analysis_1.0.ijm)
+- Baseline pipeline: background subtraction, ROI-based detection, and basic area/intensity aggregation. No clump estimation, exclusion filter, or feature classification.
+- Added/Removed functions: none (baseline).
+
+### Version 2.0b (old/Macrophage Image Four-Factor Analysis_2.0b.ijm)
+- Algorithm updates:
+  - Added exclusion filtering based on target/exclusion intensity distributions (direction + threshold).
+  - Added clump size-based split estimation for large candidates using representative single-object area.
+  - Added label-mask creation to support region-aware decisions.
+  - Added safety guards for image/window access and pixel sampling.
+- Added functions (reason / role):
+  - max2, min2, abs2, roundInt, clamp: numeric helpers to standardize comparisons, thresholds, and rounding.
+  - ensure2D, safeClose, requireWindow, getPixelSafe, localMean3x3: protect image operations and compute local intensity.
+  - annotateCellsSmart: consolidate ROI handling flow (open/mark/save) for robust annotation.
+  - estimateAreaRangeSafe, estimateRollingFromUnitArea: derive detection scale and background parameters from samples.
+  - estimateExclusionSafe: infer exclusion direction and threshold from sample distributions.
+  - buildCellLabelMaskFromOriginal: generate labeled ROI mask for region-aware processing.
+  - detectBeadsFusion: core detection logic combining thresholds and shape constraints.
+  - countBeadsByFlat: summarize detected candidates from the flat array.
+- Removed functions:
+  - quantileSorted, idxImageTypeByCellCount, annotateCellsAndSave: replaced by safer estimation/annotation flows above.
+
+### Version 2.1 (old/Macrophage Image Four-Factor Analysis_2.1.ijm)
+- Algorithm updates:
+  - Detection pipeline stays mostly intact; adds structured data-format parsing to support output reformatting.
+- Added functions (reason / role):
+  - trim2, splitByChar, splitCSV, isDigitChar: robust parsing utilities for rule/column specs.
+  - parsePnF, isBuiltinToken, validateDataFormatRule, validateDataFormatCols: rule/token validation for output configuration.
+  - uniqueList, sortPairsByNumber, sortTriplesByNumber: grouping and ordering helpers for summary output.
+  - calcRatio: safe ratio computation for summary fields.
+  - escapeForReplace, replaceSafe, logDataFormatDetails: safe templating and structured logging of format settings.
+- Removed functions: none.
+
+### Version 2.2b (old/Macrophage Image Four-Factor Analysis_2.2b.ijm)
+- Algorithm updates:
+  - Detection pipeline unchanged; adds time-aware grouping and per-cell expansion in results handling.
+- Added functions (reason / role):
+  - detectSubstringInclusive, ensureTrailingSlash: runtime compatibility and path normalization.
+  - joinNumberList, parseNumberList, charAtCompat, isDigitAt: string/number handling for parsing.
+  - normalizeRuleToken, extractFirstNumberStr, parseByPattern, parseRuleSpec: rule parsing expansion.
+  - requiresPerCellStats, findGroupIndex, sortQuadsByNumber: grouping and ordering helpers.
+  - estimateMeanMedianSafe: stable central tendency estimation for sample-derived parameters.
+  - meanFromCsv, scaleCsv, scaleCsvIntoArray, buildZeroCsv, getNumberAtCsv: data-adjustment helpers (details omitted per request).
+- Removed functions: none.
+
+### Version 2.2.3 (Macrophage Image Four-Factor Analysis_2.2.3.ijm)
+- Algorithm updates:
+  - Added feature-based round object classification using center/ring/outer intensity metrics.
+  - Added clump mask construction (dark clumps and in-cell clumps) and mask-derived detection.
+  - Added multi-feature detection pipeline that merges round-feature detection and clump detection.
+  - Added mask-based filtering to exclude candidates within specified masks.
+- Added functions (reason / role):
+  - sampleRingMean, computeSpotStats: compute ring/outer intensity statistics for round candidates.
+  - classifyRoundFeature: classify candidates by center contrast, background similarity, and size.
+  - estimateAbsDiffThresholdSafe, estimateSmallAreaRatioSafe, estimateClumpRatioSafe, estimateClumpRatioFromSamples: infer thresholds/ratios from samples.
+  - buildClumpMaskDark, buildClumpMaskInCell, detectClumpsFromMask: clump detection via masks.
+  - detectTargetsMulti: unified detection pipeline for multiple feature types.
+  - filterFlatByMask: remove detections covered by a mask.
+  - formatFeatureList, openFeatureReferenceImage, showFeatureReferenceFallback: feature selection support (non-UI core only).
+  - buildCsvCache, meanFromCache, scaleCsvCacheInPlace, getNumberFromCache, tokenCodeFromToken: data-adjustment/output helpers (details omitted per request).
+- Removed functions: none.
