@@ -1,0 +1,649 @@
+# Shared Jaunch configuration for JVM-based programs.
+#
+# See the common.toml file for an introduction to Jaunch configuration.
+
+includes = ['common.toml']
+
+# ==============================================================================
+# JVM-specific Jaunch options.
+#
+# Two quick examples from the below list:
+#
+# 1. The --headless option configures Jaunch to pass the flag -Djava.awt.headless=true
+#    to the JVM. This makes it friendlier for CLI users to launch your application in
+#    headless mode, without knowing anything about the Java platform specifically.
+#
+# 2. Similarly, --heap=1234m (aliased also to --mem and --memory) will be transformed
+#    into a -Xmx1234m argument to the JVM, so that users have an easier-to-remember
+#    option for setting the max heap size, without memorizing Java's -Xmx terminology.
+#
+# (In both of these examples, the transformations described are defined within the
+# jvm.runtime-args section toward the bottom of the file. Be patient, we'll get there!)
+
+supported-options = [
+    '--java-home=<path>|specify Java installation path explicitly',
+    '--print-class-path,--print-classpath|print runtime classpath elements',
+    '--print-java-home|print path to the selected Java',
+    '--print-java-info|print information about the selected Java',
+    "--heap,--mem,--memory=<amount>|set Java's heap size to <amount> (e.g. 512M or 64%)",
+    '--class-path,--classpath,-classpath,--cp,-cp=<path>|append <path> to the class path',
+    "--ext=<path>|set Java's extension directory to <path>",
+    '--debugger=<port>[,suspend]|start Java in a mode so an IDE/debugger can attach to it',
+]
+
+# ==============================================================================
+# JVM-specific modes:
+#
+# * LAUNCH:JVM - when set, JVM will be included in the directives.
+
+#modes = ['LAUNCH:JVM']
+
+# ==============================================================================
+# JVM-specific directives:
+#
+# * JVM                - Launches the main program using the Java Virtual Machine.
+# * print-class-path   - Print out the runtime classpath, one element per line.
+# * print-java-home    - Print out the path to the chosen Java installation.
+# * print-java-info    - Print out all the details of the chosen Java installation,
+#                        including not only its path, but also the distro, version,
+#                        operating system, CPU architecture, and other metadata fields.
+
+directives = [
+    'LAUNCH:JVM|JVM',
+    '--print-class-path|print-class-path,ABORT',
+    '--print-java-home|print-java-home,ABORT',
+    '--print-java-info|print-java-info,ABORT',
+]
+
+# ==============================================================================
+# jvm.enabled
+# ==============================================================================
+# Set this to true to enable searching for and launching with a JVM.
+
+jvm.enabled = true
+
+# ==============================================================================
+# jvm.recognized-args
+# ==============================================================================
+# The list of arguments that Jaunch will recognize as belonging to the JVM,
+# rather than to the `String[] args` of your application's main method.
+#
+# These are used to guess, when the minus-minus divider (--) is absent,
+# whether each arg is a JVM (runtime) one or a main one.
+#
+# The asterisk wildcard symbol (*) is allowed as a suffix,
+# if you want to match all arguments with a particular prefix.
+#
+# About main arguments: Jaunch's philosophy is to remain agnostic of the options
+# your application supports, rather than trying to constrain them in its configuration
+# and checking them itself. As such, it is your application's responsibility to emit
+# error messages as appropriate if it encounters displeasing arguments.
+#
+# For example, suppose the user invokes:
+#
+#     ./fizzbuzz 1 2 3 4 5 -Xms1g
+#
+# Because '-X*' is on the jvm.recognized-args list out of the box,
+# Jaunch will translate this invocation to:
+#
+#     java -Xms1g org.fizzbuzz.FizzBuzz 1 2 3 4 5
+#
+# Even though the Java argument appears after the main arguments. Users can mix
+# and match to their hearts' content, being as sloppy as they want, and Jaunch will
+# sort out the mess. As long as the JVM args are on the list here, of course.
+
+jvm.recognized-args = [
+    '-?',                        # 8, 11, 17, 21
+    '-D*',                       # 8, 11, 17, 21
+    '-X',                        # 8, 11, 17, 21
+    '-X*',                       # 8, 11, 17, 21
+    '-agentlib:*',               # 8, 11, 17, 21
+    '-agentpath:*',              # 8, 11, 17, 21
+    '-classpath <>',             # 8, 11, 17, 21
+    '-cp <>',                    # 8, 11, 17, 21
+    '-d <>',                     #    11, 17, 21
+    '-d32',                      # 8
+    '-d64',                      # 8
+    '-da',                       # 8, 11, 17, 21
+    '-da:*',                     # 8, 11, 17, 21
+    '-disable-@files',           #    11, 17
+    '-disableassertions',        # 8, 11, 17, 21
+    '-disableassertions:*',      # 8, 11, 17, 21
+    '-disablesystemassertions',  # 8, 11, 17, 21
+    '-dsa',                      # 8, 11, 17, 21
+    '-ea',                       # 8, 11, 17, 21
+    '-ea:*',                     # 8, 11, 17, 21
+    '-enableassertions',         # 8, 11, 17, 21
+    '-enableassertions:*',       # 8, 11, 17, 21
+    '-enablesystemassertions',   # 8, 11, 17, 21
+    '-esa'                       # 8, 11, 17, 21
+    '-h',                        #    11, 17, 21
+    '-help',                     # 8, 11, 17, 21
+    '-jar <>',                   # 8, 11, 17, 21
+    '-javaagent:*',              # 8, 11, 17, 21
+    '-jre-restrict-search',      # 8
+    '-m <>',                     #    11, 17, 21
+    '-no-jre-restrict-search',   # 8
+    '-p <>',                     #    11, 17, 21
+    '-server',                   # 8
+    '-showversion',              # 8, 11, 17, 21
+    '-splash:*',                 # 8, 11, 17, 21
+    '-truffle',                  #        17
+    '-verbose:class',            # 8, 11, 17, 21
+    '-verbose:gc',               # 8, 11, 17, 21
+    '-verbose:jni',              # 8, 11, 17, 21
+    '-verbose:module',           #    11, 17, 21
+    '-version',                  # 8, 11, 17, 21
+    '-version:*',                # 8
+    '--add-exports <>',          #    11, 17, 21
+    '--add-exports=*',           #    11, 17, 21
+    '--add-modules <>',          #    11, 17, 21
+    '--add-modules=*',           #    11, 17, 21
+    '--add-opens <>',            #    11, 17, 21
+    '--add-opens=*',             #    11, 17, 21
+    '--add-reads <>',            #    11, 17, 21
+    '--add-reads=*',             #    11, 17, 21
+    '--class-path <>',           #    11, 17, 21
+    '--class-path=*',            #    11, 17, 21
+    '--describe-module <>',      #    11, 17, 21
+    '--describe-module=*',       #    11, 17, 21
+    '--disable-@files',          #            21
+    '--dry-run',                 #    11, 17, 21
+    '--enable-native-access <>', #        17, 21
+    '--enable-native-access=*',  #        17, 21
+    '--enable-preview',          #    11, 17, 21
+    '--help',                    #    11, 17, 21
+    '--help-extra',              #    11, 17, 21
+    '--illegal-access <>',       #    11
+    '--illegal-access=*',        #    11
+    '--limit-modules <>',        #    11, 17, 21
+    '--limit-modules=*',         #    11, 17, 21
+    '--list-modules',            #    11, 17, 21
+    '--module <>',               #    11, 17, 21
+    '--module=*',                #    11, 17, 21
+    '--module-path <>',          #    11, 17, 21
+    '--module-path=*',           #    11, 17, 21
+    '--patch-module <>',         #    11, 17, 21
+    '--patch-module=*',          #    11, 17, 21
+    '--show-module-resolution',  #    11, 17, 21
+    '--show-version',            #    11, 17, 21
+    '--source <>',               #    11, 17, 21
+    '--source=*',                #    11, 17, 21
+    '--upgrade-module-path <>',  #    11, 17, 21
+    '--upgrade-module-path=*',   #    11, 17, 21
+    '--validate-modules',        #    11, 17, 21
+    '--version',                 #    11, 17, 21
+    '@*',                        #    11, 17, 21
+]
+
+# ==============================================================================
+# jvm.allow-weird-runtimes
+# ==============================================================================
+# Whether to attempt to launch with mysterious flavors of the JVM.
+#
+# When Jaunch discovers a Java installation on the user's system, it tries very hard
+# to understand the details of that installation, including Java version, distribution
+# (see `jvm.distros-allowed` and `jvm.distros-blocked` below), operating system, and
+# CPU architecture, so that it can respect the constraints defined in this config file.
+#
+# However, the variability across JVM distributions is actually quite a lot:
+#
+# * The vast majority of distros include a file named 'release' with important metadata
+#   fields inside. But a few distros are missing that file (e.g. Corretto 1.8.0_265-b01
+#   for x64 Linux), and a few others are missing needed metadata fields (e.g. Liberica
+#   1.8.0_392 for x64 Linux, which is missing IMPLEMENTOR), or they might put something
+#   stupid as a value (e.g. JBRSDK 11.0.6 for x64 Linux, which has IMPLEMENTOR="N/A").
+#
+# * For that reason, Jaunch also parses the directory name of the installation, trying
+#   to extract this information. But the naming schemes across distro are also very
+#   diverse and sometimes uninformative: e.g. JBRSDK 11.0.6 for x64 Linux, which has the
+#   vague folder name of "jbrsdk" with no version, or JBRSDK 11.0.8 for x64 Linux, which
+#   has the nested folder name "jbrsdk_11.0.8_x64/jbr" making the final directory name
+#   "jbr" still with no version, or JBRSDK 8 for Linux, which has no directory prefix at
+#   all. And of course users and packaging scripts can rename the JVM root directory to
+#   anything, corrupting this information in the process.
+#
+# * As a final measure, when needed, Jaunch invokes the Java installation's bin/java on
+#   a small Java program that prints out all key=value pairs of System.getProperties(),
+#   paying particular attention to java.version, java.vendor, and java.vendor.version.
+#   This is the slowest but most reliable way to gather metadata about an installation.
+#   But it's not a guaranteed solution either: for example, JVMs bundled up by jpackage
+#   are placed in a lib/runtime directory without a bin folder! So no bin/java.
+#
+# As such, it is possible for all of Jaunch's efforts to be in vain, and to end up
+# trying to decide whether to launch with some mystery-flavored JVM. In such scenarios,
+# the jvm.allow-weird-runtimes flag comes to the rescue, telling Jaunch whether to allow
+# it (true), or give up and complain (false). Hopefully, your users will never know the
+# difference, as long as they have well-behaved distros, and/or you ship a good distro
+# with your application. But just in case, give a think to how you want this to behave.
+
+jvm.allow-weird-runtimes = true
+
+# ==============================================================================
+# jvm.version-min, jvm.version-max
+# ==============================================================================
+# Acceptable range of Java versions to match.
+#
+# These two fields let you constrain the minimum and maximum Java versions respectively
+# that your application supports. This information will be used when searching the
+# system for appropriate JVM installations. If a JVM is successfully discovered, but
+# then found to be outside these constraints, it is discarded and the search continues.
+# For installations whose version cannot be determined, what Jaunch does will depend on
+# the jvm.allow-weird-runtimes boolean setting above.
+#
+# The most common use of these fields is to specify major versions alone (e.g.
+# `jvm.version-min = '11'`), but Jaunch does make a best effort to compare version
+# strings digit by digit, so you could try `jvm.version-min = '1.8.0.101'` if you
+# like to live dangerously. YMMV, though.
+#
+# "But what syntax exactly should I use to specify these versions?" you might wonder.
+# Excellent question! To answer that, let's have some background:
+#
+# As Ralph Waldo Emerson wrote, a foolish consistency is the hobgoblin of little minds.
+# Never has that belief been put into action more fervently than it has with the Java
+# versioning scheme, which has a fraught and confusing history:
+#
+# * The first stable release of Java, 1.0.2, was also called Java 1.
+#
+# * The 1.2 release was marketed as the Java 2 Platform, Standard Edition (J2SE).
+#
+# * The 1.5 release was marketed as Java SE 5, with a "developer version" of 1.5
+#   and a "product version" of 5.0.
+#
+# * This dual versioning scheme continued through versions 1.6, 1.7, and 1.8,
+#   which were also known as 6, 7 and 8 respectively -- although the '1.' prefix
+#   (at least in my anecdotal experience) decreased in prominence over time.
+#
+# * There is also a baffling convention that Java 8 specifically uses where
+#   version 1.8.0_XYZ -- which is also written as 8.0_XYZ or 8.0.XYZ -- is
+#   frequently expressed as 8uXYZ.
+#
+# * With the release of Java 9, the '1.' prefix was finally officially dropped.
+#
+# * Nonetheless, for backwards compatibility with old assumptions, you might still
+#   see a '1.' here or there, such as the /usr/lib/jvm folder on Debian/Ubuntu.
+#
+# You can read more details at https://en.wikipedia.org/wiki/Java_version_history.
+#
+# Check out this exciting table of Google search results (excluding Minecraft):
+#
+#   x | "Java 1.x" |   "Java x" | Ratio | Comments
+# :--:|-----------:|-----------:|-------|---------
+#   0 |     78,400 |    229,000 |     2 |
+#   1 |    119,000 |  3,510,000 |    29 |
+#   2 |     71,000 |  2,870,000 |    40 | "Java 2 SE" term skews results?
+#   3 |     62,800 |  1,130,000 |    17 |
+#   4 |    155,000 |    752,000 |     4 |
+#   5 |    328,000 |  1,080,000 |     3 |
+#   6 |    264,000 |  1,330,000 |     5 |
+#   7 |    223,000 |  1,810,000 |     8 |
+#   8 |    798,000 | 24,200,000 |    30 | LTS release
+#   9 |     11,200 |  1,250,000 |   111 | 1.x scheme discontinued
+#  10 |      4,790 |    604,000 |   126 |
+#  11 |      9,390 |  1,860,000 |   198 | LTS release
+#  12 |         10 |    360,000 | 36000 | 10? Really?
+#  13 |      2,140 |    315,000 |   147 |
+#  14 |      2,330 |    356,000 |   152 |
+#  15 |      2,010 |    294,000 |   146 |
+#  16 |      3,630 |    382,000 |   105 |
+#  17 |      3,000 |  1,110,000 |   370 | LTS release
+#  18 |      1,790 |    282,000 |   157 |
+#  19 |      9,360 |    332,000 |    35 |
+#  20 |     14,700 |    329,000 |    22 |
+#  21 |        820 |  1,050,000 |  1280 | LTS release
+#
+# Who knows what (if anything) this table proves, but it's probably Numberwang!
+#
+# So back to the key question: what numbers should you write for the min and max?
+# Use the so-called "developer version" in all cases, with dots only as separators:
+#
+# * For Java 8 and earlier, prepend the '1.' portion.
+# * For Java 9 and later, don't.
+#
+# So if you want 1.8.0_101 (a.k.a. 8u101), write '1.8.0.101', not '8.0.101'.
+# If you want 11.0.8, write '11.0.8', not '1.11.0.8'.
+#
+# As a kindness, when Jaunch sees a major version digit less than 9, it prepends the
+# '1.' prefix on your behalf. So you can write e.g. `jvm.version-min = '8'` if you
+# really want to. Jaunch also strips the '1.' leading digit when the subsequent minor
+# version digit is 9 or more. So write '1.11.0.8' if you must! But know that in doing
+# so, you stand opposed to the hallowed official versioning scheme, a heretic in the
+# eyes of Java developers everywhere. You have been warned!
+
+#jvm.version-min = '8' # hobgoblin!
+#jvm.version-max = '21'
+
+# ==============================================================================
+# jvm.distros-allowed, jvm.distros-blocked
+# ==============================================================================
+# Acceptable and unacceptable distributions/vendors/flavors of Java to match.
+#
+# These two fields let you constrain which Java distributions are OK to use and which
+# are not, respectively. For distros matching neither the allowlist nor blocklist,
+# what Jaunch does will depend on the jvm.allow-weird-runtimes boolean setting above.
+#
+# As of this writing, the following Java distributions have been tested:
+#
+# Distribution       | IMPLEMENTOR              | IMPLEMENTOR_VERSION prefix             | root folder slug
+# -------------------| -------------------------|----------------------------------------|-----------------
+# AdoptOpenJDK       | AdoptOpenJDK             | AdoptOpenJDK                           | adopt
+# Alibaba Dragonwell | Alibaba                  | (Alibaba Dragonwell Extended Edition)* | dragonwell
+# Amazon Corretto    | Amazon.com Inc.*         | Corretto*                              | corretto or amazon-corretto*
+# Azul Zulu          | Azul Systems, Inc.*      | Zulu*                                  | zulu
+# BellSoft Liberica  | BellSoft                 | <none>                                 | <none>
+# Eclipse Temurin    | Eclipse Adoptium         | Temurin                                | <none>
+# IBM Semuru         | IBM Corporation          | <none>                                 | <none>
+# JetBrains JBRSDK   | N/A or JetBrains s.r.o.* | JBRSDK*                                | jbrsdk*
+# Microsoft OpenJDK  | Microsoft                | Microsoft                              | <none>
+# OpenLogic OpenJDK  | OpenLogic                | OpenLogic-OpenJDK                      | openlogic-openjdk
+# GraalVM Community  | GraalVM Community        | <none>                                 | graalvm-ce or graalvm-community-openjdk
+# GraalVM Enterprise | Oracle Corporation       | <none>                                 | graalvm-jdk
+# Oracle Java SE     | Oracle Corporation       | <none>                                 | oracle*
+# Oracle OpenJDK     | Oracle Corporation       | <none>                                 | oracle*
+# SAP SapMachine     | SAP SE                   | SapMachine                             | sapmachine-jdk
+# Tencent KonaJDK    | Tencent*                 | TencentKonaJDK*                        | TencentKona
+# Ubuntu OpenJDK     | Ubuntu or Private Build  | <none>                                 | <none>
+#
+# An asterisk (*) means that that metadata field, and/or the release file itself, is
+# missing (or for the root folder, that there is no telltale slug) for some versions.
+# Generally speaking, metadata and naming have improved as Java has evolved; often it
+# is Java 8 versions of these distributions that have the most metadata/naming issues.
+#
+# As the table above shows, every observed distro has some telltale signs, with the
+# release file being more likely to provide useful information, but there are many
+# exceptions, so Jaunch uses all available sources when scrutinizing installations.
+#
+# For each line below, the initial part before the colon names the distro, and comma-
+# separated elements afterward define tokens used to detect that distro from extracted
+# metadata fields. Fields are downcased, then checked for substrings matching a token.
+#
+# Examples:
+#
+# * A root directory named 'jdk_corretto_8.x64' with no release file will be identified
+#   as Amazon Corretto, because the token 'corretto' appears in the root folder name.
+#
+# * A root directory named 'best-openjdk-ever' with a release file containing lines:
+#
+#       IMPLEMENTOR="Azul Systems, Inc."
+#       IMPLEMENTOR_VERSION="Zulu21.30+19-CRaC-CA"
+#
+#   will be identified as Azul Zulu, because the token 'azul' matches the IMPLEMENTOR.
+#
+# * A root directory named 'i-forgot-where-this-came-from' with a minimal release file
+#   missing the IMPLEMENTOR and IMPLEMENTOR_VERSION entries, and a jre/lib/rt.jar
+#   whose META-INF/MANIFEST.MF contains the lines:
+#
+#       Manifest-Version: 1.0
+#       Implementation-Title: Java Runtime Environment
+#       Implementation-Version: 1.8.0_392
+#       Specification-Vendor: Oracle Corporation
+#       Specification-Title: Java Platform API Specification
+#       Specification-Version: 1.8
+#       Created-By: 1.8.0_252 (Tencent)
+#       Implementation-Vendor: Tencent
+#
+#   will be identified as TencentKona, because Jaunch will invoke bin/java and
+#   see that the token 'tencent' matches the `java.vendor` system property.
+
+jvm.distros-allowed = [
+    'Alibaba Dragonwell:alibaba,dragonwell',
+    'Amazon Corretto:amazon,corretto',
+    'Azul Zulu:azul,zulu',
+    'Bellsoft Liberica:bellsoft,liberica',
+    'Eclipse Temurin:eclipse,adoptium,temurin',
+    'AdoptOpenJDK:adopt', # NB: Must follow Temurin, since adopt is a substring of adoptium.
+    'IBM Semuru:ibm,semuru',
+    'JetBrains JBRSDK:jetbrains,jbrsdk',
+    'Microsoft OpenJDK:microsoft',
+    'OpenLogic OpenJDK:openlogic',
+    'GraalVM Community:graalvm-c',
+    'GraalVM Enterprise:graalvm-jdk',
+    'Oracle Java SE / OpenJDK:oracle', # NB: Must follow GraalVM Enterprise, since 'oracle' appears there as well.
+    'SAP SapMachine:sapmachine',
+    'TencentKona:tencent,kona',
+    'Ubuntu OpenJDK:ubuntu',
+]
+
+jvm.distros-blocked = []
+
+# ==============================================================================
+# Developer aside: Right now, Jaunch only filters Java installations by distro,
+# version, OS, and CPU arch. But there are further criteria it could support:
+#
+# * Java Development Kit (JDK) vs. Java Runtime Environment (JRE).
+# * Availability of optional features such as CRaC or JavaFX/OpenJFX.
+# * Minimum and/or maximum versions of operating systems (Windows 11+).
+# * More complex version filtering rules, e.g. multiple version exclusion ranges.
+#
+# Implementing such additional criteria will be done according to user demand.
+# If you need these, open an issue: https://github.com/scijava/jaunch/issues/new
+
+# ==============================================================================
+# jvm.root-paths
+# ==============================================================================
+# Paths to check for Java installations.
+#
+# This is a list of directories where Jaunch might hope to find a Java installation.
+# Directories are checked sequentially until one is found that matches all criteria.
+#
+# This is also the first field where we see Jaunch's hints/rules system in action.
+# See the `modes` section of common.toml for an introduction to hints.
+#
+# The JVM runtime adds hints based on the Java installation selected:
+#
+# - JAVA:8 if the selected Java installation is version 8.
+# - JAVA:8+ if the selected Java installation is version 8 or later.
+# - JAVA:9 if the selected Java installation is version 9.
+# - JAVA:9+ if the selected Java installation is version 9 or later.
+# - and so on.
+#
+# Of course, Java hints will only be set after a Java installation matches,
+# so they won't work here in jvm.root-paths, nor in jvm.lib-suffixes.
+# But they can be useful in the jvm.runtime-args section to ensure Jaunch
+# passes JVM args only to those versions of the JVM that support them, such
+# as the JPMS-related flags like --add-opens which were introduced in Java 9.
+#
+# This is also the first field where we see Jaunch's variables in use:
+#
+#     '--java-home|${java-home}'
+#
+# Thanks to the above line, when the user passes '--java-home=/the-best-jdk', the
+# --java-home hint will be set, and the java-home variable will be set to /the-best-jdk.
+# So not only will the line match, but the root path to check will become /the-best-jdk.
+#
+# Similarly, variable expressions are also sourced from environment variables, so the
+# lines containing '${CONDA_PREFIX}' will use the CONDA_PREFIX environment variable.
+
+jvm.root-paths = [
+    '--java-home|${java-home}',                                                    # user override (CLI flag)
+    '!--system|${cfg.jvm-dir}',                                                    # read from <app>.cfg
+    '!--system|${app-dir}/lib/runtime',                                            # jpackage
+    '!--system|OS:LINUX|ARCH:ARM64|${app-dir}/java/linux-arm64/*',                 # bundled (Linux arm64)
+    '!--system|OS:LINUX|ARCH:X64|${app-dir}/java/linux-x64/*',                     # bundled (Linux x86-64)
+    '!--system|OS:LINUX|ARCH:X64|${app-dir}/java/linux-amd64/*',                   # bundled (Linux x86-64)
+    '!--system|OS:LINUX|ARCH:X64|${app-dir}/java/linux64/*',                       # bundled (Linux x86-64)
+    '!--system|OS:LINUX|ARCH:X64|${app-dir}/java/linux-x32/*',                     # bundled (Linux x86-32)
+    '!--system|OS:LINUX|ARCH:X64|${app-dir}/java/linux-x86/*',                     # bundled (Linux x86-32)
+    '!--system|OS:LINUX|ARCH:X86|${app-dir}/java/linux32/*',                       # bundled (Linux x86-32)
+    '!--system|OS:LINUX|ARCH:X86|${app-dir}/java/linux/*',                         # bundled (Linux x86-32)
+    '!--system|OS:MACOSX|ARCH:ARM64|${app-dir}/java/macos-arm64/*/Contents/Home',  # bundled (macOS arm64)
+    '!--system|OS:MACOSX|ARCH:ARM64|${app-dir}/java/macos-arm64/*',                # bundled (macOS arm64)
+    '!--system|OS:MACOSX|ARCH:ARM64|${app-dir}/java/macosx-arm64/*/Contents/Home', # bundled (macOS arm64)
+    '!--system|OS:MACOSX|ARCH:ARM64|${app-dir}/java/macosx-arm64/*',               # bundled (macOS arm64)
+    '!--system|OS:MACOSX|ARCH:X64|${app-dir}/java/macos64/*/Contents/Home',        # bundled (macOS x86-64)
+    '!--system|OS:MACOSX|ARCH:X64|${app-dir}/java/macos64/*',                      # bundled (macOS x86-64)
+    '!--system|OS:MACOSX|ARCH:X64|${app-dir}/java/macos/*/Contents/Home',          # bundled (macOS x86-64)
+    '!--system|OS:MACOSX|ARCH:X64|${app-dir}/java/macos/*',                        # bundled (macOS x86-64)
+    '!--system|OS:MACOSX|ARCH:X64|${app-dir}/java/macosx/*/Contents/Home',         # bundled (macOS x86-64)
+    '!--system|OS:MACOSX|ARCH:X64|${app-dir}/java/macosx/*',                       # bundled (macOS x86-64)
+    # Fiji used to ship versions of OpenJDK 8 with a mangled directory structure.
+    # The mangling was done to work around limitations of the old ImageJ Launcher.
+    '!--system|OS:MACOSX|ARCH:X64|${app-dir}/java/macosx/*/jre/Contents/Home',
+    '!--system|OS:WINDOWS|ARCH:ARM64|${app-dir}\java\windows-arm64\*',             # bundled (Windows arm64)
+    '!--system|OS:WINDOWS|ARCH:ARM64|${app-dir}\java\win-arm64\*',                 # bundled (Windows arm64)
+    '!--system|OS:WINDOWS|ARCH:X64|${app-dir}\java\windows-x64\*',                 # bundled (Windows x86-64)
+    '!--system|OS:WINDOWS|ARCH:X64|${app-dir}\java\win64\*',                       # bundled (Windows x86-64)
+    '!--system|OS:WINDOWS|ARCH:X86|${app-dir}\java\windows-x32\*',                 # bundled (Windows x86-32)
+    '!--system|OS:WINDOWS|ARCH:X86|${app-dir}\java\windows-x86\*',                 # bundled (Windows x86-32)
+    '!--system|OS:WINDOWS|ARCH:X86|${app-dir}\java\win32\*',                       # bundled (Windows x86-32)
+    '${JAVA_HOME}',                                                                # JAVA_HOME environment variable
+    '${CONDA_PREFIX}/pkgs/*jdk*/lib/jvm',                                          # Conda (openjdk 9+)
+    '${CONDA_PREFIX}/pkgs/*jdk*',                                                  # Conda (openjdk 8)
+    'OS:LINUX|/usr/lib/jvm/*',                                                     # Linux distro package manager (e.g. apt)
+    'OS:LINUX|/var/lib/flatpak/runtime/*jdk*/*/*/*/files/jvm/*',                   # Flatpak
+    'OS:LINUX|/snap/*jdk/*/jdk',                                                   # snap
+    'OS:LINUX|~/.sdkman/candidates/java/*',                                        # sdkman.io
+    '${CJDK_CACHE_DIR}/v*/jdks/*/*',                                               # github.com/cachedjdk/cjdk
+    '${XDG_CACHE_HOME}/cjdk/v*/jdks/*/*',                                          # github.com/cachedjdk/cjdk
+    'OS:LINUX|~/.cache/cjdk/v*/jdks/*/*',                                          # github.com/cachedjdk/cjdk
+    'OS:MACOSX|~/Library/Caches/cjdk/v*/jdks/*/*',                                 # github.com/cachedjdk/cjdk
+    'OS:WINDOWS|${LOCALAPPDATA}\cjdk\cache\v*\jdks\*\*',                           # github.com/cachedjdk/cjdk
+    'OS:WINDOWS|${USERPROFILE}\AppData\Local\cjdk\cache\v*\jdks\*\*',              # github.com/cachedjdk/cjdk
+    'OS:LINUX|~/.jdk/*',                                                           # github.com/jyksnw/install-jdk
+    'OS:LINUX|~/.jre/*',                                                           # github.com/jyksnw/install-jdk
+    'OS:MACOSX|/Library/Java/JavaVirtualMachines/*/Contents/Home',                 # Java 8+
+    'OS:MACOSX|/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home',  # JRE 8 by Oracle
+    'OS:MACOSX|${HOMEBREW_PREFIX}/Cellar/*jdk*/*/libexec/*.jdk/Contents/Home',     # Homebrew
+    'OS:MACOSX|/opt/homebrew/Cellar/*jdk*/*/libexec/*.jdk/Contents/Home',          # Homebrew (arm64 default)
+    'OS:MACOSX|/usr/local/Cellar/*jdk*/*/libexec/*.jdk/Contents/Home',             # Homebrew (x86-64 default)
+    'OS:WINDOWS|${ProgramFiles}\Java\*',                                           # System-wide install on Windows
+    'OS:WINDOWS|${ProgramFiles(x86)}\Java\*',                                      # System-wide install on Windows
+    'OS:WINDOWS|~\scoop\apps\*jdk*\*',                                             # Scoop openjdk, temurin-jdk, ...
+    'OS:WINDOWS|~\scoop\apps\mambaforge\*\envs\*\Library\lib\jvm',                 # Scoop mambaforge
+]
+
+# ==============================================================================
+# Developer aside: Right now, Jaunch does not utilize any programmatic ways
+# to discover Java root directories. But it could! In particular:
+#
+# - Windows: look for registry keys
+# - macOS: /usr/libexec/java_home -V
+# - Linux: /usr/sbin/update-java-alternatives -l
+#
+# We could invent schema elements for toggling use of these detection approaches.
+# But for now: YAGNI! File an issue or a pull request if you do need it.
+
+# ==============================================================================
+# jvm.lib-suffixes
+# ==============================================================================
+# List of places within a Java installation to look for the JVM library.
+#
+# For example, if the root directory currently being considered is
+# /the-best-jvm, and the current libjvm suffix line is lib/server/libjvm.so,
+# then Jaunch will check the path /the-best-jvm/lib/server/libjvm.so for the
+# library. If found, we have a winning Java installation!
+#
+# For macOS, the reason to prefer libjli.dylib over libjvm.dylib is that if
+# one dynamically loads libjvm.dylib via dlopen(), macOS helpfully pops up a
+# dialog box instructing the user to install Apple Java 6. At least: it did
+# so for many years, including for several OS versions where Apple Java 6 no
+# longer functioned properly. While it is possible that Apple has since changed
+# this problematic behavior, we keep using libjli.dylib because it still works,
+# and definitely avoids the problem on systems where that behavior is present.
+# Related reading: https://bugs.openjdk.org/browse/JDK-8064542
+#
+# Finally, perusing the list below, you may notice several entries beginning
+# with jre/. This nested folder is only present up to Java 8, nothing after.
+
+jvm.lib-suffixes = [
+    'OS:LINUX|lib/server/libjvm.so',                    # Java 9+
+    'OS:LINUX|ARCH:X64|lib/amd64/server/libjvm.so',     # Java 8 (64-bit)
+    'OS:LINUX|ARCH:X64|jre/lib/amd64/server/libjvm.so', # Java 8 (64-bit)
+    'OS:LINUX|ARCH:X86|lib/i386/server/libjvm.so',      # Java 8 (32-bit)
+    'OS:LINUX|ARCH:X86|jre/lib/i386/server/libjvm.so',  # Java 8 (32-bit)
+    'OS:MACOSX|lib/libjli.dylib',                       # Java 12+
+    'OS:MACOSX|lib/jli/libjli.dylib',                   # Java 9-11
+    'OS:MACOSX|jre/lib/jli/libjli.dylib',               # Java 8
+    'OS:WINDOWS|bin\server\jvm.dll',                    # Java 9+
+    'OS:WINDOWS|bin\client\jvm.dll',                    # Java 9+
+    'OS:WINDOWS|jre\bin\server\jvm.dll',                # Java 8
+    'OS:WINDOWS|jre\bin\client\jvm.dll',                # Java 8
+]
+
+# ==============================================================================
+# jvm.classpath
+# ==============================================================================
+# Runtime classpath elements (e.g. JAR files) to pass to Java.
+#
+# These are typically relative paths beneath the application root directory,
+# which is the same directory where the Jaunch launchers and config files reside.
+#
+# The asterisk wildcard symbol (*) is allowed, if you want to match all JAR files,
+# or even all JARs and directories, within a particular directory.
+#
+# The double-asterisk (**) for recursive matching is not yet implemented,
+# but could be done if there is user demand (PRs welcome ;-).
+
+jvm.classpath = [
+    '--class-path|${class-path}',
+    '--jar-path|${jar-path}/*',
+]
+
+# ==============================================================================
+# jvm.max-heap
+# ==============================================================================
+# Maximum amount of memory for the Java heap to consume.
+#
+# In addition to the usual k, m, and g suffixes supported by Java itself for KB,
+# MB, and GB respectively, Jaunch also supports a % suffix.
+#
+# Examples:
+# - For 1567 MB: '1567m'
+# - For 48 GB: '48g'
+# - For 75% of available RAM: '75%'
+# - For 3 GB less than available RAM: '-3g'
+#
+# These will be translated into an appropriate '-Xmx...' argument under the hood.
+#
+# If unset, Java's default will be used (i.e. no -Xmx argument will be injected).
+
+#jvm.max-heap = '50%'
+
+# ==============================================================================
+# jvm.runtime-args
+# ==============================================================================
+# Arguments to pass to the JVM.
+#
+# This is the magic sauce where Jaunch options and other criteria get translated
+# into JVM arguments. See 'jvm.root-paths' above for a thorough explanation.
+
+jvm.runtime-args = [
+    '--headless|-Djava.awt.headless=true',
+    '--headless|-Dapple.awt.UIElement=true',
+    '--heap|-Xmx${heap}',
+    '--ext|-Djava.ext.dirs=${ext}',
+    '--debugger|-agentlib:jdwp=transport=dt_socket,server=y,address=localhost:${debugger}',
+]
+
+# ==============================================================================
+# jvm.main-class
+# ==============================================================================
+# A list of candidate main classes, one of which will get launched.
+#
+# Jaunch evaluates the rules attached to each candidate main class. The first
+# line with matching rules becomes the main class, with subsequent lines ignored.
+#
+# This field is useful if you want to launch a different main class depending on
+# criteria such as OS, CPU architecture, or which options are given on the CLI.
+
+#jvm.main-class = [
+#    '--fizzbuzz|org.fizzbuzz.FizzBuzz',
+#    '--main-class|${main-class}',
+#    'org.fizzbuzz.Main', # default behavior
+#]
+
+# ==============================================================================
+# jvm.main-args
+# ==============================================================================
+# Arguments to pass to the main class on the Java side.
+#
+# This is the other half of the magic sauce, along with jvm.runtime-args above:
+# Options and other criteria get translated into main arguments here.
+# See the 'jvm.root-paths' section above for a thorough explanation.
+
+#jvm.main-args = [
+#    '!--fizz|!--buzz|--mode=number',
+#    '--fizz|!--buzz|--mode=fizz',
+#    '--buzz|!--fizz|--mode=buzz',
+#    '--fizz|--buzz|--mode=fizzbuzz',
+#]

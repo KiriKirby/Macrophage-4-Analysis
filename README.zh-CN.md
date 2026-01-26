@@ -14,7 +14,7 @@ Fiji 专用 ImageJ 宏，用于对巨噬细胞图像中的目标物（beads）�
 - 灵活的 PN/F/T 解析、按细胞展开与数据优化
 
 ## 概览
-- 主脚本：`Macrophage Image Four-Factor Analysis_2.2.3.ijm`
+- 主脚本：`Macrophage Image Four-Factor Analysis_2.2.4.ijm`
 - 特征参考图：`sample.png`
 - 运行环境：仅支持 Fiji（ImageJ 单体无法运行）。
 - 支持格式：tif/tiff/png/jpg/jpeg
@@ -22,7 +22,7 @@ Fiji 专用 ImageJ 宏，用于对巨噬细胞图像中的目标物（beads）�
 ## 快速开始
 推荐运行方式（避免非英文界面乱码）：
 1. 打开 Fiji。
-2. 将 `Macrophage Image Four-Factor Analysis_2.2.3.ijm` 拖入 Fiji 窗口。
+2. 将 `Macrophage Image Four-Factor Analysis_2.2.4.ijm` 拖入 Fiji 窗口。
 3. Macro Editor 打开后点击 Run。
 
 ## 四要素模型与核心指标
@@ -254,7 +254,7 @@ F4：细胞内团块掩膜
 
 若用户在 UI 中修改面积范围，则 unitArea 会同步为新范围的中点。
 
-默认参数（v2.2.3）：
+默认参数（v2.2.4）：
 - ROI 后缀：_cells
 - 目标面积默认范围：minA=5, maxA=200, circ=0
 - 背景 Rolling Ball 默认半径：50
@@ -344,6 +344,8 @@ F4：细胞内团块掩膜
 - 建议拖拽运行，避免非英文界面乱码。
 
 ## 许可证
-推荐 MIT；需要强制开源可选 GPL-3.0。
+CC0 1.0 Universal（公有领域贡献）。详见 `LICENSE`。
+本仓库包含第三方软件和字体，适用其各自的许可证。详见 `THIRD_PARTY_NOTICES.md`。
+
 
 

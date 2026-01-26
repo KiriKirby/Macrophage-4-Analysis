@@ -14,7 +14,7 @@ Fiji 専用の ImageJ マクロで、マクロファージ画像中の対象物�
 - PN/F/T 解析、単細胞展開、データ最適化
 
 ## 概要
-- 主スクリプト：`Macrophage Image Four-Factor Analysis_2.2.3.ijm`
+- 主スクリプト：`Macrophage Image Four-Factor Analysis_2.2.4.ijm`
 - 特徴参照画像：`sample.png`
 - 実行環境：Fiji 専用（ImageJ 単体では動作しません）。
 - 対応形式：tif/tiff/png/jpg/jpeg
@@ -22,7 +22,7 @@ Fiji 専用の ImageJ マクロで、マクロファージ画像中の対象物�
 ## クイックスタート
 推奨実行方法（非英語文字化けを回避）：
 1. Fiji を起動。
-2. `Macrophage Image Four-Factor Analysis_2.2.3.ijm` を Fiji にドラッグ＆ドロップ。
+2. `Macrophage Image Four-Factor Analysis_2.2.4.ijm` を Fiji にドラッグ＆ドロップ。
 3. Macro Editor が開いたら Run。
 
 ## 四要素モデルと主要指標
@@ -254,7 +254,7 @@ F4：細胞内塊マスク
 
 UI で min/max を変更すると unitArea は新しい中点に同期されます。
 
-デフォルトパラメータ（v2.2.3）：
+デフォルトパラメータ（v2.2.4）：
 - ROI 接尾辞：_cells
 - 対象面積の既定範囲：minA=5, maxA=200, circ=0
 - Rolling Ball 既定半径：50
@@ -344,6 +344,8 @@ UI で min/max を変更すると unitArea は新しい中点に同期されま�
 - 文字化け回避のためドラッグ＆ドロップ実行を推奨します。
 
 ## ライセンス
-MIT 推奨。強いコピーレフトが必要なら GPL-3.0。
+CC0 1.0 Universal（パブリックドメイン提供）。詳細は `LICENSE` を参照。
+本リポジトリには第三者ソフトウェアおよびフォントが含まれています。各ライセンスに従います。`THIRD_PARTY_NOTICES.md` を参照してください。
+
 
 

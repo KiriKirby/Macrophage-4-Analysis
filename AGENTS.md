@@ -7,39 +7,96 @@
 These instructions apply to this repository.
 
 ## IMPORTANT: Script Module Index (Update Required)
-- This repository maintains a module index for `Macrophage Image Four-Factor Analysis_2.2.3.ijm`.
+- This repository maintains a module index for `Macrophage Image Four-Factor Analysis_2.2.4.ijm`.
 - Every code change that adds/moves/removes logic must update the index line numbers below.
 - Keep the index in sync so future AI can locate modules quickly.
 
-### Module Index (Macrophage Image Four-Factor Analysis_2.2.3.ijm)
-- Header + settings: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:1`
-- Log + math utilities: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:24`
-- File/string/CSV helpers: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:113`
-- Token/rule parsing + data-format validation: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:471`
-- Grouping/sorting/ratio helpers: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:811`
-- Image/window safety helpers: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:972`
-- Data-format logging + mottos: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:1045`
-- ROI annotation helper: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:1153`
-- Sampling + parameter estimation: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:1222`
-- Cell label mask: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:1607`
-- Bead detection (fusion): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:2005`
-- Bead counting + exclusion filter: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:2378`
-- Main flow entry: `Macrophage Image Four-Factor Analysis_2.2.3.ijm:2656`
+## IMPORTANT: Error Code System (Update Required)
+- Every user-facing error message must include a stable error code in the format `[E###]` at the start of the message text.
+- Error codes must be kept consistent across CN/JP/EN strings for the same failure.
+- When an error is shown or causes an exit, log the error with the code (use the structured log style and `T_log_error`).
+- Any new failure points introduced by new features or optimizations must add:
+  - A new error code and localized CN/JP/EN messages.
+  - A log entry that includes the code.
+  - A corresponding entry in the Error Code Index below.
+- Validation errors inside dialogs should be recoverable (prompt the user to correct input and continue), not hard-exit the script unless the failure is truly fatal.
+
+## Error Code Index (Macrophage Image Four-Factor Analysis_2.2.4.ijm)
+- E001: Required window missing (requireWindow).
+- E002: Image open failed (openImageSafe).
+- E003: Too many cell ROIs (>65535) for label mask.
+- E004: ROI[1] invalid bounds (label mask generation).
+- E005: Label mask fill check failed (center pixel still 0).
+- E006: Selected folder mixes files and subfolders.
+- E007: Nested subfolders detected (recursive structure not supported).
+- E008: No image files found in the selected folder.
+- E009: ROI list empty when attempting to save.
+- E010: ROI zip save failed (file not created).
+- E011: ROI zip load failed or contains no valid ROI.
+- E012: Feature selection conflict (Feature 1 + Feature 5).
+- E013: No feature selected.
+- E020: Feature reference image unavailable or timed out.
+- E101: Filename rule empty.
+- E102: Filename rule must contain exactly one slash.
+- E103: Filename rule parts missing.
+- E104: Filename rule tokens invalid (only <p>/<f> allowed).
+- E105: Filename rule must include both <p> and <f>.
+- E106: Filename rule order invalid.
+- E107: Subfolder-keep mode requires folderRule//fileRule.
+- E108: Subfolder rule not allowed in current mode.
+- E109: Double slash appears more than once.
+- E110: Rule parameters must be key="value".
+- E111: Unknown rule parameter prefix.
+- E112: Rule parameter value must be in English double quotes.
+- E113: Invalid f parameter value (must be "F" or "T").
+- E114: Duplicate f parameter in rule spec.
+- E121: Column format empty.
+- E122: Column format contains empty item.
+- E123: Column format contains empty token.
+- E124: Column parameters must be comma-separated.
+- E125: "$" missing column code.
+- E126: "$" used on built-in column.
+- E127: Column parameters must be key="value".
+- E128: Unknown column parameter prefix.
+- E129: Column parameter value must be in English double quotes.
+- E130: Unknown column token.
+- E131: Column parameter name is empty.
+- E132: Column parameter value is empty.
+- E133: Duplicate column parameter key.
+- E134: Custom column missing name/value parameter.
+- E135: Multiple "$" custom columns specified.
+- E201: Non-numeric value entered in numeric parameter dialog fields.
+- E199: Data formatting validation error fallback (missing code in message).
+
+### Module Index (Macrophage Image Four-Factor Analysis_2.2.4.ijm)
+- Header + settings: `Macrophage Image Four-Factor Analysis_2.2.4.ijm:1`
+- Log + math utilities: `Macrophage Image Four-Factor Analysis_2.2.4.ijm:25`
+- File/string/CSV helpers: `Macrophage Image Four-Factor Analysis_2.2.4.ijm:114`
+- Token/rule parsing + data-format validation: `Macrophage Image Four-Factor Analysis_2.2.4.ijm:472`
+- Grouping/sorting/ratio helpers: `Macrophage Image Four-Factor Analysis_2.2.4.ijm:836`
+- Image/window safety helpers: `Macrophage Image Four-Factor Analysis_2.2.4.ijm:1007`
+- Data-format logging + mottos: `Macrophage Image Four-Factor Analysis_2.2.4.ijm:1195`
+- ROI annotation helper: `Macrophage Image Four-Factor Analysis_2.2.4.ijm:1289`
+- Sampling + parameter estimation: `Macrophage Image Four-Factor Analysis_2.2.4.ijm:1383`
+- Cell label mask: `Macrophage Image Four-Factor Analysis_2.2.4.ijm:1768`
+- Bead detection (fusion): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:2174`
+- Bead counting + exclusion filter: `Macrophage Image Four-Factor Analysis_2.2.4.ijm:2548`
+- Main flow entry: `Macrophage Image Four-Factor Analysis_2.2.4.ijm:2834`
 - Phases:
-  - Phase 1 (UI language): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:2676`
-  - Phase 2 (UI text definitions): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:2685`
-  - Phase 3 (mode select): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:3999`
-  - Phase 4 (folder + file list): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4011`
-  - Phase 5 (ROI annotation): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4173`
-  - Phase 6 (target sampling): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4198`
-- Phase 7 (exclusion sampling): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4489`
-- Phase 8 (parameter estimation): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4673`
-- Phase 9 (parameter dialog): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4770`
-- Phase 10 (parameter validation): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4883`
-- Phase 11 (data format): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:4996`
-- Phase 12 (batch loop): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:5044`
-- Phase 13 (results output): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:5309`
-- Phase 14 (finish): `Macrophage Image Four-Factor Analysis_2.2.3.ijm:6567`
+  - Phase 1 (UI language): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:2854`
+  - Phase 2 (UI text definitions): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:2863`
+  - Phase 3 (mode select): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:4407`
+  - Phase 4 (folder + file list): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:4419`
+  - Phase 5 (ROI annotation): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:4587`
+  - Phase 6 (target sampling): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:4612`
+- Phase 7 (exclusion sampling): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:4919`
+- Phase 8 (parameter estimation): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:5105`
+- Phase 9 (parameter dialog): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:5202`
+- Phase 10 (parameter validation): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:5339`
+- Phase 11 (data format): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:5456`
+- Phase 12 (batch loop): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:5522`
+- Phase 13 (results output): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:5814`
+- Phase 14 (finish): `Macrophage Image Four-Factor Analysis_2.2.4.ijm:7116`
 
 ## Code Style
 - Language: ImageJ macro (.ijm). Script is designed for Fiji and should be treated as Fiji-only.
@@ -157,7 +214,7 @@ These instructions apply to this repository.
 - Do not introduce new ImageJ macro features outside the supported subset (no regex, no advanced data structures, no ternary tricks).
 
 ## Repository Structure
-- `Macrophage Image Four-Factor Analysis_2.2.3.ijm` is the active script to modify unless told otherwise.
+- `Macrophage Image Four-Factor Analysis_2.2.4.ijm` is the active script to modify unless told otherwise.
 - `old/` contains archived legacy scripts for reference only; do not treat it as active work unless explicitly requested.
 - `Macrophage Image Four-Factor Analysis2.1.ijm` and similar versioned scripts are historical snapshots; avoid edits unless asked.
 - `README*.md` files are documentation entry points and should retain the AI edit notice.
@@ -165,8 +222,11 @@ These instructions apply to this repository.
 ## Repository Notes
 - AI contributors must read `AGENTS.md` before making any edits.
 - Keep the AI edit notice at the top of the main script and the README.* entry points.
+- License: CC0 1.0 Universal (Public Domain Dedication). Keep `LICENSE` and README license sections in sync.
+ - Third-party software/fonts are included and remain under their own licenses. See `THIRD_PARTY_NOTICES.md`.
 ## Maintenance Requirements
 - Keep the Script Module Index current after any change that adds/moves/removes logic.
+- For any new or modified logic, identify likely failure points and add expected error prompts in CN/JP/EN with error codes and logs (see Error Code System).
 
 ## Lessons Learned
 - ImageJ/Fiji macro functions have a hard limit on the number of arguments; exceeding it triggers "Too many arguments". Pack related parameters into arrays and unpack inside the function to avoid hitting the limit.
@@ -236,7 +296,7 @@ These instructions apply to this repository.
   - meanFromCsv, scaleCsv, scaleCsvIntoArray, buildZeroCsv, getNumberAtCsv: data-adjustment helpers (details omitted per request).
 - Removed functions: none.
 
-### Version 2.2.3 (Macrophage Image Four-Factor Analysis_2.2.3.ijm)
+### Version 2.2.4 (Macrophage Image Four-Factor Analysis_2.2.4.ijm)
 - Algorithm updates:
   - Added feature-based round object classification using center/ring/outer intensity metrics.
   - Added clump mask construction (dark clumps and in-cell clumps) and mask-derived detection.
@@ -252,3 +312,4 @@ These instructions apply to this repository.
   - formatFeatureList, openFeatureReferenceImage, showFeatureReferenceFallback: feature selection support (non-UI core only).
   - buildCsvCache, meanFromCache, scaleCsvCacheInPlace, getNumberFromCache, tokenCodeFromToken: data-adjustment/output helpers (details omitted per request).
 - Removed functions: none.
+

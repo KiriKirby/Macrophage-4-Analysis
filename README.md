@@ -14,7 +14,7 @@ Key capabilities
 - Flexible PN/F/T parsing, per-cell expansion, and data optimization
 
 ## Overview
-- Main script: `Macrophage Image Four-Factor Analysis_2.2.3.ijm`
+- Main script: `Macrophage Image Four-Factor Analysis_2.2.4.ijm`
 - Reference image for feature selection: `sample.png`
 - Runtime: Fiji (required). The macro is designed for Fiji and does not run in ImageJ alone.
 - Supported image formats: tif/tiff/png/jpg/jpeg
@@ -22,7 +22,7 @@ Key capabilities
 ## Quick start
 Recommended run method (avoids non-English text garbling):
 1. Open Fiji.
-2. Drag and drop `Macrophage Image Four-Factor Analysis_2.2.3.ijm` into the Fiji window.
+2. Drag and drop `Macrophage Image Four-Factor Analysis_2.2.4.ijm` into the Fiji window.
 3. The Macro Editor opens. Click Run.
 
 ## Four-factor model and core metrics
@@ -256,7 +256,7 @@ Clamping:
 
 If the user edits min/max area in the UI, unitArea is synchronized to the new midpoint.
 
-Default parameters (v2.2.3):
+Default parameters (v2.2.4):
 - ROI suffix: _cells
 - Default target area range: minA=5, maxA=200, circ=0
 - Default background radius: rolling=50
@@ -346,7 +346,9 @@ Time monotonic adjustment:
 - Run via drag-and-drop to avoid encoding issues in non-English UI text.
 
 ## License
-MIT is recommended. Use GPL-3.0 if copyleft is required.
+CC0 1.0 Universal (Public Domain Dedication). See `LICENSE`.
+This repository also includes third-party software and fonts under their own licenses. See `THIRD_PARTY_NOTICES.md`.
+
 
 
 
