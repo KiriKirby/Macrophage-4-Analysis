@@ -1,34 +1,34 @@
-macro "巨噬细胞图像四元素值分析" {
+macro "巨噬细胞图像四元素值分�? {
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// 语言选择 | 言語選択
-	// ═══════════════════════════════════════════════════════════════════════
-	Dialog.create("Language / 言語 / 语言");
+	// ══════════════════════════════════════════════════════════════════════�?
+	// 语言选择 | 言語選�?
+	// ══════════════════════════════════════════════════════════════════════�?
+	Dialog.create("Language / 言�?/ 语言");
 	Dialog.addMessage(
 		"巨噬细胞图像四元素值分析\n" +
 		"Macrophage Image Four-Factor Analysis\n" +
-		"マクロファージ画像4要素解析\n\n" +
+		"マクロファージ画�?要素解析\n\n" +
 		"Version: 1.0\n" +
 		"Author: Nishikata Lab 王舒扬\n" +
 		"---------------------------------\n" +
 		"请选择界面语言 / 言語を選択 / Select language"
 	);
-	Dialog.addChoice("Language", newArray("中文", "日本語", "English"), "中文");
+	Dialog.addChoice("Language", newArray("中文", "日本�?, "English"), "中文");
 	Dialog.show();
 	lang = Dialog.getChoice();
 
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// 全局开关 | グローバル設定
-	// ═══════════════════════════════════════════════════════════════════════
+	// ══════════════════════════════════════════════════════════════════════�?
+	// 全局开�?| グローバル設�?
+	// ══════════════════════════════════════════════════════════════════════�?
 	ENABLE_MOTTO_CN   = 1;
 	ENABLE_MOTTO_ENJP = 0;
 	LOG_VERBOSE       = 1;
 
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// 工具函数 | ユーティリティ
-	// ═══════════════════════════════════════════════════════════════════════
+	// ══════════════════════════════════════════════════════════════════════�?
+	// 工具函数 | ユーティリテ�?
+	// ══════════════════════════════════════════════════════════════════════�?
 	function log(s) {
 		if (LOG_VERBOSE) print(s);
 	}
@@ -123,53 +123,53 @@ macro "巨噬细胞图像四元素值分析" {
 	}
 
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// 多语言文本 | 多言語テキスト
-	// ═══════════════════════════════════════════════════════════════════════
+	// ══════════════════════════════════════════════════════════════════════�?
+	// 多语言文本 | 多言語テキス�?
+	// ══════════════════════════════════════════════════════════════════════�?
 	if (lang == "中文") {
 
-		T_choose     = "选择包含图像与 ROI 的文件夹";
-		T_exit       = "未选择文件夹，程序已退出。";
-		T_noImages   = "文件夹中未检测到图像文件，程序已退出。";
-		T_exitScript = "用户选择退出脚本，程序已结束。";
+		T_choose     = "选择包含图像�?ROI 的文件夹";
+		T_exit       = "未选择文件夹，程序已退出�?;
+		T_noImages   = "文件夹中未检测到图像文件，程序已退出�?;
+		T_exitScript = "用户选择退出脚本，程序已结束�?;
 
 		T_mode_title = "工作模式";
 		T_mode_label = "模式";
-		T_mode_1     = "仅标画细胞 ROI（生成 *_cells.zip）";
-		T_mode_2     = "仅分析四要素（需要已有细胞 ROI）";
+		T_mode_1     = "仅标画细�?ROI（生�?*_cells.zip�?;
+		T_mode_2     = "仅分析四要素（需要已有细�?ROI�?;
 		T_mode_3     = "标画细胞 ROI 后分析四要素（推荐）";
 		T_mode_msg   =
 			"请选择本次工作模式（下拉菜单）：\n\n" +
 			"1）仅标画细胞 ROI：\n" +
 			"   - 逐张打开图像，手动勾画细胞轮廓并保存 ROI\n" +
-			"   - 默认 ROI 文件名：图片名 + \"_cells.zip\"\n\n" +
+			"   - 默认 ROI 文件名：图片�?+ \"_cells.zip\"\n\n" +
 			"2）仅分析四要素：\n" +
 			"   - 直接进行磁珠检测与四要素统计\n" +
-			"   - 必须存在对应细胞 ROI（默认：图片名 + \"_cells.zip\"）\n\n" +
-			"3）标画细胞 ROI 后分析四要素：\n" +
-			"   - 先生成/补齐细胞 ROI（默认：图片名 + \"_cells.zip\"）\n" +
+			"   - 必须存在对应细胞 ROI（默认：图片�?+ \"_cells.zip\"）\n\n" +
+			"3）标画细�?ROI 后分析四要素：\n" +
+			"   - 先生�?补齐细胞 ROI（默认：图片�?+ \"_cells.zip\"）\n" +
 			"   - 再标注磁珠样本并进行四要素分析\n\n" +
-			"注意：请使用 OK 确认选择；不要点 Cancel，否则可能导致流程状态异常。";
+			"注意：请使用 OK 确认选择；不要点 Cancel，否则可能导致流程状态异常�?;
 
 		T_step_roi_title = "下一步：细胞 ROI 标注";
 		T_step_roi_msg =
-			"现在将进入【细胞 ROI 标注】阶段。\n\n" +
+			"现在将进入【细�?ROI 标注】阶段。\n\n" +
 			"你需要：\n" +
 			"1）用你当前选中的工具勾画细胞轮廓（推荐自由手绘）\n" +
-			"2）每画完一个细胞轮廓，按 T 将 ROI 加入 ROI Manager\n" +
-			"3）完成当前图像后，在提示窗口点 OK 进入下一张\n\n" +
+			"2）每画完一个细胞轮廓，�?T �?ROI 加入 ROI Manager\n" +
+			"3）完成当前图像后，在提示窗口�?OK 进入下一张\n\n" +
 			"说明：本宏不会自动切换绘图工具。\n" +
-			"注意：请不要点 Cancel，否则可能导致程序状态异常/结果不完整。";
+			"注意：请不要�?Cancel，否则可能导致程序状态异�?结果不完整�?;
 
 		T_step_bead_title = "下一步：磁珠抽样标注";
 		T_step_bead_msg =
 			"现在将进入【磁珠抽样标注】阶段。\n\n" +
 			"你需要：\n" +
 			"1）使用椭圆工具快速圈出磁珠（精度无需很高）\n" +
-			"2）每圈完一个磁珠，按 T 将 ROI 加入 ROI Manager\n" +
+			"2）每圈完一个磁珠，�?T �?ROI 加入 ROI Manager\n" +
 			"3）当前图像标注结束后：在本窗口点 OK\n" +
-			"4）随后会出现下拉菜单窗口，选择：下一张 / 结束并计算 / 退出脚本\n\n" +
-			"注意：请不要点 Cancel，否则可能导致程序状态异常/结果不完整。";
+			"4）随后会出现下拉菜单窗口，选择：下一�?/ 结束并计�?/ 退出脚本\n\n" +
+			"注意：请不要�?Cancel，否则可能导致程序状态异�?结果不完整�?;
 
 		T_step_param_title = "下一步：确认参数";
 		T_step_param_msg =
@@ -177,16 +177,16 @@ macro "巨噬细胞图像四元素值分析" {
 			"说明：\n" +
 			"- 默认值会根据你抽样圈选的磁珠面积分布自动估计，并留出自适应余地\n" +
 			"- 可根据实验需要手动修改\n\n" +
-			"注意：请用 OK 确认。";
+			"注意：请�?OK 确认�?;
 
 		T_step_main_title = "下一步：批量分析";
 		T_step_main_msg =
 			"现在将进入【批量分析】阶段。\n\n" +
 			"说明：\n" +
 			"- 宏会对文件夹内所有图像进行磁珠检测与四要素统计\n" +
-			"- 若某张图像缺少细胞 ROI，会弹出窗口询问：现在标注 / 跳过 / 跳过全部 / 退出\n" +
+			"- 若某张图像缺少细�?ROI，会弹出窗口询问：现在标�?/ 跳过 / 跳过全部 / 退出\n" +
 			"- 即使跳过，该图像也会在最终结果表保留一行（值为空）\n\n" +
-			"注意：请用 OK 开始。";
+			"注意：请�?OK 开始�?;
 
 		T_cell_title = "细胞轮廓标注";
 		T_cell_msg =
@@ -194,93 +194,93 @@ macro "巨噬细胞图像四元素值分析" {
 			"文件名：%f\n\n" +
 			"请手动勾画细胞轮廓。\n" +
 			"每画完一个轮廓，请按 T 加入 ROI。\n\n" +
-			"完成后点击 OK 继续下一张。\n\n" +
+			"完成后点�?OK 继续下一张。\n\n" +
 			"ROI 保存规则：图片名 + \"%s.zip\"（默认：_cells.zip）\n" +
 			"说明：本宏不会自动切换绘图工具。\n" +
-			"注意：请不要点击 Cancel，否则可能导致流程状态异常/结果不完整。";
+			"注意：请不要点击 Cancel，否则可能导致流程状态异�?结果不完整�?;
 
 		T_missing_title    = "缺少细胞 ROI";
 		T_missing_label    = "处理方式";
-		T_missing_anno     = "现在标注细胞 ROI（并继续分析）";
+		T_missing_anno     = "现在标注细胞 ROI（并继续分析�?;
 		T_missing_skip     = "跳过此图像（结果表保留空值）";
-		T_missing_skip_all = "跳过所有缺 ROI 的图像（后续不再提示）";
-		T_missing_exit     = "退出脚本";
+		T_missing_skip_all = "跳过所有缺 ROI 的图像（后续不再提示�?;
+		T_missing_exit     = "退出脚�?;
 		T_missing_msg      =
-			"检测到下列图像缺少对应的细胞 ROI 文件：\n" +
-			"【图像】%f\n" +
-			"【期望 ROI】%b%s.zip\n\n" +
-			"分析四要素需要细胞 ROI。\n" +
+			"检测到下列图像缺少对应的细�?ROI 文件：\n" +
+			"【图像�?f\n" +
+			"【期�?ROI�?b%s.zip\n\n" +
+			"分析四要素需要细�?ROI。\n" +
 			"请选择处理方式（下拉菜单）：\n" +
-			"1）现在标注细胞 ROI：打开图像，手动勾画后保存，再继续分析\n" +
+			"1）现在标注细�?ROI：打开图像，手动勾画后保存，再继续分析\n" +
 			"2）跳过此图像：不分析该图像，结果表保留空值\n" +
 			"3）跳过全部缺 ROI：后续不再提示，统一保留空值\n" +
 			"4）退出脚本：立即结束\n\n" +
-			"注意：请使用 OK 确认选择；不要点 Cancel，否则可能导致流程状态异常。";
+			"注意：请使用 OK 确认选择；不要点 Cancel，否则可能导致流程状态异常�?;
 
 		T_sampling = "抽样阶段";
 		T_promptAddROI =
-			"【进度】第 %i/%n 张图像\n【文件】%f\n\n" +
+			"【进度】第 %i/%n 张图像\n【文件�?f\n\n" +
 			"操作说明：\n" +
 			"1. 使用椭圆工具快速标注磁珠（精度无需很高）\n" +
-			"2. 保存 ROI：点击 ROI Manager 的「Add」按钮，或按键盘「T」键\n" +
+			"2. 保存 ROI：点�?ROI Manager 的「Add」按钮，或按键盘「T」键\n" +
 			"3. 标注完成后：请点击此窗口的「OK」继续\n\n" +
-			"注意：请不要点击「Cancel」，否则可能导致程序状态异常/结果不完整。\n" +
-			"下一步（下一张/结束并计算/退出脚本）将在随后下拉菜单窗口中选择。";
+			"注意：请不要点击「Cancel」，否则可能导致程序状态异�?结果不完整。\n" +
+			"下一步（下一�?结束并计�?退出脚本）将在随后下拉菜单窗口中选择�?;
 
 		T_gdMessage =
 			"请选择下一步操作（下拉菜单）：\n" +
 			"【下一张】继续抽样下一张图像\n" +
 			"【结束抽样并计算】停止抽样，使用已标注样本计算默认参数\n" +
 			"【退出脚本】立即结束脚本\n\n" +
-			"注意：此窗口也请不要点 Cancel，使用 OK 确认选择。";
+			"注意：此窗口也请不要�?Cancel，使�?OK 确认选择�?;
 
-		T_gdNext   = "下一张";
-		T_gdCancel = "结束抽样并计算";
-		T_gdExit   = "退出脚本";
+		T_gdNext   = "下一�?;
+		T_gdCancel = "结束抽样并计�?;
+		T_gdExit   = "退出脚�?;
 
 		T_param    = "参数设置";
-		T_minA     = "Bead 最小面积（像素²）";
-		T_maxA     = "Bead 最大面积（像素²）";
-		T_circ     = "Bead 最小圆形度（0-1）";
+		T_minA     = "Bead 最小面积（像素²�?;
+		T_maxA     = "Bead 最大面积（像素²�?;
+		T_circ     = "Bead 最小圆形度�?-1�?;
 		T_strict   = "磁珠判定严格程度";
-		T_strict_S = "严格（更少误检）";
+		T_strict_S = "严格（更少误检�?;
 		T_strict_N = "正常（推荐，略宽松）";
 		T_strict_L = "宽松（尽量都算）";
 		T_roll     = "背景 Rolling Ball 半径";
-		T_suffix   = "细胞 ROI 文件后缀（不含扩展名）";
-		T_debug    = "调试模式（保留处理图像并添加 ROI）";
+		T_suffix   = "细胞 ROI 文件后缀（不含扩展名�?;
+		T_debug    = "调试模式（保留处理图像并添加 ROI�?;
 
 		T_log_sep             = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
-		T_log_start           = "✓ 开始处理任务";
-		T_log_lang            = "  ├─ 语言：中文";
+		T_log_start           = "�?开始处理任�?;
+		T_log_lang            = "  ├─ 语言：中�?;
 		T_log_dir             = "  ├─ 文件夹已选择";
-		T_log_mode            = "  └─ 模式：%s";
-		T_log_roi_phase_start = "✓ 进入细胞 ROI 标注阶段";
-		T_log_roi_phase_done  = "✓ 细胞 ROI 标注阶段完成";
-		T_log_sampling_start  = "✓ 进入磁珠抽样阶段 [随机选择图像以建立参数模型]";
-		T_log_sampling_cancel = "✓ 抽样已结束 [用户选择结束并计算]";
-		T_log_sampling_none   = "⚠ 警告：未标注任何样本，将使用预设默认参数";
-		T_log_sampling_img    = "  ├─ 样本 [%i/%n]：%f";
-		T_log_sampling_rois   = "  │  └─ 标注 ROI 数量：%i 个";
-		T_log_params_calc     = "✓ 参数已自动计算";
-		T_log_params_default  = "  └─ 模式：预设默认值 | Area[%i-%i] px² | Circularity[%f-1.00]";
-		T_log_params_sample   = "  └─ 模式：基于样本估计 | Area[%i-%i] px² | Circularity[%f-1.00]";
-		T_log_main_start      = "✓ 进入主处理阶段 [批量分析所有图像]";
-		T_log_processing      = "  ├─ 处理 [%i/%n]：%f";
-		T_log_missing_roi     = "  │  ⚠ 缺少 ROI：%f";
-		T_log_missing_choice  = "  │  └─ 处理方式：%s";
-		T_log_load_roi        = "  │  ├─ 加载 ROI 文件";
-		T_log_roi_count       = "  │  │  └─ 细胞总数：%i 个";
-		T_log_bead_detect     = "  │  ├─ 磁珠检测与统计";
-		T_log_bead_count      = "  │  │  ├─ 磁珠总数：%i 个";
-		T_log_bead_incell     = "  │  │  ├─ 细胞内磁珠：%i 个";
-		T_log_cell_withbead   = "  │  │  └─ 吞噬磁珠细胞：%i 个";
-		T_log_complete        = "  │  └─ ✓ 完成";
-		T_log_skip_roi        = "  │  ✗ 该图像未分析 [缺少 ROI，已按选择跳过]";
-		T_log_skip_nocell     = "  │  ✗ 已跳过 [ROI 文件中无有效细胞]";
-		T_log_results_save    = "✓ 结果已保存至结果表";
-		T_log_all_done        = "✓✓✓ 所有任务已完成 ✓✓✓";
-		T_log_summary         = "📊 汇总：共处理 %i 张图像";
+		T_log_mode            = "  └─ 模式�?s";
+		T_log_roi_phase_start = "�?进入细胞 ROI 标注阶段";
+		T_log_roi_phase_done  = "�?细胞 ROI 标注阶段完成";
+		T_log_sampling_start  = "�?进入磁珠抽样阶段 [随机选择图像以建立参数模型]";
+		T_log_sampling_cancel = "�?抽样已结�?[用户选择结束并计算]";
+		T_log_sampling_none   = "�?警告：未标注任何样本，将使用预设默认参数";
+		T_log_sampling_img    = "  ├─ 样本 [%i/%n]�?f";
+		T_log_sampling_rois   = "  �? └─ 标注 ROI 数量�?i �?;
+		T_log_params_calc     = "�?参数已自动计�?;
+		T_log_params_default  = "  └─ 模式：预设默认�?| Area[%i-%i] px² | Circularity[%f-1.00]";
+		T_log_params_sample   = "  └─ 模式：基于样本估�?| Area[%i-%i] px² | Circularity[%f-1.00]";
+		T_log_main_start      = "�?进入主处理阶�?[批量分析所有图像]";
+		T_log_processing      = "  ├─ 处理 [%i/%n]�?f";
+		T_log_missing_roi     = "  �? �?缺少 ROI�?f";
+		T_log_missing_choice  = "  �? └─ 处理方式�?s";
+		T_log_load_roi        = "  �? ├─ 加载 ROI 文件";
+		T_log_roi_count       = "  �? �? └─ 细胞总数�?i �?;
+		T_log_bead_detect     = "  �? ├─ 磁珠检测与统计";
+		T_log_bead_count      = "  �? �? ├─ 磁珠总数�?i �?;
+		T_log_bead_incell     = "  �? �? ├─ 细胞内磁珠：%i �?;
+		T_log_cell_withbead   = "  �? �? └─ 吞噬磁珠细胞�?i �?;
+		T_log_complete        = "  �? └─ �?完成";
+		T_log_skip_roi        = "  �? �?该图像未分析 [缺少 ROI，已按选择跳过]";
+		T_log_skip_nocell     = "  �? �?已跳�?[ROI 文件中无有效细胞]";
+		T_log_results_save    = "�?结果已保存至结果�?;
+		T_log_all_done        = "✓✓�?所有任务已完成 ✓✓�?;
+		T_log_summary         = "📊 汇总：共处�?%i 张图�?;
 
 		T_mottos = newArray(
 			"\"实事求是\"",
@@ -293,50 +293,50 @@ macro "巨噬细胞图像四元素值分析" {
 			"\"认识来源于实践\""
 		);
 
-	} else if (lang == "日本語") {
+	} else if (lang == "日本�?) {
 
-		T_choose     = "画像と ROI を含むフォルダを選択してください";
-		T_exit       = "フォルダが選択されていません。処理を終了します。";
-		T_noImages   = "フォルダに画像ファイルが見つかりません。処理を終了します。";
-		T_exitScript = "ユーザーが終了を選択しました。スクリプトを終了します。";
+		T_choose     = "画像�?ROI を含むフォルダを選択してくださ�?;
+		T_exit       = "フォルダが選択されていません。処理を終了します�?;
+		T_noImages   = "フォルダに画像ファイルが見つかりません。処理を終了します�?;
+		T_exitScript = "ユーザーが終了を選択しました。スクリプトを終了します�?;
 
-		T_mode_title = "作業モード";
-		T_mode_label = "モード";
-		T_mode_1     = "細胞 ROI のみ作成（*_cells.zip を生成）";
+		T_mode_title = "作業モー�?;
+		T_mode_label = "モー�?;
+		T_mode_1     = "細胞 ROI のみ作成�?_cells.zip を生成）";
 		T_mode_2     = "4要素解析のみ（既存の細胞 ROI が必要）";
 		T_mode_3     = "細胞 ROI 作成後に 4要素解析（推奨）";
 		T_mode_msg   =
 			"作業モードを選択してください（プルダウン）：\n\n" +
-			"1）細胞 ROI のみ作成：\n" +
-			"   - 画像を順に開き、細胞輪郭を手動で描画して ROI を保存\n" +
-			"   - 既定の ROI 名：画像名 + \"_cells.zip\"\n\n" +
-			"2）4要素解析のみ：\n" +
+			"1）細�?ROI のみ作成：\n" +
+			"   - 画像を順に開き、細胞輪郭を手動で描画し�?ROI を保存\n" +
+			"   - 既定�?ROI 名：画像�?+ \"_cells.zip\"\n\n" +
+			"2�?要素解析のみ：\n" +
 			"   - ビーズ検出と 4要素集計を実行\n" +
 			"   - 対応する細胞 ROI が必須（既定：画像名 + \"_cells.zip\"）\n\n" +
-			"3）細胞 ROI 作成後に 4要素解析：\n" +
-			"   - 先に細胞 ROI を作成/補完（既定：画像名 + \"_cells.zip\"）\n" +
+			"3）細�?ROI 作成後に 4要素解析：\n" +
+			"   - 先に細胞 ROI を作�?補完（既定：画像�?+ \"_cells.zip\"）\n" +
 			"   - その後にビーズ抽出と解析\n\n" +
-			"注意：OK で確定してください。Cancel は押さないでください（状態不整合の原因）。";
+			"注意：OK で確定してください。Cancel は押さないでください（状態不整合の原因）�?;
 
-		T_step_roi_title = "次へ：細胞 ROI 作成";
+		T_step_roi_title = "次へ：細�?ROI 作成";
 		T_step_roi_msg =
-			"これから【細胞 ROI 作成】段階に入ります。\n\n" +
+			"これから【細�?ROI 作成】段階に入ります。\n\n" +
 			"やること：\n" +
 			"1）現在選択中のツールで細胞輪郭を描画（推奨：フリーハンド）\n" +
-			"2）1細胞ごとに T を押して ROI Manager に追加\n" +
-			"3）完了後に OK を押して次へ\n\n" +
+			"2�?細胞ごと�?T を押して ROI Manager に追加\n" +
+			"3）完了後�?OK を押して次へ\n\n" +
 			"説明：このマクロはツールを強制的に切り替えません。\n" +
-			"注意：Cancel は押さないでください（状態不整合/結果不完全の可能性）。";
+			"注意：Cancel は押さないでください（状態不整合/結果不完全の可能性）�?;
 
 		T_step_bead_title = "次へ：ビーズ抽出（サンプリング）";
 		T_step_bead_msg =
 			"これから【ビーズ抽出（サンプリング）】段階に入ります。\n\n" +
 			"やること：\n" +
 			"1）楕円ツールでビーズを素早くマーク（精密さは不要）\n" +
-			"2）1つごとに T を押して ROI を追加\n" +
-			"3）このウィンドウは OK で進む\n" +
-			"4）続くプルダウンで「次へ / 終了して計算 / 終了」を選択\n\n" +
-			"注意：Cancel は押さないでください（状態不整合/結果不完全の可能性）。";
+			"2�?つごとに T を押して ROI を追加\n" +
+			"3）このウィンドウ�?OK で進む\n" +
+			"4）続くプルダウンで「次�?/ 終了して計算 / 終了」を選択\n\n" +
+			"注意：Cancel は押さないでください（状態不整合/結果不完全の可能性）�?;
 
 		T_step_param_title = "次へ：パラメータ確認";
 		T_step_param_msg =
@@ -344,110 +344,110 @@ macro "巨噬细胞图像四元素值分析" {
 			"説明：\n" +
 			"- サンプリングしたビーズ面積分布からデフォルト値を推定します（自動余地あり）\n" +
 			"- 必要なら手動で調整してください\n\n" +
-			"OK で進みます。";
+			"OK で進みます�?;
 
 		T_step_main_title = "次へ：バッチ解析";
 		T_step_main_msg =
 			"次は【バッチ解析】です。\n\n" +
 			"説明：\n" +
 			"- フォルダ内の全画像を解析し、結果テーブルを作成します\n" +
-			"- 細胞 ROI が無い画像は「作成/スキップ/全スキップ/終了」を尋ねます\n" +
+			"- 細胞 ROI が無い画像は「作�?スキップ/全スキッ�?終了」を尋ねます\n" +
 			"- スキップしても結果表には行を残します（値は空）\n\n" +
-			"OK で開始します。";
+			"OK で開始します�?;
 
-		T_cell_title = "細胞輪郭アノテーション";
+		T_cell_title = "細胞輪郭アノテーショ�?;
 		T_cell_msg =
-			"進捗：%i / %n 枚目\n" +
+			"進捗�?i / %n 枚目\n" +
 			"ファイル名：%f\n\n" +
 			"細胞輪郭を手動で描画してください。\n" +
-			"1細胞ごとに T を押して ROI に追加します。\n\n" +
+			"1細胞ごと�?T を押して ROI に追加します。\n\n" +
 			"完了後に OK を押して次へ。\n\n" +
 			"ROI 保存規則：画像名 + \"%s.zip\"（既定：_cells.zip）\n" +
 			"説明：このマクロはツールを強制的に切り替えません。\n" +
-			"注意：Cancel は押さないでください（状態不整合/結果不完全の可能性）。";
+			"注意：Cancel は押さないでください（状態不整合/結果不完全の可能性）�?;
 
 		T_missing_title    = "細胞 ROI が見つかりません";
 		T_missing_label    = "対応";
 		T_missing_anno     = "今ここで細胞 ROI を作成（続けて解析）";
 		T_missing_skip     = "この画像をスキップ（結果表は空値）";
 		T_missing_skip_all = "ROI不足の画像をすべてスキップ（以後表示しない）";
-		T_missing_exit     = "スクリプト終了";
+		T_missing_exit     = "スクリプト終�?;
 		T_missing_msg      =
-			"次の画像で対応する細胞 ROI が見つかりません：\n" +
-			"【画像】%f\n" +
-			"【想定 ROI】%b%s.zip\n\n" +
+			"次の画像で対応する細�?ROI が見つかりません：\n" +
+			"【画像�?f\n" +
+			"【想�?ROI�?b%s.zip\n\n" +
 			"4要素解析には細胞 ROI が必須です。\n" +
 			"対応を選択してください（プルダウン）：\n" +
 			"1）今ここで作成：描画→保存→解析続行\n" +
 			"2）スキップ：解析せず、結果は空値\n" +
 			"3）全スキップ：以後の不足確認を出さず空値\n" +
 			"4）終了：直ちに終了\n\n" +
-			"注意：OK で確定。Cancel は押さないでください。";
+			"注意：OK で確定。Cancel は押さないでください�?;
 
 		T_sampling = "サンプリング段階";
 		T_promptAddROI =
-			"【進捗】%i/%n 枚目\n【ファイル】%f\n\n" +
+			"【進捗�?i/%n 枚目\n【ファイル�?f\n\n" +
 			"操作手順：\n" +
 			"1. 楕円ツールでビーズをマーク（精密さは不要）\n" +
 			"2. ROI保存：ROI Manager の「Add」または「T」\n" +
 			"3. 終了後：このウィンドウは OK\n\n" +
 			"注意：Cancel は押さないでください（状態不整合/結果不完全の可能性）。\n" +
-			"次の選択は続くプルダウンで行います。";
+			"次の選択は続くプルダウンで行います�?;
 
 		T_gdMessage =
 			"次のアクションを選択してください（プルダウン）：\n" +
 			"【次へ】次の画像へ\n" +
 			"【抽出終了して計算】サンプリングを終了し、デフォルトを計算\n" +
 			"【スクリプト終了】ただちに終了\n\n" +
-			"注意：Cancel は押さず、OK で確定してください。";
+			"注意：Cancel は押さず、OK で確定してください�?;
 
 		T_gdNext   = "次へ";
 		T_gdCancel = "抽出終了して計算";
-		T_gdExit   = "スクリプト終了";
+		T_gdExit   = "スクリプト終�?;
 
-		T_param    = "パラメータ設定";
-		T_minA     = "Bead 最小面積（ピクセル²）";
-		T_maxA     = "Bead 最大面積（ピクセル²）";
-		T_circ     = "Bead 最小円形度（0-1）";
-		T_strict   = "ビーズ判定の厳しさ";
-		T_strict_S = "厳格（誤検出を減らす）";
+		T_param    = "パラメータ設�?;
+		T_minA     = "Bead 最小面積（ピクセル²�?;
+		T_maxA     = "Bead 最大面積（ピクセル²�?;
+		T_circ     = "Bead 最小円形度�?-1�?;
+		T_strict   = "ビーズ判定の厳し�?;
+		T_strict_S = "厳格（誤検出を減らす�?;
 		T_strict_N = "標準（推奨、やや緩め）";
-		T_strict_L = "緩い（できるだけ拾う）";
+		T_strict_L = "緩い（できるだけ拾う�?;
 		T_roll     = "背景 Rolling Ball 半径";
-		T_suffix   = "細胞 ROI ファイルの接尾辞（拡張子なし）";
-		T_debug    = "デバッグモード（処理画像と ROI を保持）";
+		T_suffix   = "細胞 ROI ファイルの接尾辞（拡張子なし�?;
+		T_debug    = "デバッグモード（処理画像�?ROI を保持）";
 
 		T_log_sep             = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
-		T_log_start           = "✓ タスク開始";
-		T_log_lang            = "  ├─ 言語：日本語";
+		T_log_start           = "�?タスク開�?;
+		T_log_lang            = "  ├─ 言語：日本�?;
 		T_log_dir             = "  ├─ フォルダが選択されました";
 		T_log_mode            = "  └─ モード：%s";
-		T_log_roi_phase_start = "✓ 細胞 ROI 作成段階に進入";
-		T_log_roi_phase_done  = "✓ 細胞 ROI 作成段階が完了しました";
-		T_log_sampling_start  = "✓ サンプリング段階に進入 [パラメータモデル構築用に画像をランダム選択]";
-		T_log_sampling_cancel = "✓ サンプリング終了 [終了して計算を選択]";
-		T_log_sampling_none   = "⚠ 警告：サンプルがありません。プリセット値を使用します";
-		T_log_sampling_img    = "  ├─ サンプル [%i/%n]：%f";
-		T_log_sampling_rois   = "  │  └─ マークされた ROI 数：%i 個";
-		T_log_params_calc     = "✓ パラメータを自動計算しました";
-		T_log_params_default  = "  └─ モード：プリセット値 | Area[%i-%i] px² | Circularity[%f-1.00]";
+		T_log_roi_phase_start = "�?細胞 ROI 作成段階に進入";
+		T_log_roi_phase_done  = "�?細胞 ROI 作成段階が完了しまし�?;
+		T_log_sampling_start  = "�?サンプリング段階に進入 [パラメータモデル構築用に画像をランダム選択]";
+		T_log_sampling_cancel = "�?サンプリング終了 [終了して計算を選択]";
+		T_log_sampling_none   = "�?警告：サンプルがありません。プリセット値を使用しま�?;
+		T_log_sampling_img    = "  ├─ サンプル [%i/%n]�?f";
+		T_log_sampling_rois   = "  �? └─ マークされた ROI 数：%i �?;
+		T_log_params_calc     = "�?パラメータを自動計算しました";
+		T_log_params_default  = "  └─ モード：プリセット�?| Area[%i-%i] px² | Circularity[%f-1.00]";
 		T_log_params_sample   = "  └─ モード：サンプルから推定 | Area[%i-%i] px² | Circularity[%f-1.00]";
-		T_log_main_start      = "✓ メイン処理段階に進入 [すべての画像をバッチ処理]";
-		T_log_processing      = "  ├─ 処理 [%i/%n]：%f";
-		T_log_missing_roi     = "  │  ⚠ ROI 不足：%f";
-		T_log_missing_choice  = "  │  └─ 対応：%s";
-		T_log_load_roi        = "  │  ├─ ROI ファイルをロード";
-		T_log_roi_count       = "  │  │  └─ 細胞総数：%i 個";
-		T_log_bead_detect     = "  │  ├─ ビーズ検出と統計";
-		T_log_bead_count      = "  │  │  ├─ ビーズ総数：%i 個";
-		T_log_bead_incell     = "  │  │  ├─ 細胞内ビーズ：%i 個";
-		T_log_cell_withbead   = "  │  │  └─ 貪食細胞数：%i 個";
-		T_log_complete        = "  │  └─ ✓ 完了";
-		T_log_skip_roi        = "  │  ✗ 未解析 [ROI 不足のためスキップ]";
-		T_log_skip_nocell     = "  │  ✗ スキップ [ROI に有効な細胞がありません]";
-		T_log_results_save    = "✓ 結果をリザルトテーブルに保存しました";
-		T_log_all_done        = "✓✓✓ すべてのタスク完了 ✓✓✓";
-		T_log_summary         = "📊 サマリー：合計 %i 枚の画像を処理";
+		T_log_main_start      = "�?メイン処理段階に進入 [すべての画像をバッチ処理]";
+		T_log_processing      = "  ├─ 処理 [%i/%n]�?f";
+		T_log_missing_roi     = "  �? �?ROI 不足�?f";
+		T_log_missing_choice  = "  �? └─ 対応�?s";
+		T_log_load_roi        = "  �? ├─ ROI ファイルをロード";
+		T_log_roi_count       = "  �? �? └─ 細胞総数�?i �?;
+		T_log_bead_detect     = "  �? ├─ ビーズ検出と統計";
+		T_log_bead_count      = "  �? �? ├─ ビーズ総数：%i �?;
+		T_log_bead_incell     = "  �? �? ├─ 細胞内ビーズ�?i �?;
+		T_log_cell_withbead   = "  �? �? └─ 貪食細胞数：%i �?;
+		T_log_complete        = "  �? └─ �?完了";
+		T_log_skip_roi        = "  �? �?未解�?[ROI 不足のためスキップ]";
+		T_log_skip_nocell     = "  �? �?スキップ [ROI に有効な細胞がありません]";
+		T_log_results_save    = "�?結果をリザルトテーブルに保存しました";
+		T_log_all_done        = "✓✓�?すべてのタスク完�?✓✓�?;
+		T_log_summary         = "📊 サマリー：合�?%i 枚の画像を処�?;
 
 		T_mottos = newArray(
 			"\"実事求是\"",
@@ -553,7 +553,7 @@ macro "巨噬细胞图像四元素值分析" {
 
 		T_sampling = "Sampling Phase";
 		T_promptAddROI =
-			"【Progress】Image %i of %n\n【File】%f\n\n" +
+			"【Progress】Image %i of %n\n【File�?f\n\n" +
 			"Instructions:\n" +
 			"1) Use the Oval Tool to mark beads (precision not critical)\n" +
 			"2) Save ROI: click \"Add\" in ROI Manager or press \"T\"\n" +
@@ -585,35 +585,35 @@ macro "巨噬细胞图像四元素值分析" {
 		T_debug    = "Debug Mode (keep processed images and ROIs)";
 
 		T_log_sep             = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
-		T_log_start           = "✓ Task Started";
+		T_log_start           = "�?Task Started";
 		T_log_lang            = "  ├─ Language: English";
 		T_log_dir             = "  ├─ Folder Selected";
 		T_log_mode            = "  └─ Mode: %s";
-		T_log_roi_phase_start = "✓ Entering Cell ROI Annotation Phase";
-		T_log_roi_phase_done  = "✓ Cell ROI Annotation Phase Completed";
-		T_log_sampling_start  = "✓ Entering Sampling Phase [randomly selecting images to build parameter model]";
-		T_log_sampling_cancel = "✓ Sampling finished [user selected finish & compute]";
-		T_log_sampling_none   = "⚠ Warning: No samples marked. Using preset default parameters";
+		T_log_roi_phase_start = "�?Entering Cell ROI Annotation Phase";
+		T_log_roi_phase_done  = "�?Cell ROI Annotation Phase Completed";
+		T_log_sampling_start  = "�?Entering Sampling Phase [randomly selecting images to build parameter model]";
+		T_log_sampling_cancel = "�?Sampling finished [user selected finish & compute]";
+		T_log_sampling_none   = "�?Warning: No samples marked. Using preset default parameters";
 		T_log_sampling_img    = "  ├─ Sample [%i/%n]: %f";
-		T_log_sampling_rois   = "  │  └─ Marked ROI count: %i";
-		T_log_params_calc     = "✓ Parameters Auto-Calculated";
+		T_log_sampling_rois   = "  �? └─ Marked ROI count: %i";
+		T_log_params_calc     = "�?Parameters Auto-Calculated";
 		T_log_params_default  = "  └─ Mode: Preset Values | Area[%i-%i] px² | Circularity[%f-1.00]";
 		T_log_params_sample   = "  └─ Mode: Estimated from samples | Area[%i-%i] px² | Circularity[%f-1.00]";
-		T_log_main_start      = "✓ Entering Main Processing Phase [batch processing all images]";
+		T_log_main_start      = "�?Entering Main Processing Phase [batch processing all images]";
 		T_log_processing      = "  ├─ Processing [%i/%n]: %f";
-		T_log_missing_roi     = "  │  ⚠ Missing ROI: %f";
-		T_log_missing_choice  = "  │  └─ Action: %s";
-		T_log_load_roi        = "  │  ├─ Loading ROI File";
-		T_log_roi_count       = "  │  │  └─ Total cells: %i";
-		T_log_bead_detect     = "  │  ├─ Bead Detection and Statistics";
-		T_log_bead_count      = "  │  │  ├─ Total beads: %i";
-		T_log_bead_incell     = "  │  │  ├─ Beads in cells: %i";
-		T_log_cell_withbead   = "  │  │  └─ Phagocytic cells: %i";
-		T_log_complete        = "  │  └─ ✓ Completed";
-		T_log_skip_roi        = "  │  ✗ Not analyzed [missing ROI; skipped]";
-		T_log_skip_nocell     = "  │  ✗ Skipped [no valid cells in ROI file]";
-		T_log_results_save    = "✓ Results Saved to Results Table";
-		T_log_all_done        = "✓✓✓ All Tasks Completed ✓✓✓";
+		T_log_missing_roi     = "  �? �?Missing ROI: %f";
+		T_log_missing_choice  = "  �? └─ Action: %s";
+		T_log_load_roi        = "  �? ├─ Loading ROI File";
+		T_log_roi_count       = "  �? �? └─ Total cells: %i";
+		T_log_bead_detect     = "  �? ├─ Bead Detection and Statistics";
+		T_log_bead_count      = "  �? �? ├─ Total beads: %i";
+		T_log_bead_incell     = "  �? �? ├─ Beads in cells: %i";
+		T_log_cell_withbead   = "  �? �? └─ Phagocytic cells: %i";
+		T_log_complete        = "  �? └─ �?Completed";
+		T_log_skip_roi        = "  �? �?Not analyzed [missing ROI; skipped]";
+		T_log_skip_nocell     = "  �? �?Skipped [no valid cells in ROI file]";
+		T_log_results_save    = "�?Results Saved to Results Table";
+		T_log_all_done        = "✓✓�?All Tasks Completed ✓✓�?;
 		T_log_summary         = "📊 Summary: Total %i images processed";
 
 		T_mottos = newArray(
@@ -629,9 +629,9 @@ macro "巨噬细胞图像四元素值分析" {
 	}
 
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// 模式选择 | モード選択
-	// ═══════════════════════════════════════════════════════════════════════
+	// ══════════════════════════════════════════════════════════════════════�?
+	// 模式选择 | モード選�?
+	// ══════════════════════════════════════════════════════════════════════�?
 	Dialog.create(T_mode_title);
 	Dialog.addMessage(T_mode_msg);
 	Dialog.addChoice(T_mode_label, newArray(T_mode_1, T_mode_2, T_mode_3), T_mode_3);
@@ -642,9 +642,9 @@ macro "巨噬细胞图像四元素值分析" {
 	doAnalyze = (modeChoice == T_mode_2) || (modeChoice == T_mode_3);
 
 
-	// ═══════════════════════════════════════════════════════════════════════
+	// ══════════════════════════════════════════════════════════════════════�?
 	// 文件夹与图像列表 | フォルダと画像リスト
-	// ═══════════════════════════════════════════════════════════════════════
+	// ══════════════════════════════════════════════════════════════════════�?
 	dir = getDirectory(T_choose);
 	if (dir == "") exit(T_exit);
 
@@ -684,9 +684,9 @@ macro "巨噬细胞图像四元素值分析" {
 	run("ROI Manager...");
 
 
-	// ═══════════════════════════════════════════════════════════════════════
+	// ══════════════════════════════════════════════════════════════════════�?
 	// 细胞 ROI 标注 | 細胞ROI作成
-	// ═══════════════════════════════════════════════════════════════════════
+	// ══════════════════════════════════════════════════════════════════════�?
 	if (doROI && !doAnalyze) {
 
 		waitForUser(T_step_roi_title, T_step_roi_msg);
@@ -716,9 +716,9 @@ macro "巨噬细胞图像四元素值分析" {
 	}
 
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// 磁珠抽样 | ビーズサンプリング
-	// ═══════════════════════════════════════════════════════════════════════
+	// ══════════════════════════════════════════════════════════════════════�?
+	// 磁珠抽样 | ビーズサンプリン�?
+	// ══════════════════════════════════════════════════════════════════════�?
 	waitForUser(T_step_bead_title, T_step_bead_msg);
 
 	log(T_log_sampling_start);
@@ -785,9 +785,9 @@ macro "巨噬细胞图像四元素值分析" {
 	log(T_log_sep);
 
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// 默认参数估计 | デフォルト推定
-	// ═══════════════════════════════════════════════════════════════════════
+	// ══════════════════════════════════════════════════════════════════════�?
+	// 默认参数估计 | デフォルト推�?
+	// ══════════════════════════════════════════════════════════════════════�?
 	defMinA  = 5;
 	defMaxA  = 200;
 	defCirc  = 0;
@@ -857,9 +857,9 @@ macro "巨噬细胞图像四元素值分析" {
 	}
 
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// 参数确认 | パラメータ確認
-	// ═══════════════════════════════════════════════════════════════════════
+	// ══════════════════════════════════════════════════════════════════════�?
+	// 参数确认 | パラメータ確�?
+	// ══════════════════════════════════════════════════════════════════════�?
 	waitForUser(T_step_param_title, T_step_param_msg);
 
 	Dialog.create(T_param);
@@ -914,9 +914,9 @@ macro "巨噬细胞图像四元素值分析" {
 	if (effMaxArea <= effMinArea) effMaxArea = effMinArea + 1;
 
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// 批量分析 | バッチ解析
-	// ═══════════════════════════════════════════════════════════════════════
+	// ══════════════════════════════════════════════════════════════════════�?
+	// 批量分析 | バッチ解�?
+	// ══════════════════════════════════════════════════════════════════════�?
 	waitForUser(T_step_main_title, T_step_main_msg);
 
 	log(T_log_sep);
@@ -1137,9 +1137,9 @@ macro "巨噬细胞图像四元素值分析" {
 	setBatchMode(false);
 
 
-	// ═══════════════════════════════════════════════════════════════════════
+	// ══════════════════════════════════════════════════════════════════════�?
 	// 输出结果 | 結果出力
-	// ═══════════════════════════════════════════════════════════════════════
+	// ══════════════════════════════════════════════════════════════════════�?
 	log(T_log_sep);
 	log(T_log_results_save);
 

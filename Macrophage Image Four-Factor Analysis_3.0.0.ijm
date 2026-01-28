@@ -4,7 +4,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // 目的: ROI標注、対象物検出、統計集計、結果出力を一連の対話フローで実行する
     // 想定: Fiji上での実行とユーザー操作を含む（ImageJ単体では動作しない）
     // 署名: 西方研究室（nishikata lab） / wangsychn@outlook.com
-    // 版数: 2.2.4 / ライセンス: CC0 1.0（本スクリプト）
+    // 版数: 3.0.0 / ライセンス: CC0 1.0（本スクリプト）
     // 注意: 同梱のFiji/フォント等は各ライセンスに従う（THIRD_PARTY_NOTICES.md参照）。
     // =============================================================================
 
@@ -498,57 +498,124 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     }
 
     // -----------------------------------------------------------------------------
+    // 関数: parsePatternParts
+    // 概要: パターンを "/" 区切りで分解し、トークン/リテラル配列を作る。
+    // 引数: pattern (string), types (array), texts (array)
+    // 戻り値: string (空ならOK、それ以外はエラーメッセージ)
+    // -----------------------------------------------------------------------------
+    function parsePatternParts(pattern, types, texts) {
+        parts = splitByChar(trim2(pattern), "/");
+        if (parts.length == 0) return T_err_df_rule_empty;
+        i = 0;
+        while (i < parts.length) {
+            raw = trim2(parts[i]);
+            if (raw == "") return T_err_df_rule_parts;
+            if (startsWith(raw, "\"") && endsWith(raw, "\"") && lengthOf(raw) >= 2) {
+                lit = substring(raw, 1, lengthOf(raw) - 1);
+                if (lengthOf(lit) == 0) return T_err_df_rule_parts;
+                types[types.length] = "L";
+                texts[texts.length] = lit;
+            } else {
+                token = normalizeRuleToken(raw);
+                if (token != "") {
+                    types[types.length] = token;
+                    texts[texts.length] = "";
+                } else {
+                    types[types.length] = "L";
+                    texts[texts.length] = raw;
+                }
+            }
+            i = i + 1;
+        }
+        return "";
+    }
+
+    // -----------------------------------------------------------------------------
     // 関数: parseByPattern
     // 概要: パターンに従ってベース名からPN/Fを抽出する。
     // 引数: base (string), pattern (string)
     // 戻り値: array [pn, fStr, fNum]
     // -----------------------------------------------------------------------------
     function parseByPattern(base, pattern) {
-        parts = splitByChar(trim2(pattern), "/");
         pn = "";
         fStr = "";
         fNum = 0;
-        if (parts.length != 2) return newArray(pn, fStr, fNum);
+        types = newArray();
+        texts = newArray();
+        err = parsePatternParts(pattern, types, texts);
+        if (err != "") return newArray(pn, fStr, fNum);
 
-        p1 = trim2(parts[0]);
-        p2 = trim2(parts[1]);
-        t1 = normalizeRuleToken(p1);
-        t2 = normalizeRuleToken(p2);
-        hasP = (t1 == "p" || t2 == "p");
-
-        if (hasP) pn = base;
-
-        if (t1 == "p" && t2 == "f") {
-            i = lengthOf(base) - 1;
-            while (i >= 0 && isDigitAt(base, i)) i = i - 1;
-            if (i < lengthOf(base) - 1) {
-                pn = substring(base, 0, i + 1);
-                fStr = substring(base, i + 1);
+        tokenCount = 0;
+        literalCount = 0;
+        hasP = 0;
+        hasF = 0;
+        i = 0;
+        while (i < types.length) {
+            if (types[i] == "L") literalCount = literalCount + 1;
+            else {
+                tokenCount = tokenCount + 1;
+                if (types[i] == "p") hasP = 1;
+                if (types[i] == "f") hasF = 1;
             }
-        } else if (t1 == "f" && t2 == "p") {
+            i = i + 1;
+        }
+
+        if (literalCount == 0 && tokenCount == 2 && types.length == 2) {
+            t1 = types[0];
+            t2 = types[1];
+            hasP = (t1 == "p" || t2 == "p");
+            if (hasP) pn = base;
+
+            if (t1 == "p" && t2 == "f") {
+                i = lengthOf(base) - 1;
+                while (i >= 0 && isDigitAt(base, i)) i = i - 1;
+                if (i < lengthOf(base) - 1) {
+                    pn = substring(base, 0, i + 1);
+                    fStr = substring(base, i + 1);
+                }
+            } else if (t1 == "f" && t2 == "p") {
+                i = 0;
+                n = lengthOf(base);
+                while (i < n && !isDigitAt(base, i)) i = i + 1;
+                j = i;
+                while (j < n && isDigitAt(base, j)) j = j + 1;
+                if (j > i) {
+                    fStr = substring(base, i, j);
+                    pn = substring(base, j);
+                }
+            }
+        } else {
             i = 0;
-            n = lengthOf(base);
-            while (i < n && !isDigitAt(base, i)) i = i + 1;
-            j = i;
-            while (j < n && isDigitAt(base, j)) j = j + 1;
-            if (j > i) {
-                fStr = substring(base, i, j);
-                pn = substring(base, j);
+            seg = 0;
+            while (seg < types.length) {
+                t = types[seg];
+                if (t == "L") {
+                    lit = texts[seg];
+                    if (!startsWith(substring(base, i), lit)) return newArray("", "", 0);
+                    i = i + lengthOf(lit);
+                } else {
+                    nextLit = "";
+                    nextIdx = seg + 1;
+                    while (nextIdx < types.length && types[nextIdx] != "L") nextIdx = nextIdx + 1;
+                    if (nextIdx < types.length) nextLit = texts[nextIdx];
+
+                    if (nextLit == "") {
+                        tokenStr = substring(base, i);
+                        i = lengthOf(base);
+                    } else {
+                        idx = indexOf(substring(base, i), nextLit);
+                        if (idx < 0) return newArray("", "", 0);
+                        tokenStr = substring(base, i, i + idx);
+                        i = i + idx;
+                    }
+
+                    if (t == "p") pn = tokenStr;
+                    else fStr = tokenStr;
+                }
+                seg = seg + 1;
             }
-        } else if (t1 != "" && t2 == "") {
-            lit = p2;
-            if (endsWith(base, lit)) {
-                tokenStr = substring(base, 0, lengthOf(base) - lengthOf(lit));
-                if (t1 == "p") pn = tokenStr;
-                else fStr = extractFirstNumberStr(tokenStr);
-            }
-        } else if (t1 == "" && t2 != "") {
-            lit = p1;
-            if (startsWith(base, lit)) {
-                tokenStr = substring(base, lengthOf(lit));
-                if (t2 == "p") pn = tokenStr;
-                else fStr = extractFirstNumberStr(tokenStr);
-            }
+            if (types.length > 0 && types[types.length - 1] == "L" && i != lengthOf(base))
+                return newArray("", "", 0);
         }
 
         if (hasP == 1) {
@@ -709,16 +776,32 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         pattern = spec[0];
         if (pattern == "") return T_err_df_rule_empty;
         parts = splitByChar(pattern, "/");
-        if (parts.length != 2) return T_err_df_rule_slash;
-        p1 = trim2(parts[0]);
-        p2 = trim2(parts[1]);
-        if (p1 == "" || p2 == "") return T_err_df_rule_parts;
-        t1 = normalizeRuleToken(p1);
-        t2 = normalizeRuleToken(p2);
-        if (t1 == "" && t2 == "") return T_err_df_rule_tokens;
-        if (t1 == t2 && t1 != "") return T_err_df_rule_need_both;
-        if (!((t1 == "p" && t2 == "f") || (t1 == "f" && t2 == "p")))
-            return T_err_df_rule_order;
+        if (parts.length < 2) return T_err_df_rule_slash;
+        pTypes = newArray();
+        pTexts = newArray();
+        err = parsePatternParts(pattern, pTypes, pTexts);
+        if (err != "") return err;
+
+        hasP = 0;
+        hasF = 0;
+        tokenCount = 0;
+        literalCount = 0;
+        adjacentToken = 0;
+        i = 0;
+        while (i < pTypes.length) {
+            if (pTypes[i] == "L") literalCount = literalCount + 1;
+            else {
+                tokenCount = tokenCount + 1;
+                if (pTypes[i] == "p") hasP = 1;
+                if (pTypes[i] == "f") hasF = 1;
+                if (i > 0 && pTypes[i - 1] != "L") adjacentToken = 1;
+            }
+            i = i + 1;
+        }
+        if (hasP == 0 && hasF == 0) return T_err_df_rule_tokens;
+        if (hasP == 0 || hasF == 0) return T_err_df_rule_need_both;
+        if (adjacentToken == 1 && !(literalCount == 0 && pTypes.length == 2))
+            return T_err_df_rule_tokens;
 
         if (folderSpec != "") {
             spec2 = parseRuleSpec(folderSpec, "T");
@@ -726,13 +809,31 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             pattern2 = spec2[0];
             if (pattern2 == "") return T_err_df_rule_empty;
             parts2 = splitByChar(pattern2, "/");
-            if (parts2.length != 2) return T_err_df_rule_slash;
-            q1 = trim2(parts2[0]);
-            q2 = trim2(parts2[1]);
-            if (q1 == "" || q2 == "") return T_err_df_rule_parts;
-            u1 = normalizeRuleToken(q1);
-            u2 = normalizeRuleToken(q2);
-            if (u1 == "" && u2 == "") return T_err_df_rule_tokens;
+            if (parts2.length < 2) return T_err_df_rule_slash;
+            fTypes = newArray();
+            fTexts = newArray();
+            err2 = parsePatternParts(pattern2, fTypes, fTexts);
+            if (err2 != "") return err2;
+
+            hasP2 = 0;
+            hasF2 = 0;
+            tokenCount2 = 0;
+            literalCount2 = 0;
+            adjacentToken2 = 0;
+            j = 0;
+            while (j < fTypes.length) {
+                if (fTypes[j] == "L") literalCount2 = literalCount2 + 1;
+                else {
+                    tokenCount2 = tokenCount2 + 1;
+                    if (fTypes[j] == "p") hasP2 = 1;
+                    if (fTypes[j] == "f") hasF2 = 1;
+                    if (j > 0 && fTypes[j - 1] != "L") adjacentToken2 = 1;
+                }
+                j = j + 1;
+            }
+            if (hasP2 == 0 && hasF2 == 0) return T_err_df_rule_tokens;
+            if (adjacentToken2 == 1 && !(literalCount2 == 0 && fTypes.length == 2))
+                return T_err_df_rule_tokens;
         }
         return "";
     }
@@ -2833,7 +2934,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // =============================================================================
     // メインフロー: 対話型の解析手順をここから実行する
     // =============================================================================
-    VERSION_STR = "2.2.4";
+    VERSION_STR = "3.0.0";
     FEATURE_REF_URL = "https://kirikirby.github.io/Macrophage-4-Analysis/sample.png";
     FEATURE_REF_REPO_URL = "https://github.com/KiriKirby/Macrophage-4-Analysis";
     T_lang_title = "Language / 言語 / 语言";
@@ -3148,9 +3249,14 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_data_format_doc =
             "【数据格式化 - 代号速查】\n" +
             "A. 文件名规则（仅用于解析，不是列代号）：\n" +
-            "  语法：<p>/<f> 或 <f>/<p>（仅一个\"/\"）；子文件夹：folderRule//fileRule。\n" +
+            "  语法：用\"/\"分段；<p>/<f> 为代号；字面量可直接写；空格请写成 \" \"。\n" +
             "  代号：<p>=项目名 | <f>=数字 | f=\"F\"/\"T\" 绑定列。\n" +
-            "  示例：<p>/<f>,f=\"F\" | <f>/hr,f=\"T\"//<p>/<f>\n\n" +
+            "  子文件夹：folderRule//fileRule。\n" +
+            "  默认参考（可抄写）：\n" +
+            "    Dolphin：<p>/<f>,f=\"F\"\n" +
+            "    Windows Explorer：<p>/\" \"/(/<f>/),f=\"F\"\n" +
+            "    macOS Finder：<p>/\" \"/<f>,f=\"F\"\n" +
+            "  子文件夹示例：<f>/hr,f=\"T\"//<p>/\" \"/(/<f>/)\n\n" +
             "B. 表格列代号（内置）：\n" +
             "  识别类：PN=项目名 | F=编号 | T=时间\n" +
             "  计数类：TB=总目标 | BIC=细胞内目标 | CWB=含目标细胞\n" +
@@ -3171,10 +3277,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_log_toggle_off = "关闭";
         T_log_error = "  │  ✗ 错误：%s";
 
-        T_err_df_rule_empty = "[E101] 文件名识别规则为空。示例：<p>/<f>,f=\"F\"";
-        T_err_df_rule_slash = "[E102] 文件名识别规则必须包含且仅包含一个“/”。示例：<p>/<f>";
-        T_err_df_rule_parts = "[E103] 文件名识别规则的两部分都必须填写。";
-        T_err_df_rule_tokens = "[E104] 文件名识别规则只允许 <p> 与 <f> 标记。";
+        T_err_df_rule_empty = "[E101] 文件名识别规则为空。示例：<p>/\" \"/(/<f>/),f=\"F\"";
+        T_err_df_rule_slash = "[E102] 文件名识别规则必须包含至少一个“/”分隔符。示例：<p>/\" \"/(/<f>/)";
+        T_err_df_rule_parts = "[E103] 文件名识别规则的每一段都必须填写。";
+        T_err_df_rule_tokens = "[E104] 文件名识别规则仅允许 <p> 与 <f> 作为代号，其余应为字面量。";
         T_err_df_rule_need_both = "[E105] 文件名识别规则必须同时包含 <p> 与 <f>。";
         T_err_df_rule_order = "[E106] 文件名识别规则顺序只允许 <p>/<f> 或 <f>/<p>。";
         T_err_df_rule_need_subfolder = "[E107] 子文件夹保持结构模式需要使用“子文件夹规则//文件名规则”。";
@@ -3203,10 +3309,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_err_df_generic = "[E199] 数据格式化输入无效。";
         T_err_df_generic_detail = "原因：未能识别输入内容。";
         T_err_df_field = "请检查：%s";
-        T_err_df_fix_101 = "修正：填写 <p>/<f> 或 <f>/<p>。";
-        T_err_df_fix_102 = "修正：只保留一个“/”。";
-        T_err_df_fix_103 = "修正：补齐“/”两侧内容。";
-        T_err_df_fix_104 = "修正：仅使用 <p> 与 <f> 标记。";
+        T_err_df_fix_101 = "修正：填写有效规则（例：<p>/\" \"/(/<f>/) 或 <p>/<f>）。";
+        T_err_df_fix_102 = "修正：使用“/”分段（至少一个）。";
+        T_err_df_fix_103 = "修正：补齐每个“/”之间的内容。";
+        T_err_df_fix_104 = "修正：只将 <p>/<f> 作为代号，其余写成字面量。";
         T_err_df_fix_105 = "修正：同时包含 <p> 和 <f>。";
         T_err_df_fix_106 = "修正：顺序仅 <p>/<f> 或 <f>/<p>。";
         T_err_df_fix_107 = "修正：按 folderRule//fileRule 格式填写。";
@@ -3654,9 +3760,14 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_data_format_doc =
             "【データ整形 - コード早見】\n" +
             "A. ファイル名ルール（解析用。列コードではありません）：\n" +
-            "  形式：<p>/<f> または <f>/<p>（\"/\"は1つ）。サブフォルダー：folderRule//fileRule。\n" +
+            "  形式：\"/\" で分割；<p>/<f> はトークン；リテラルはそのまま、空白は \" \" を使用。\n" +
             "  記号：<p>=プロジェクト名 | <f>=数値 | f=\"F\"/\"T\" を列に割当。\n" +
-            "  例：<p>/<f>,f=\"F\" | <f>/hr,f=\"T\"//<p>/<f>\n\n" +
+            "  サブフォルダー：folderRule//fileRule。\n" +
+            "  既定の参考（コピー用）：\n" +
+            "    Dolphin：<p>/<f>,f=\"F\"\n" +
+            "    Windows Explorer：<p>/\" \"/(/<f>/),f=\"F\"\n" +
+            "    macOS Finder：<p>/\" \"/<f>,f=\"F\"\n" +
+            "  サブフォルダー例：<f>/hr,f=\"T\"//<p>/\" \"/(/<f>/)\n\n" +
             "B. 表の列コード（内蔵）：\n" +
             "  識別：PN=プロジェクト | F=番号 | T=時間\n" +
             "  数量：TB=総対象 | BIC=細胞内対象 | CWB=対象保有細胞\n" +
@@ -3677,10 +3788,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_log_toggle_off = "無効";
         T_log_error = "  │  ✗ エラー：%s";
 
-        T_err_df_rule_empty = "[E101] ファイル名ルールが空です。例：<p>/<f>,f=\"F\"";
-        T_err_df_rule_slash = "[E102] ファイル名ルールは“/”を1つだけ含めてください。例：<p>/<f>";
-        T_err_df_rule_parts = "[E103] ファイル名ルールの2つの要素をどちらも入力してください。";
-        T_err_df_rule_tokens = "[E104] ファイル名ルールは <p> と <f> のみ使用できます。";
+        T_err_df_rule_empty = "[E101] ファイル名ルールが空です。例：<p>/\" \"/(/<f>/),f=\"F\"";
+        T_err_df_rule_slash = "[E102] ファイル名ルールは“/”区切りを1つ以上含めてください。例：<p>/\" \"/(/<f>/)";
+        T_err_df_rule_parts = "[E103] ファイル名ルールの各要素を入力してください。";
+        T_err_df_rule_tokens = "[E104] ファイル名ルールのトークンは <p> と <f> のみです。他はリテラルとして記述してください。";
         T_err_df_rule_need_both = "[E105] ファイル名ルールには <p> と <f> の両方が必要です。";
         T_err_df_rule_order = "[E106] ファイル名ルールの順序は <p>/<f> または <f>/<p> のみです。";
         T_err_df_rule_need_subfolder = "[E107] サブフォルダー構造維持モードでは「サブフォルダールール//ファイル名ルール」が必要です。";
@@ -3711,10 +3822,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_err_df_generic = "[E199] データ整形の入力が無効です。";
         T_err_df_generic_detail = "理由：入力内容を識別できません。";
         T_err_df_field = "確認先：%s";
-        T_err_df_fix_101 = "修正：<p>/<f> または <f>/<p> を入力してください。";
-        T_err_df_fix_102 = "修正：“/” は1つのみ残してください。";
-        T_err_df_fix_103 = "修正：“/”の左右を入力してください。";
-        T_err_df_fix_104 = "修正：<p> と <f> のみ使用してください。";
+        T_err_df_fix_101 = "修正：有効なルールを入力してください（例：<p>/\" \"/(/<f>/) または <p>/<f>）。";
+        T_err_df_fix_102 = "修正：“/”で分割してください（1つ以上）。";
+        T_err_df_fix_103 = "修正：“/”の間の内容を補完してください。";
+        T_err_df_fix_104 = "修正：<p>/<f> のみをトークンとして使用し、他はリテラルで記述してください。";
         T_err_df_fix_105 = "修正：<p> と <f> の両方を含めてください。";
         T_err_df_fix_106 = "修正：順序は <p>/<f> または <f>/<p> です。";
         T_err_df_fix_107 = "修正：folderRule//fileRule 形式で入力してください。";
@@ -4166,9 +4277,14 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_data_format_doc =
             "【Data Formatting - Token Map】\n" +
             "A. Filename rule (parsing only, not column tokens):\n" +
-            "  Syntax: <p>/<f> or <f>/<p> (single \"/\"); subfolders: folderRule//fileRule.\n" +
+            "  Syntax: use \"/\" to separate parts; <p>/<f> are tokens; literals are allowed; write a space as \" \".\n" +
             "  Tokens: <p>=project | <f>=number | f=\"F\"/\"T\" maps <f> to column.\n" +
-            "  Examples: <p>/<f>,f=\"F\" | <f>/hr,f=\"T\"//<p>/<f>\n\n" +
+            "  Subfolders: folderRule//fileRule.\n" +
+            "  Default references (copy as needed):\n" +
+            "    Dolphin: <p>/<f>,f=\"F\"\n" +
+            "    Windows Explorer: <p>/\" \"/(/<f>/),f=\"F\"\n" +
+            "    macOS Finder: <p>/\" \"/<f>,f=\"F\"\n" +
+            "  Subfolder example: <f>/hr,f=\"T\"//<p>/\" \"/(/<f>/)\n\n" +
             "B. Table column tokens (built-in):\n" +
             "  Identity: PN=project | F=index | T=time\n" +
             "  Counts: TB=total | BIC=in-cell | CWB=cells with objects\n" +
@@ -4189,10 +4305,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_log_toggle_off = "OFF";
         T_log_error = "  │  ✗ Error: %s";
 
-        T_err_df_rule_empty = "[E101] Filename rule is empty. Example: <p>/<f>,f=\"F\"";
-        T_err_df_rule_slash = "[E102] Filename rule must contain exactly one \"/\". Example: <p>/<f>";
-        T_err_df_rule_parts = "[E103] Both parts of the filename rule must be filled.";
-        T_err_df_rule_tokens = "[E104] Filename rule allows only <p> and <f> tokens.";
+        T_err_df_rule_empty = "[E101] Filename rule is empty. Example: <p>/\" \"/(/<f>/),f=\"F\"";
+        T_err_df_rule_slash = "[E102] Filename rule must contain at least one \"/\" separator. Example: <p>/\" \"/(/<f>/)";
+        T_err_df_rule_parts = "[E103] All parts of the filename rule must be filled.";
+        T_err_df_rule_tokens = "[E104] Only <p> and <f> are valid tokens; other parts must be literals.";
         T_err_df_rule_need_both = "[E105] Filename rule must include both <p> and <f>.";
         T_err_df_rule_order = "[E106] Filename rule order must be <p>/<f> or <f>/<p>.";
         T_err_df_rule_need_subfolder = "[E107] Subfolder-structure mode requires “folderRule//fileRule”.";
@@ -4225,10 +4341,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_err_df_generic = "[E199] Data formatting input is invalid.";
         T_err_df_generic_detail = "Reason: the input could not be interpreted.";
         T_err_df_field = "Check: %s";
-        T_err_df_fix_101 = "Fix: enter <p>/<f> or <f>/<p>.";
-        T_err_df_fix_102 = "Fix: keep exactly one \"/\".";
-        T_err_df_fix_103 = "Fix: fill both sides of \"/\".";
-        T_err_df_fix_104 = "Fix: use only <p> and <f> tokens.";
+        T_err_df_fix_101 = "Fix: enter a valid rule (e.g., <p>/\" \"/(/<f>/) or <p>/<f>).";
+        T_err_df_fix_102 = "Fix: separate parts with \"/\" (at least one).";
+        T_err_df_fix_103 = "Fix: fill in every part between \"/\".";
+        T_err_df_fix_104 = "Fix: use <p>/<f> as tokens and write other parts as literals.";
         T_err_df_fix_105 = "Fix: include both <p> and <f>.";
         T_err_df_fix_106 = "Fix: order must be <p>/<f> or <f>/<p>.";
         T_err_df_fix_107 = "Fix: use folderRule//fileRule format.";
@@ -5096,8 +5212,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     defExMaxA = DEF_MAXA;
 
     dataFormatEnable = 1;
-    dataFormatRule = "<p>/<f>,f=\"F\"";
-    if (SUBFOLDER_KEEP_MODE == 1) dataFormatRule = "<f>/hr,f=\"T\"//<p>/<f>";
+    dataFormatRule = "<p>/\" \"/(/<f>/),f=\"F\"";
+    if (SUBFOLDER_KEEP_MODE == 1) dataFormatRule = "<f>/hr,f=\"T\"//<p>/\" \"/(/<f>/)";
     dataFormatCols = "TB/BIC/CWBA,name=\"Cell with Target Objects\"/TC/IBR/PCR/EIBR/EPCR/ISDP/PSDP";
     dataOptimizeEnable = 1;
 
@@ -5819,8 +5935,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
         if (dataFormatEnable == 1) {
             ruleTmp = trim2(dataFormatRule);
-            defaultRule = "<p>/<f>,f=\"F\"";
-            if (SUBFOLDER_KEEP_MODE == 1) defaultRule = "<f>/hr,f=\"T\"//<p>/<f>";
+            defaultRule = "<p>/\" \"/(/<f>/),f=\"F\"";
+            if (SUBFOLDER_KEEP_MODE == 1) defaultRule = "<f>/hr,f=\"T\"//<p>/\" \"/(/<f>/)";
             if (lengthOf(ruleTmp) == 0) dataFormatRule = defaultRule;
             else dataFormatRule = ruleTmp;
             colsTmp = trim2(dataFormatCols);

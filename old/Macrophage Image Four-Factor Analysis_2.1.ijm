@@ -1,6 +1,6 @@
-macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / マクロファージ四要素解析" {
+macro "巨噬細胞画像 四要素解�?/ Macrophage Four-Factor Analysis / マクロファージ四要素解析" {
     // =============================================================================
-    // 概要: 巨噬細胞画像の4要素解析を行うImageJマクロ
+    // 概要: 巨噬細胞画像�?要素解析を行うImageJマク�?
     // 目的: ROI標注、beads検出、統計集計、結果出力を一連の対話フローで実行する
     // 想定: ImageJ/Fiji上での実行とユーザー操作を含む
     // 署名: 西方研究室（nishikata lab）王舒扬
@@ -16,9 +16,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: log
-    // 概要: LOG_VERBOSEが有効なときのみログを出力する。
-    // 引数: s (string) - 出力するメッセージ
-    // 戻り値: なし
+    // 概要: LOG_VERBOSEが有効なときのみログを出力する�?
+    // 引数: s (string) - 出力するメッセー�?
+    // 戻り�? なし
     // -----------------------------------------------------------------------------
     function log(s) {
         if (LOG_VERBOSE) print(s);
@@ -26,9 +26,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: max2
-    // 概要: 2値の最大値を返す。
+    // 概要: 2値の最大値を返す�?
     // 引数: a (number), b (number)
-    // 戻り値: number
+    // 戻り�? number
     // -----------------------------------------------------------------------------
     function max2(a, b) {
         if (a > b) return a;
@@ -37,9 +37,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: min2
-    // 概要: 2値の最小値を返す。
+    // 概要: 2値の最小値を返す�?
     // 引数: a (number), b (number)
-    // 戻り値: number
+    // 戻り�? number
     // -----------------------------------------------------------------------------
     function min2(a, b) {
         if (a < b) return a;
@@ -48,9 +48,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: abs2
-    // 概要: 絶対値を返す。
+    // 概要: 絶対値を返す�?
     // 引数: x (number)
-    // 戻り値: number
+    // 戻り�? number
     // -----------------------------------------------------------------------------
     function abs2(x) {
         if (x < 0) return -x;
@@ -59,9 +59,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: roundInt
-    // 概要: 四捨五入して整数化する。
+    // 概要: 四捨五入して整数化する�?
     // 引数: x (number)
-    // 戻り値: number
+    // 戻り�? number
     // -----------------------------------------------------------------------------
     function roundInt(x) {
         return floor(x + 0.5);
@@ -69,9 +69,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: ceilInt
-    // 概要: 切り上げ（負数対応）で整数化する。
+    // 概要: 切り上げ（負数対応）で整数化する�?
     // 引数: x (number)
-    // 戻り値: number
+    // 戻り�? number
     // -----------------------------------------------------------------------------
     function ceilInt(x) {
         f = floor(x);
@@ -82,9 +82,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: clamp
-    // 概要: [a, b] にクランプする。
+    // 概要: [a, b] にクランプする�?
     // 引数: x (number), a (number), b (number)
-    // 戻り値: number
+    // 戻り�? number
     // -----------------------------------------------------------------------------
     function clamp(x, a, b) {
         if (x < a) return a;
@@ -94,9 +94,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: isImageFile
-    // 概要: 画像拡張子（tif/tiff/png/jpg/jpeg）か判定する。
+    // 概要: 画像拡張子（tif/tiff/png/jpg/jpeg）か判定する�?
     // 引数: filename (string)
-    // 戻り値: 1 = 画像, 0 = 非画像
+    // 戻り�? 1 = 画像, 0 = 非画�?
     // -----------------------------------------------------------------------------
     function isImageFile(filename) {
         lname = toLowerCase(filename);
@@ -111,9 +111,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: getBaseName
-    // 概要: 拡張子を除いたベース名を返す。
+    // 概要: 拡張子を除いたベース名を返す�?
     // 引数: filename (string)
-    // 戻り値: string
+    // 戻り�? string
     // -----------------------------------------------------------------------------
     function getBaseName(filename) {
         dot = lastIndexOf(filename, ".");
@@ -123,9 +123,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: trim2
-    // 概要: 文字列の前後空白を削除する。
+    // 概要: 文字列の前後空白を削除する�?
     // 引数: s (string)
-    // 戻り値: string
+    // 戻り�? string
     // -----------------------------------------------------------------------------
     function trim2(s) {
         if (s == "") return s;
@@ -140,9 +140,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: splitByChar
-    // 概要: 1文字区切りで文字列を分割する。
+    // 概要: 1文字区切りで文字列を分割する�?
     // 引数: s (string), ch (string)
-    // 戻り値: array
+    // 戻り�? array
     // -----------------------------------------------------------------------------
     function splitByChar(s, ch) {
         arr = newArray();
@@ -165,9 +165,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: splitCSV
-    // 概要: クォート対応でカンマ区切りを分割する。
+    // 概要: クォート対応でカンマ区切りを分割する�?
     // 引数: s (string)
-    // 戻り値: array
+    // 戻り�? array
     // -----------------------------------------------------------------------------
     function splitCSV(s) {
         arr = newArray();
@@ -194,9 +194,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: isDigitChar
-    // 概要: 数字文字か判定する。
+    // 概要: 数字文字か判定する�?
     // 引数: c (string)
-    // 戻り値: number (1/0)
+    // 戻り�? number (1/0)
     // -----------------------------------------------------------------------------
     function isDigitChar(c) {
         if (c >= "0" && c <= "9") return 1;
@@ -205,9 +205,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: parsePnF
-    // 概要: ルールに従ってファイル名からPNとFを抽出する。
+    // 概要: ルールに従ってファイル名からPNとFを抽出する�?
     // 引数: base (string), rule (string)
-    // 戻り値: array [pn, fStr, fNum]
+    // 戻り�? array [pn, fStr, fNum]
     // -----------------------------------------------------------------------------
     function parsePnF(base, rule) {
         parts = splitByChar(trim2(rule), "/");
@@ -249,9 +249,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: isBuiltinToken
-    // 概要: 組み込み列コードか判定する。
+    // 概要: 組み込み列コードか判定する�?
     // 引数: tokenKey (string, lower)
-    // 戻り値: number (1/0)
+    // 戻り�? number (1/0)
     // -----------------------------------------------------------------------------
     function isBuiltinToken(tokenKey) {
         if (tokenKey == "pn") return 1;
@@ -270,9 +270,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: validateDataFormatRule
-    // 概要: ファイル名識別ルールの妥当性を検証する。
+    // 概要: ファイル名識別ルールの妥当性を検証する�?
     // 引数: rule (string)
-    // 戻り値: string (空ならOK、それ以外はエラーメッセージ)
+    // 戻り�? string (空ならOK、それ以外はエラーメッセージ)
     // -----------------------------------------------------------------------------
     function validateDataFormatRule(rule) {
         r = trim2(rule);
@@ -294,9 +294,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: validateDataFormatCols
-    // 概要: 表格列格式的妥当性を検証する。
+    // 概要: 表格列格式的妥当性を検証する�?
     // 引数: cols (string)
-    // 戻り値: string (空ならOK、それ以外はエラーメッセージ)
+    // 戻り�? string (空ならOK、それ以外はエラーメッセージ)
     // -----------------------------------------------------------------------------
     function validateDataFormatCols(cols) {
         s = trim2(cols);
@@ -343,9 +343,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: uniqueList
-    // 概要: 出現順でユニーク化する。
+    // 概要: 出現順でユニーク化する�?
     // 引数: arr (array)
-    // 戻り値: array
+    // 戻り�? array
     // -----------------------------------------------------------------------------
     function uniqueList(arr) {
         out = newArray();
@@ -369,9 +369,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: sortPairsByNumber
-    // 概要: 数値配列と対応配列を昇順/降順でソートする。
+    // 概要: 数値配列と対応配列を昇�?降順でソートする�?
     // 引数: nums (array), strs (array), desc (number)
-    // 戻り値: なし（配列を直接並べ替える）
+    // 戻り�? なし（配列を直接並べ替える）
     // -----------------------------------------------------------------------------
     function sortPairsByNumber(nums, strs, desc) {
         n = nums.length;
@@ -402,9 +402,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: sortTriplesByNumber
-    // 概要: 数値配列と対応2配列を昇順/降順でソートする。
+    // 概要: 数値配列と対応2配列を昇�?降順でソートする�?
     // 引数: nums (array), strs (array), idxs (array), desc (number)
-    // 戻り値: なし（配列を直接並べ替える）
+    // 戻り�? なし（配列を直接並べ替える）
     // -----------------------------------------------------------------------------
     function sortTriplesByNumber(nums, strs, idxs, desc) {
         n = nums.length;
@@ -438,9 +438,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: calcRatio
-    // 概要: 分子/分母を安全に計算する。
+    // 概要: 分子/分母を安全に計算する�?
     // 引数: num (number), den (number)
-    // 戻り値: number or ""
+    // 戻り�? number or ""
     // -----------------------------------------------------------------------------
     function calcRatio(num, den) {
         if (num == "" || den == "") return "";
@@ -450,9 +450,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: forcePixelUnit
-    // 概要: 画像スケールをピクセル単位に固定する。
+    // 概要: 画像スケールをピクセル単位に固定する�?
     // 引数: なし
-    // 戻り値: なし
+    // 戻り�? なし
     // -----------------------------------------------------------------------------
     function forcePixelUnit() {
         run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
@@ -460,9 +460,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: ensure2D
-    // 概要: Zスタックの場合はスライス1に固定し2D化する。
+    // 概要: Zスタックの場合はスライス1に固定し2D化する�?
     // 引数: なし
-    // 戻り値: なし
+    // 戻り�? なし
     // -----------------------------------------------------------------------------
     function ensure2D() {
         getDimensions(_w, _h, _c, _z, _t);
@@ -471,9 +471,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: safeClose
-    // 概要: 指定ウィンドウが開いていれば閉じる。
+    // 概要: 指定ウィンドウが開いていれば閉じる�?
     // 引数: title (string)
-    // 戻り値: なし
+    // 戻り�? なし
     // -----------------------------------------------------------------------------
     function safeClose(title) {
         if (isOpen(title)) {
@@ -484,9 +484,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: escapeForReplace
-    // 概要: replace() の置換文字列で問題になる "$" と "\" をエスケープする。
+    // 概要: replace() の置換文字列で問題になる "$" �?"\" をエスケープする�?
     // 引数: s (string)
-    // 戻り値: string
+    // 戻り�? string
     // -----------------------------------------------------------------------------
     function escapeForReplace(s) {
         s = replace(s, "\\", "\\\\");
@@ -496,9 +496,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: replaceSafe
-    // 概要: 置換文字列をエスケープしてから replace() を実行する。
+    // 概要: 置換文字列をエスケープしてか�?replace() を実行する�?
     // 引数: template (string), token (string), value (string)
-    // 戻り値: string
+    // 戻り�? string
     // -----------------------------------------------------------------------------
     function replaceSafe(template, token, value) {
         return replace(template, token, escapeForReplace("" + value));
@@ -506,9 +506,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: requireWindow
-    // 概要: 指定ウィンドウが存在しない場合はエラー終了する。
+    // 概要: 指定ウィンドウが存在しない場合はエラー終了する�?
     // 引数: title (string), stage (string), fileName (string)
-    // 戻り値: なし
+    // 戻り�? なし
     // -----------------------------------------------------------------------------
     function requireWindow(title, stage, fileName) {
         if (!isOpen(title)) {
@@ -523,9 +523,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: printWithIndex
-    // 概要: 進捗テンプレートを置換してログ出力する。
+    // 概要: 進捗テンプレートを置換してログ出力する�?
     // 引数: template (string), iVal (number), nVal (number), fVal (string)
-    // 戻り値: なし
+    // 戻り�? なし
     // -----------------------------------------------------------------------------
     function printWithIndex(template, iVal, nVal, fVal) {
         if (!LOG_VERBOSE) return;
@@ -537,9 +537,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: logDataFormatDetails
-    // 概要: データ形式の設定内容を詳細にログ出力する。
+    // 概要: データ形式の設定内容を詳細にログ出力する�?
     // 引数: rule, cols, itemSpecs, itemTokens, itemNames, itemValues, itemSingles, sortDesc
-    // 戻り値: なし
+    // 戻り�? なし
     // -----------------------------------------------------------------------------
     function logDataFormatDetails(rule, cols, itemSpecs, itemTokens, itemNames, itemValues, itemSingles, sortDesc) {
         if (!LOG_VERBOSE) return;
@@ -570,9 +570,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: maybePrintMotto
-    // 概要: 言語設定とフラグに応じてランダムなモットーを表示する。
+    // 概要: 言語設定とフラグに応じてランダムなモットーを表示する�?
     // 引数: なし
-    // 戻り値: なし
+    // 戻り�? なし
     // -----------------------------------------------------------------------------
     function maybePrintMotto() {
         if (
@@ -590,9 +590,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: getPixelSafe
-    // 概要: 座標を画像範囲にクランプしてピクセル値を取得する。
+    // 概要: 座標を画像範囲にクランプしてピクセル値を取得する�?
     // 引数: x (number), y (number), w (number), h (number)
-    // 戻り値: number
+    // 戻り�? number
     // -----------------------------------------------------------------------------
     function getPixelSafe(x, y, w, h) {
         if (x < 0) x = 0;
@@ -604,9 +604,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: localMean3x3
-    // 概要: 3x3近傍の平均灰度を返す（境界は安全取得）。
+    // 概要: 3x3近傍の平均灰度を返す（境界は安全取得）�?
     // 引数: x (number), y (number), w (number), h (number)
-    // 戻り値: number
+    // 戻り�? number
     // -----------------------------------------------------------------------------
     function localMean3x3(x, y, w, h) {
         if (x > 0 && y > 0 && x < (w - 1) && y < (h - 1)) {
@@ -631,11 +631,11 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: annotateCellsSmart
-    // 概要: 画像を開き、ROI Managerで細胞ROIを対話的に作成/編集してZIP保存する。
+    // 概要: 画像を開き、ROI Managerで細胞ROIを対話的に作�?編集してZIP保存する�?
     // 引数: dir (string), imgName (string), roiSuffix (string), idx (number),
     //       total (number), skipFlag (number)
-    // 戻り値: skipFlag (number) - 「以降をスキップ」状態
-    // 副作用: 画像の表示、ROI Manager操作、ユーザー操作待ちが発生する。
+    // 戻り�? skipFlag (number) - 「以降をスキップ」状�?
+    // 副作�? 画像の表示、ROI Manager操作、ユーザー操作待ちが発生する�?
     // -----------------------------------------------------------------------------
     function annotateCellsSmart(dir, imgName, roiSuffix, idx, total, skipFlag) {
 
@@ -700,10 +700,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: estimateAreaRangeSafe
-    // 概要: サンプル面積の分布から、外れ値に強い範囲と代表値を推定する。
+    // 概要: サンプル面積の分布から、外れ値に強い範囲と代表値を推定する�?
     // 引数: sampleAreas (array), fallbackMin (number), fallbackMax (number)
-    // 戻り値: array[minArea, maxArea, unitArea]
-    // 補足: サンプルが少ない場合は中央値ベースで保守的に推定する。
+    // 戻り�? array[minArea, maxArea, unitArea]
+    // 補足: サンプルが少ない場合は中央値ベースで保守的に推定する�?
     // -----------------------------------------------------------------------------
     function estimateAreaRangeSafe(sampleAreas, fallbackMin, fallbackMax) {
 
@@ -808,9 +808,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: estimateRollingFromUnitArea
-    // 概要: 代表面積を直径に換算し、経験則でRolling Ball半径を推定する。
+    // 概要: 代表面積を直径に換算し、経験則でRolling Ball半径を推定する�?
     // 引数: unitArea (number)
-    // 戻り値: number
+    // 戻り�? number
     // -----------------------------------------------------------------------------
     function estimateRollingFromUnitArea(unitArea) {
         u = unitArea;
@@ -828,10 +828,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: estimateExclusionSafe
-    // 概要: 目標/排除サンプルの灰度分布から排除モードと閾値を推定する。
+    // 概要: 目標/排除サンプルの灰度分布から排除モードと閾値を推定する�?
     // 引数: targetMeans (array), exclMeansAll (array)
-    // 戻り値: array[validFlag, mode, thr, useSizeGate, note]
-    // 補足: サンプル不足や重なりが大きい場合は保守的な結果を返す。
+    // 戻り�? array[validFlag, mode, thr, useSizeGate, note]
+    // 補足: サンプル不足や重なりが大きい場合は保守的な結果を返す�?
     // -----------------------------------------------------------------------------
     function estimateExclusionSafe(targetMeans, exclMeansAll) {
 
@@ -936,11 +936,11 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: buildCellLabelMaskFromOriginal
-    // 概要: ROIごとにラベル値を塗り分けた16-bitマスクを生成する。
+    // 概要: ROIごとにラベル値を塗り分け�?6-bitマスクを生成する�?
     // 引数: maskTitle (string), origID (number), w (number), h (number),
     //       nCells (number), fileName (string)
-    // 戻り値: 1 = 成功, 0 = 失敗
-    // 補足: nCellsが65535を超える場合は処理を中断する。
+    // 戻り�? 1 = 成功, 0 = 失敗
+    // 補足: nCells�?5535を超える場合は処理を中断する�?
     // -----------------------------------------------------------------------------
     function buildCellLabelMaskFromOriginal(maskTitle, origID, w, h, nCells, fileName) {
 
@@ -993,22 +993,22 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: detectBeadsFusion
-    // 概要: 2つの検出法（閾値/エッジ）でbeadsを抽出し、近接点を統合する。
+    // 概要: 2つの検出法（閾�?エッジ）でbeadsを抽出し、近接点を統合する�?
     // 引数: grayTitle (string), strictChoice (string), effMinArea (number),
     //       effMaxArea (number), effMinCirc (number), beadUnitArea (number),
     //       fileName (string)
-    // 戻り値: flat配列 [x1, y1, a1, ...]
-    // 補足: strictChoiceによりフィルタ強度と統合基準を調整する。
+    // 戻り�? flat配列 [x1, y1, a1, ...]
+    // 補足: strictChoiceによりフィルタ強度と統合基準を調整する�?
     // -----------------------------------------------------------------------------
     function detectBeadsFusion(grayTitle, strictChoice, effMinArea, effMaxArea, effMinCirc, beadUnitArea, fileName) {
 
-        // 検出ポリシーの決定（厳密度により統合条件を変える）
+        // 検出ポリシーの決定（厳密度により統合条件を変える�?
         policy = "UNION";
         if (strictChoice == T_strict_S) policy = "STRICT";
         else if (strictChoice == T_strict_N) policy = "UNION";
         else policy = "LOOSE";
 
-        // 手法A: 閾値ベースでbeads候補を抽出する
+        // 手法A: 閾値ベースでbeads候補を抽出す�?
         safeClose("__bin_A");
         requireWindow(grayTitle, "detect/select-gray", fileName);
         run("Duplicate...", "title=__bin_A");
@@ -1024,14 +1024,14 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         if (policy == "STRICT") run("Open");
         run("Watershed");
 
-        // 面積/円形度条件で候補を収集する
+        // 面積/円形度条件で候補を収集す�?
         run("Clear Results");
         run("Analyze Particles...",
             "size=" + effMinArea + "-" + effMaxArea +
             " circularity=" + effMinCirc + "-1.00 show=Nothing clear"
         );
 
-        // 手法Aの結果を配列に格納する
+        // 手法Aの結果を配列に格納す�?
         nA = nResults;
         xA = newArray(nA);
         yA = newArray(nA);
@@ -1044,7 +1044,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             k = k + 1;
         }
 
-        // 手法B: エッジ抽出ベースで候補を抽出する
+        // 手法B: エッジ抽出ベースで候補を抽出す�?
         safeClose("__bin_B");
         requireWindow(grayTitle, "detect/select-gray-2", fileName);
         run("Duplicate...", "title=__bin_B");
@@ -1058,14 +1058,14 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         if (policy != "LOOSE") run("Open");
         run("Watershed");
 
-        // 面積/円形度条件で候補を収集する
+        // 面積/円形度条件で候補を収集す�?
         run("Clear Results");
         run("Analyze Particles...",
             "size=" + effMinArea + "-" + effMaxArea +
             " circularity=" + effMinCirc + "-1.00 show=Nothing clear"
         );
 
-        // 手法Bの結果を配列に格納する
+        // 手法Bの結果を配列に格納す�?
         nB = nResults;
         xB = newArray(nB);
         yB = newArray(nB);
@@ -1078,7 +1078,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             k = k + 1;
         }
 
-        // 近接距離のしきい値を、代表面積から推定する
+        // 近接距離のしきい値を、代表面積から推定す�?
         r = sqrt(beadUnitArea / PI);
         mergeDist = max2(2, r * 0.8);
         mergeDist2 = mergeDist * mergeDist;
@@ -1100,7 +1100,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             k = k + 1;
         }
 
-        // 近傍にある候補は1点に統合し、優先的に面積の大きい点を残す
+        // 近傍にある候補�?点に統合し、優先的に面積の大きい点を残�?
         j = 0;
         while (j < nB) {
             x = xB[j];
@@ -1168,12 +1168,12 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     // -----------------------------------------------------------------------------
     // 関数: countBeadsByFlat
-    // 概要: beads検出結果を細胞ごとに集計し統計値を返す。
+    // 概要: beads検出結果を細胞ごとに集計し統計値を返す�?
     // 引数: flat, cellLabelTitle, nCellsAll, w, h, HAS_LABEL_MASK,
     //       beadUnitArea, allowClumpsTarget, useExcl, exclMode, exclThr,
     //       useExclSizeGate, exclMinA, exclMaxA, grayTitle, fileName, useMinPhago
-    // 戻り値: array[nBeadsAll, nBeadsInCells, nCellsWithBead, nCellsWithBeadAdj, minPhagoThr]
-    // 補足: ラベルマスク未使用時はROI境界で判定するため処理が遅くなる。
+    // 戻り�? array[nBeadsAll, nBeadsInCells, nCellsWithBead, nCellsWithBeadAdj, minPhagoThr]
+    // 補足: ラベルマスク未使用時はROI境界で判定するため処理が遅くなる�?
     // -----------------------------------------------------------------------------
     function countBeadsByFlat(
         flat, cellLabelTitle, nCellsAll, w, h, HAS_LABEL_MASK,
@@ -1208,7 +1208,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         allowClumps = (allowClumpsTarget == 1);
         clumpThresh = beadUnitArea * 1.35;
 
-        // ラベルマスクが無い場合はROI境界のキャッシュを作る
+        // ラベルマスクが無い場合はROI境界のキャッシュを作�?
         if (!useLabelMask) {
             roiBX = newArray(nCells);
             roiBY = newArray(nCells);
@@ -1226,7 +1226,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             }
         }
 
-        // 参照ウィンドウを必要に応じて切り替える
+        // 参照ウィンドウを必要に応じて切り替え�?
         currWin = "";
         if (useExclOn || !useLabelMask) {
             requireWindow(grayTitle, "count/select-gray", fileName);
@@ -1236,7 +1236,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             currWin = "label";
         }
 
-        // beads候補を順に走査して除外/集計を行う
+        // beads候補を順に走査して除�?集計を行�?
         i = 0;
         while (i + 2 < flatLen) {
 
@@ -1292,7 +1292,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
                 cellId = 0;
 
-                // ラベルマスクがある場合はピクセル値で細胞IDを取得する
+                // ラベルマスクがある場合はピクセル値で細胞IDを取得す�?
                 if (useLabelMask) {
 
                     if (currWin != "label") {
@@ -1303,7 +1303,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
                 } else {
 
-                    // ラベルマスクが無い場合はROIに含まれるかを判定する
+                    // ラベルマスクが無い場合はROIに含まれるかを判定す�?
                     if (currWin != "gray") {
                         selectWindow(grayTitle);
                         currWin = "gray";
@@ -1333,7 +1333,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                     }
                 }
 
-                // 細胞内に入ったbeadsを集計する
+                // 細胞内に入ったbeadsを集計す�?
                 if (cellId > 0) {
                     nBeadsInCells = nBeadsInCells + est;
                     idx = cellId - 1;
@@ -1358,7 +1358,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         nCellsWithBeadAdj = nCellsWithBead;
         minPhagoThr = 1;
 
-        // 微量貪食のしきい値を推定し、調整後の細胞数を算出する
+        // 微量貪食のしきい値を推定し、調整後の細胞数を算出す�?
         if (useMinPhago == 1) {
             nz = newArray();
             c = 0;
@@ -1388,15 +1388,15 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     }
 
     // =============================================================================
-    // メインフロー: 対話型の解析手順をここから実行する
+    // メインフロー: 対話型の解析手順をここから実行す�?
     // =============================================================================
     VERSION_STR = "2.1";
-    T_lang_title = "Language / 言語 / 语言";
-    T_lang_label = "Language / 言語 / 语言";
+    T_lang_title = "Language / 言�?/ 语言";
+    T_lang_label = "Language / 言�?/ 语言";
     T_lang_msg =
         "巨噬细胞图像四元素值分析\n" +
         "Macrophage Image Four-Factor Analysis\n" +
-        "マクロファージ画像4要素解析\n\n" +
+        "マクロファージ画�?要素解析\n\n" +
         "Version: " + VERSION_STR + "\n" +
         "---------------------------------\n" +
         "请选择界面语言 / 言語を選択 / Select language";
@@ -1406,7 +1406,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // -----------------------------------------------------------------------------
     Dialog.create(T_lang_title);
     Dialog.addMessage(T_lang_msg);
-    Dialog.addChoice(T_lang_label, newArray("中文", "日本語", "English"), "中文");
+    Dialog.addChoice(T_lang_label, newArray("中文", "日本�?, "English"), "中文");
     Dialog.show();
     lang = Dialog.getChoice();
 
@@ -1415,177 +1415,177 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // -----------------------------------------------------------------------------
     if (lang == "中文") {
 
-        T_choose = "选择包含图像和 ROI 文件的文件夹";
-        T_exit = "未选择文件夹。脚本已退出。";
-        T_noImages = "所选文件夹中未找到图像文件（tif/tiff/png/jpg/jpeg）。脚本已退出。";
-        T_exitScript = "用户已退出脚本。";
+        T_choose = "选择包含图像�?ROI 文件的文件夹";
+        T_exit = "未选择文件夹。脚本已退出�?;
+        T_noImages = "所选文件夹中未找到图像文件（tif/tiff/png/jpg/jpeg）。脚本已退出�?;
+        T_exitScript = "用户已退出脚本�?;
 
         T_mode_title = "工作模式选择选择";
         T_mode_label = "请选择模式";
-        T_mode_1 = "仅标注细胞 ROI";
-        T_mode_2 = "仅执行分析";
-        T_mode_3 = "标注后分析（推荐）";
+        T_mode_1 = "仅标注细�?ROI";
+        T_mode_2 = "仅执行分�?;
+        T_mode_3 = "标注后分析（推荐�?;
         T_mode_msg =
             "请选择本次工作模式（下拉菜单）：\n\n" +
             "1）仅标注细胞 ROI\n" +
-            "   • 将逐张打开图像。\n" +
-            "   • 你需要手动勾画细胞轮廓，并将 ROI 添加到 ROI Manager。\n" +
-            "   • 完成后脚本将保存细胞 ROI 文件（默认：图像名 + “_cells.zip”）。\n\n" +
+            "   �?将逐张打开图像。\n" +
+            "   �?你需要手动勾画细胞轮廓，并将 ROI 添加�?ROI Manager。\n" +
+            "   �?完成后脚本将保存细胞 ROI 文件（默认：图像�?+ “_cells.zip”）。\n\n" +
             "2）仅分析四要素\n" +
-            "   • 将直接执行 beads 检测与统计。\n" +
-            "   • 每张图像必须存在对应的细胞 ROI 文件（默认：图像名 + “_cells.zip”）。\n\n" +
+            "   �?将直接执�?beads 检测与统计。\n" +
+            "   �?每张图像必须存在对应的细�?ROI 文件（默认：图像�?+ “_cells.zip”）。\n\n" +
             "3）标注后分析（推荐）\n" +
-            "   • 对缺失细胞 ROI 的图像先完成 ROI 标注。\n" +
-            "   • 随后进行目标 beads 抽样（必要时可进行排除对象抽样），最后执行批量分析。\n\n" +
-            "说明：点击“OK”确认选择。";
+            "   �?对缺失细�?ROI 的图像先完成 ROI 标注。\n" +
+            "   �?随后进行目标 beads 抽样（必要时可进行排除对象抽样），最后执行批量分析。\n\n" +
+            "说明：点击“OK”确认选择�?;
 
         T_step_roi_title = "细胞 ROI 标注";
         T_step_roi_msg =
-            "即将进入【细胞 ROI 标注】阶段。\n\n" +
+            "即将进入【细�?ROI 标注】阶段。\n\n" +
             "在此阶段，你需要：\n" +
             "1）使用你当前选择的绘图工具勾画细胞轮廓（推荐自由手绘）。\n" +
-            "2）每完成一个细胞轮廓，按键盘 “T” 将该轮廓添加到 ROI Manager。\n" +
-            "3）当前图像所有细胞标注完成后，点击本窗口 “OK” 进入下一张图像。\n\n" +
+            "2）每完成一个细胞轮廓，按键�?“T�?将该轮廓添加�?ROI Manager。\n" +
+            "3）当前图像所有细胞标注完成后，点击本窗口 “OK�?进入下一张图像。\n\n" +
             "保存规则：\n" +
-            "• 脚本将保存 ROI 为 zip 文件：图像名 + “%s.zip”。\n\n" +
+            "�?脚本将保�?ROI �?zip 文件：图像名 + �?s.zip”。\n\n" +
             "重要提示：\n" +
-            "• 本脚本不会自动切换绘图工具，也不会自动判断细胞边界。\n" +
-            "• 为获得稳定结果，建议保持轮廓闭合并覆盖完整细胞区域。";
+            "�?本脚本不会自动切换绘图工具，也不会自动判断细胞边界。\n" +
+            "�?为获得稳定结果，建议保持轮廓闭合并覆盖完整细胞区域�?;
 
         T_step_bead_title = "目标珠粒采样";
         T_step_bead_msg =
-            "即将进入【目标 beads 抽样】阶段。\n\n" +
+            "即将进入【目�?beads 抽样】阶段。\n\n" +
             "目的：\n" +
-            "• 使用你圈选的样本，推断“典型单个 beads”的面积尺度与灰度特征。\n" +
-            "• 推断结果将用于默认检测参数、团块按面积估算 beads 数，以及背景扣除的建议值。\n\n" +
+            "�?使用你圈选的样本，推断“典型单�?beads”的面积尺度与灰度特征。\n" +
+            "�?推断结果将用于默认检测参数、团块按面积估算 beads 数，以及背景扣除的建议值。\n\n" +
             "操作要求：\n" +
-            "1）使用椭圆工具圈选目标 beads（精度无需极端，但建议贴合）。\n" +
-            "2）优先圈选“单个典型 beads”，避免明显团块/粘连，以提高推断可靠性。\n" +
-            "3）每圈选一个 ROI，按键盘 “T” 添加到 ROI Manager。\n" +
-            "4）完成本图像抽样后，点击本窗口 “OK”。\n" +
-            "5）随后会出现“下一步操作”下拉菜单，用于选择继续抽样、结束抽样进入下一步或退出脚本。";
+            "1）使用椭圆工具圈选目�?beads（精度无需极端，但建议贴合）。\n" +
+            "2）优先圈选“单个典�?beads”，避免明显团块/粘连，以提高推断可靠性。\n" +
+            "3）每圈选一�?ROI，按键盘 “T�?添加�?ROI Manager。\n" +
+            "4）完成本图像抽样后，点击本窗�?“OK”。\n" +
+            "5）随后会出现“下一步操作”下拉菜单，用于选择继续抽样、结束抽样进入下一步或退出脚本�?;
 
         T_step_bead_ex_title = "排除对象采样（可选）";
         T_step_bead_ex_msg =
             "即将进入【排除对象抽样】阶段（仅在存在多种 beads 或易混淆干扰对象时使用）。\n\n" +
             "目的：\n" +
-            "• 学习需要排除对象/区域的灰度阈值（以及可选的面积范围），用于减少误检。\n\n" +
+            "�?学习需要排除对�?区域的灰度阈值（以及可选的面积范围），用于减少误检。\n\n" +
             "圈选规范：\n" +
-            "• 椭圆/矩形 ROI：作为“排除 beads”样本（学习灰度与面积范围）。\n" +
-            "• Freehand/Polygon ROI：作为“排除区域”样本（学习灰度，不学习面积范围）。\n\n" +
+            "�?椭圆/矩形 ROI：作为“排�?beads”样本（学习灰度与面积范围）。\n" +
+            "�?Freehand/Polygon ROI：作为“排除区域”样本（学习灰度，不学习面积范围）。\n\n" +
             "操作步骤：\n" +
             "1）圈选需要排除的对象或区域。\n" +
-            "2）每圈选一个 ROI，按键盘 “T” 添加到 ROI Manager。\n" +
-            "3）完成后点击本窗口 “OK”。\n" +
-            "4）随后使用下拉菜单选择继续抽样、结束并计算进入参数设置，或退出脚本。";
+            "2）每圈选一�?ROI，按键盘 “T�?添加�?ROI Manager。\n" +
+            "3）完成后点击本窗�?“OK”。\n" +
+            "4）随后使用下拉菜单选择继续抽样、结束并计算进入参数设置，或退出脚本�?;
 
         T_step_param_title = "参数确认";
         T_step_param_msg =
             "即将打开【参数设置】窗口。\n\n" +
             "你将看到：\n" +
-            "• 目标 beads 抽样推断的默认面积范围、beads 尺度（用于团块估算）与 Rolling Ball 建议值。\n" +
-            "• 若启用排除过滤，还将显示推断的灰度阈值与可选面积门控范围。\n\n" +
+            "�?目标 beads 抽样推断的默认面积范围、beads 尺度（用于团块估算）�?Rolling Ball 建议值。\n" +
+            "�?若启用排除过滤，还将显示推断的灰度阈值与可选面积门控范围。\n\n" +
             "建议：\n" +
-            "• 首次使用可优先采用默认值完成一次批量分析。\n" +
-            "• 如需更严格或更宽松的检测，可调整面积范围与严格程度。\n\n" +
-            "说明：点击 “OK” 确认并进入批量分析。";
+            "�?首次使用可优先采用默认值完成一次批量分析。\n" +
+            "�?如需更严格或更宽松的检测，可调整面积范围与严格程度。\n\n" +
+            "说明：点�?“OK�?确认并进入批量分析�?;
 
-        T_step_main_title = "开始批量分析";
+        T_step_main_title = "开始批量分�?;
         T_step_main_msg =
             "即将进入【批量分析】阶段。\n\n" +
             "脚本将对文件夹内所有图像执行：\n" +
-            "• 读取细胞 ROI\n" +
-            "• beads 检测与统计（含团块估算与可选排除过滤）\n" +
-            "• 汇总并写入 Results 表\n\n" +
+            "�?读取细胞 ROI\n" +
+            "�?beads 检测与统计（含团块估算与可选排除过滤）\n" +
+            "�?汇总并写入 Results 表\n\n" +
             "运行方式：\n" +
-            "• 批量分析在静默模式运行，以减少中间窗口弹出。\n\n" +
+            "�?批量分析在静默模式运行，以减少中间窗口弹出。\n\n" +
             "缺失细胞 ROI 时：\n" +
-            "• 脚本将提示你选择：立即标注 / 跳过 / 跳过全部 / 退出。\n" +
-            "• 跳过的图像仍会在结果表中保留一行（数值为空）。\n\n" +
-            "说明：点击 “OK” 开始。";
+            "�?脚本将提示你选择：立即标�?/ 跳过 / 跳过全部 / 退出。\n" +
+            "�?跳过的图像仍会在结果表中保留一行（数值为空）。\n\n" +
+            "说明：点�?“OK�?开始�?;
 
         T_cell_title = "细胞 ROI 标注";
         T_cell_msg =
             "进度：第 %i / %n 张\n" +
-            "文件：%f\n\n" +
+            "文件�?f\n\n" +
             "请完成细胞轮廓标注：\n" +
             "1）勾画一个细胞轮廓。\n" +
-            "2）按 “T” 将轮廓添加到 ROI Manager。\n" +
+            "2）按 “T�?将轮廓添加到 ROI Manager。\n" +
             "3）重复以上步骤，直到本图像的细胞全部完成。\n\n" +
-            "完成后点击 “OK” 保存并继续。\n\n" +
-            "保存文件：图像名 + “%s.zip”";
+            "完成后点�?“OK�?保存并继续。\n\n" +
+            "保存文件：图像名 + �?s.zip�?;
 
         T_exist_title = "现有 ROI";
         T_exist_label = "选择";
         T_exist_edit = "编辑";
-        T_exist_redraw = "重新标注并覆盖保存";
-        T_exist_skip = "跳过此图像（保留原 ROI）";
-        T_exist_skip_all = "跳过所有已存在 ROI 的图像";
+        T_exist_redraw = "重新标注并覆盖保�?;
+        T_exist_skip = "跳过此图像（保留�?ROI�?;
+        T_exist_skip_all = "跳过所有已存在 ROI 的图�?;
         T_exist_msg =
-            "检测到当前图像已存在细胞 ROI 文件。\n\n" +
-            "进度：%i / %n\n" +
-            "图像：%f\n" +
-            "ROI：%b%s.zip\n\n" +
+            "检测到当前图像已存在细�?ROI 文件。\n\n" +
+            "进度�?i / %n\n" +
+            "图像�?f\n" +
+            "ROI�?b%s.zip\n\n" +
             "选项说明：\n" +
-            "• 加载并继续编辑：打开现有 ROI 以便补充或修正。\n" +
-            "• 重新标注并覆盖保存：从空 ROI 开始，最终覆盖现有 zip。\n" +
-            "• 跳过此图像：不打开该图像，直接进入下一张。\n" +
-            "• 跳过所有已存在 ROI：后续遇到已存在 ROI 将不再提示并直接跳过。\n\n" +
-            "请选择处理方式（下拉菜单）：";
+            "�?加载并继续编辑：打开现有 ROI 以便补充或修正。\n" +
+            "�?重新标注并覆盖保存：从空 ROI 开始，最终覆盖现�?zip。\n" +
+            "�?跳过此图像：不打开该图像，直接进入下一张。\n" +
+            "�?跳过所有已存在 ROI：后续遇到已存在 ROI 将不再提示并直接跳过。\n\n" +
+            "请选择处理方式（下拉菜单）�?;
 
         T_missing_title = "缺失 ROI";
         T_missing_label = "选择";
         T_missing_anno = "现在标注";
-        T_missing_skip = "跳过此图像（结果留空）";
-        T_missing_skip_all = "跳过所有缺 ROI 的图像（不再提示）";
-        T_missing_exit = "退出脚本";
+        T_missing_skip = "跳过此图像（结果留空�?;
+        T_missing_skip_all = "跳过所有缺 ROI 的图像（不再提示�?;
+        T_missing_exit = "退出脚�?;
         T_missing_msg =
-            "检测到当前图像缺少对应的细胞 ROI 文件。\n\n" +
-            "图像：%f\n" +
-            "期望 ROI：%b%s.zip\n\n" +
+            "检测到当前图像缺少对应的细�?ROI 文件。\n\n" +
+            "图像�?f\n" +
+            "期望 ROI�?b%s.zip\n\n" +
             "说明：\n" +
-            "• 分析四要素需要细胞 ROI。\n" +
-            "• 若选择跳过，该图像仍会在结果表中保留一行（数值为空）。\n\n" +
-            "请选择处理方式（下拉菜单）：";
+            "�?分析四要素需要细�?ROI。\n" +
+            "�?若选择跳过，该图像仍会在结果表中保留一行（数值为空）。\n\n" +
+            "请选择处理方式（下拉菜单）�?;
 
         T_sampling = "采样";
         T_promptAddROI =
-            "进度：%i / %n\n" +
-            "文件：%f\n\n" +
-            "请圈选目标 beads（建议选择单个典型 beads，避免团块）。\n" +
-            "• 每圈选一个 ROI，按 “T” 添加到 ROI Manager。\n\n" +
-            "完成后点击 “OK”。\n" +
-            "随后将在“下一步操作”下拉菜单中选择继续、结束或退出。";
+            "进度�?i / %n\n" +
+            "文件�?f\n\n" +
+            "请圈选目�?beads（建议选择单个典型 beads，避免团块）。\n" +
+            "�?每圈选一�?ROI，按 “T�?添加�?ROI Manager。\n\n" +
+            "完成后点�?“OK”。\n" +
+            "随后将在“下一步操作”下拉菜单中选择继续、结束或退出�?;
 
         T_promptAddROI_EX =
-            "进度：%i / %n\n" +
-            "文件：%f\n\n" +
+            "进度�?i / %n\n" +
+            "文件�?f\n\n" +
             "请圈选需要排除的对象/区域。\n" +
-            "• 椭圆/矩形：用于学习排除 beads（灰度与面积）。\n" +
-            "• Freehand/Polygon：用于学习排除区域（灰度）。\n\n" +
-            "每圈选一个 ROI，按 “T” 添加到 ROI Manager。\n" +
-            "完成后点击 “OK”。\n" +
-            "随后在下拉菜单中选择继续、结束并计算或退出。";
+            "�?椭圆/矩形：用于学习排�?beads（灰度与面积）。\n" +
+            "�?Freehand/Polygon：用于学习排除区域（灰度）。\n\n" +
+            "每圈选一�?ROI，按 “T�?添加�?ROI Manager。\n" +
+            "完成后点�?“OK”。\n" +
+            "随后在下拉菜单中选择继续、结束并计算或退出�?;
 
         T_ddLabel = "选择";
-        T_ddNext = "下一张";
+        T_ddNext = "下一�?;
         T_ddStep = "结束抽样";
         T_ddCompute = "结束计算";
-        T_ddExit = "退出";
+        T_ddExit = "退�?;
 
         T_ddInfo_target =
             "请选择下一步操作（下拉菜单）：\n\n" +
-            "• 下一张：继续在下一张图像上抽样。\n" +
-            "• 结束目标抽样并进入下一步：停止抽样，并使用现有样本推断默认参数。\n" +
-            "• 退出脚本：立即结束脚本（不会执行后续批量分析）。\n\n" +
-            "说明：点击 “OK” 确认选择。";
+            "�?下一张：继续在下一张图像上抽样。\n" +
+            "�?结束目标抽样并进入下一步：停止抽样，并使用现有样本推断默认参数。\n" +
+            "�?退出脚本：立即结束脚本（不会执行后续批量分析）。\n\n" +
+            "说明：点�?“OK�?确认选择�?;
 
         T_ddInfo_excl =
             "请选择下一步操作（下拉菜单）：\n\n" +
-            "• 下一张：继续在下一张图像上抽样。\n" +
-            "• 结束排除抽样并计算：停止排除抽样并进入参数设置。\n" +
-            "• 退出脚本：立即结束脚本（不会执行后续批量分析）。\n\n" +
-            "说明：点击 “OK” 确认选择。";
+            "�?下一张：继续在下一张图像上抽样。\n" +
+            "�?结束排除抽样并计算：停止排除抽样并进入参数设置。\n" +
+            "�?退出脚本：立即结束脚本（不会执行后续批量分析）。\n\n" +
+            "说明：点�?“OK�?确认选择�?;
 
         T_param = "分析参数";
         T_param_note_title = "参数说明";
@@ -1593,12 +1593,12 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_section_bg = "背景处理";
         T_section_roi = "ROI 文件";
         T_section_excl = "排除过滤";
-        T_section_format = "数据格式化";
+        T_section_format = "数据格式�?;
         T_section_sep = "---- %s ----";
 
-        T_minA = "最小面积（px²）";
-        T_maxA = "最大面积（px²）";
-        T_circ = "最小圆形度（0–1）";
+        T_minA = "最小面积（px²�?;
+        T_maxA = "最大面积（px²�?;
+        T_circ = "最小圆形度�?�?�?;
         T_allow_clumps = "团块估算：按面积拆分计数";
         T_min_phago_enable = "微量吞噬阈值（动态计算）";
 
@@ -1611,164 +1611,164 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_suffix = "ROI 文件后缀";
 
         T_excl_enable = "启用排除过滤";
-        T_excl_thr = "阈值（0–255）";
+        T_excl_thr = "阈值（0�?55�?;
         T_excl_mode = "排除方向";
-        T_excl_high = "排除亮对象（≥ 阈值）";
-        T_excl_low = "排除暗对象（≤ 阈值）";
+        T_excl_high = "排除亮对象（�?阈值）";
+        T_excl_low = "排除暗对象（�?阈值）";
         T_excl_strict = "动态阈值（更严格）";
 
         T_excl_size_gate = "面积范围门控（推荐）";
-        T_excl_minA = "最小面积（px²）";
-        T_excl_maxA = "最大面积（px²）";
+        T_excl_minA = "最小面积（px²�?;
+        T_excl_maxA = "最大面积（px²�?;
 
-        T_data_format_enable = "启用数据格式化";
-        T_data_format_rule = "文件名识别规则（pn/f）";
-        T_data_format_cols = "表格列格式";
-        T_data_opt_enable = "数据优化（IBR/PCR）";
+        T_data_format_enable = "启用数据格式�?;
+        T_data_format_rule = "文件名识别规则（pn/f�?;
+        T_data_format_cols = "表格列格�?;
+        T_data_opt_enable = "数据优化（IBR/PCR�?;
         T_data_format_doc =
             "【数据格式化 - 规则说明】\n\n" +
             "A. 文件名识别规则（pn/f）：\n" +
-            "  A.1 目的：从文件名中提取 项目名（pn） 与 编号（f）。\n" +
-            "  A.2 语法：pn/f 或 f/pn（必须包含且仅包含一个“/”）。\n" +
+            "  A.1 目的：从文件名中提取 项目名（pn�?�?编号（f）。\n" +
+            "  A.2 语法：pn/f �?f/pn（必须包含且仅包含一个�?”）。\n" +
             "  A.3 代号说明：\n" +
             "      - pn：项目名（非数字部分）。\n" +
-            "      - f ：编号为“1,2,3...”格式（不带前导 0）。\n" +
-            "      - f1：编号为“01,02,03...”或“001,002,003...”等带前导 0 的格式。\n" +
-            "  A.4 说明：f 与 f1 仅用于识别编号格式，排序始终按数字大小。\n\n" +
+            "      - f ：编号为�?,2,3...”格式（不带前导 0）。\n" +
+            "      - f1：编号为�?1,02,03...”或�?01,002,003...”等带前�?0 的格式。\n" +
+            "  A.4 说明：f �?f1 仅用于识别编号格式，排序始终按数字大小。\n\n" +
             "B. 表格列格式：\n" +
-            "  B.1 语法：列1/列2/列3（从左到右）。\n" +
+            "  B.1 语法：列1/�?/�?（从左到右）。\n" +
             "  B.2 内置列代号（默认列名 / 含义）：\n" +
             "      - PN：PN / 项目名。\n" +
             "      - F：F / 编号。\n" +
             "      - TB：Total Beads / beads 总数。\n" +
-            "      - BiC：Beads in Cells / 细胞内 beads 数。\n" +
-            "      - CwB：Cells with Beads / 含 beads 的细胞数。\n" +
-            "      - CwBa：Cells with Beads (Adj) / 含 beads 的细胞数（微量校正）。\n" +
+            "      - BiC：Beads in Cells / 细胞�?beads 数。\n" +
+            "      - CwB：Cells with Beads / �?beads 的细胞数。\n" +
+            "      - CwBa：Cells with Beads (Adj) / �?beads 的细胞数（微量校正）。\n" +
             "      - TC：Total Cells / 细胞总数。\n" +
             "      - IBR：IBR / BiC / TB。\n" +
             "      - PCR：PCR / CwB / TC。\n" +
-            "      - eIBR：eIBR / 项目内 IBR 平均。\n" +
-            "      - ePCR：ePCR / 项目内 PCR 平均。\n" +
+            "      - eIBR：eIBR / 项目�?IBR 平均。\n" +
+            "      - ePCR：ePCR / 项目�?PCR 平均。\n" +
             "  B.3 自定义列：使用任意代号（不与内置代号重复）。\n" +
-            "  B.4 参数：使用逗号分隔，格式为 name=\"...\" 或 value=\"...\"。\n" +
+            "  B.4 参数：使用逗号分隔，格式为 name=\"...\" �?value=\"...\"。\n" +
             "      - name：列名（可包含空格）。\n" +
             "      - value：该列所有行固定值。\n" +
-            "  B.5 “$”前缀：仅用于自定义列，使该列只出现一次（不随项目名扩展）。\n\n" +
+            "  B.5 �?”前缀：仅用于自定义列，使该列只出现一次（不随项目名扩展）。\n\n" +
             "C. 符号注意：\n" +
-            "  C.1 参数必须用逗号分隔；键和值之间用“=”。\n" +
+            "  C.1 参数必须用逗号分隔；键和值之间用�?”。\n" +
             "  C.2 参数值必须使用英文双引号包裹。\n" +
-            "  C.3 不允许空列项（避免出现连续“//”或首尾“/”）。\n";
-        T_data_format_err_title = "数据格式化 - 输入错误";
-        T_data_format_err_hint = "请修正后重试。";
+            "  C.3 不允许空列项（避免出现连续�?/”或首尾�?”）。\n";
+        T_data_format_err_title = "数据格式�?- 输入错误";
+        T_data_format_err_hint = "请修正后重试�?;
         T_log_toggle_on = "启用";
         T_log_toggle_off = "关闭";
 
-        T_err_df_rule_empty = "文件名识别规则为空。示例：pn/f 或 f/pn";
-        T_err_df_rule_slash = "文件名识别规则必须包含且仅包含一个“/”。示例：pn/f 或 f/pn";
-        T_err_df_rule_parts = "文件名识别规则的两部分都必须填写。";
-        T_err_df_rule_tokens = "文件名识别规则只允许“pn”和“f/f1(或以f开头)”两类标记。";
-        T_err_df_rule_need_both = "文件名识别规则必须同时包含 pn 与 f。";
-        T_err_df_rule_order = "文件名识别规则顺序只允许 pn/f 或 f/pn。";
-        T_err_df_cols_empty = "表格列格式为空。";
-        T_err_df_cols_empty_item = "表格列格式包含空项（可能存在连续“//”或首尾“/”）。";
-        T_err_df_cols_empty_token = "表格列格式中存在空列代号。";
+        T_err_df_rule_empty = "文件名识别规则为空。示例：pn/f �?f/pn";
+        T_err_df_rule_slash = "文件名识别规则必须包含且仅包含一个�?”。示例：pn/f �?f/pn";
+        T_err_df_rule_parts = "文件名识别规则的两部分都必须填写�?;
+        T_err_df_rule_tokens = "文件名识别规则只允许“pn”和“f/f1(或以f开�?”两类标记�?;
+        T_err_df_rule_need_both = "文件名识别规则必须同时包�?pn �?f�?;
+        T_err_df_rule_order = "文件名识别规则顺序只允许 pn/f �?f/pn�?;
+        T_err_df_cols_empty = "表格列格式为空�?;
+        T_err_df_cols_empty_item = "表格列格式包含空项（可能存在连续�?/”或首尾�?”）�?;
+        T_err_df_cols_empty_token = "表格列格式中存在空列代号�?;
         T_err_df_cols_params_comma = "参数必须使用逗号分隔，示例：X,value=\"2\",name=\"hours\"";
-        T_err_df_cols_dollar_missing = "“$”后必须跟列代号。";
-        T_err_df_cols_dollar_builtin = "“$”只能用于自定义列，不可用于内置列（PN/F/TB/BiC/CwB/CwBa/TC/IBR/PCR/eIBR/ePCR）。";
-        T_err_df_cols_param_kv = "参数必须写成 key=\"value\" 形式。";
-        T_err_df_cols_param_unknown_prefix = "未知参数：";
+        T_err_df_cols_dollar_missing = "�?”后必须跟列代号�?;
+        T_err_df_cols_dollar_builtin = "�?”只能用于自定义列，不可用于内置列（PN/F/TB/BiC/CwB/CwBa/TC/IBR/PCR/eIBR/ePCR）�?;
+        T_err_df_cols_param_kv = "参数必须写成 key=\"value\" 形式�?;
+        T_err_df_cols_param_unknown_prefix = "未知参数�?;
         T_err_df_cols_param_quote = "参数值必须用英文双引号包裹。示例：name=\"Cell with Beads\"";
 
         T_beads_type_title = "对象类型确认";
         T_beads_type_msg =
             "请确认图像中是否存在多种 beads 或易混淆对象。\n\n" +
-            "• 若仅存在单一 beads 类型：建议不启用排除过滤。\n" +
-            "• 若存在多种 beads 或明显干扰对象：建议启用排除过滤，并进行排除对象抽样。\n\n" +
-            "说明：即使在此处选择启用排除过滤，你仍可在参数设置窗口中关闭该功能。";
+            "�?若仅存在单一 beads 类型：建议不启用排除过滤。\n" +
+            "�?若存在多�?beads 或明显干扰对象：建议启用排除过滤，并进行排除对象抽样。\n\n" +
+            "说明：即使在此处选择启用排除过滤，你仍可在参数设置窗口中关闭该功能�?;
         T_beads_type_checkbox = "包含多种 beads（启用排除过滤）";
 
-        T_excl_note_few_samples = "灰度样本不足（<3）。推断阈值不可靠，建议在参数窗口手动设置。";
-        T_excl_note_few_effective = "有效灰度样本不足（可能存在饱和或极端值）。推断阈值不可靠，建议手动设置。";
-        T_excl_note_diff_small = "目标/排除灰度差异过小（<8）。推断阈值不可靠，建议手动设置。";
-        T_excl_note_overlap_high = "灰度分布重叠较大：采用保守阈值（接近排除样本低分位），建议在参数窗口人工确认。";
-        T_excl_note_good_sep_high = "分离良好：阈值由目标高分位与排除低分位共同估计。";
-        T_excl_note_overlap_low = "灰度分布重叠较大：采用保守阈值（接近排除样本高分位），建议在参数窗口人工确认。";
-        T_excl_note_good_sep_low = "分离良好：阈值由目标低分位与排除高分位共同估计。";
+        T_excl_note_few_samples = "灰度样本不足�?3）。推断阈值不可靠，建议在参数窗口手动设置�?;
+        T_excl_note_few_effective = "有效灰度样本不足（可能存在饱和或极端值）。推断阈值不可靠，建议手动设置�?;
+        T_excl_note_diff_small = "目标/排除灰度差异过小�?8）。推断阈值不可靠，建议手动设置�?;
+        T_excl_note_overlap_high = "灰度分布重叠较大：采用保守阈值（接近排除样本低分位），建议在参数窗口人工确认�?;
+        T_excl_note_good_sep_high = "分离良好：阈值由目标高分位与排除低分位共同估计�?;
+        T_excl_note_overlap_low = "灰度分布重叠较大：采用保守阈值（接近排除样本高分位），建议在参数窗口人工确认�?;
+        T_excl_note_good_sep_low = "分离良好：阈值由目标低分位与排除高分位共同估计�?;
 
         T_err_need_window =
-            "脚本在阶段 [%stage] 需要窗口但未找到。\n\n" +
-            "窗口：%w\n" +
-            "文件：%f\n\n" +
-            "建议：关闭同名窗口、避免标题冲突后重试。";
-        T_err_too_many_cells = "细胞 ROI 数量超过 65535：";
-        T_err_too_many_cells_hint = "当前实现使用 1..65535 写入 16-bit 标签图。建议分批处理或减少 ROI 数量。";
-        T_err_file = "文件：";
-        T_err_roi1_invalid = "ROI[1] 非法（无有效 bounds）。无法生成细胞标签图。";
-        T_err_labelmask_failed = "细胞标签图生成失败：填充后中心像素仍为 0。";
-        T_err_labelmask_hint = "请检查 ROI[1] 是否为闭合面积 ROI，并确保 ROI 与图像区域有效重叠。";
+            "脚本在阶�?[%stage] 需要窗口但未找到。\n\n" +
+            "窗口�?w\n" +
+            "文件�?f\n\n" +
+            "建议：关闭同名窗口、避免标题冲突后重试�?;
+        T_err_too_many_cells = "细胞 ROI 数量超过 65535�?;
+        T_err_too_many_cells_hint = "当前实现使用 1..65535 写入 16-bit 标签图。建议分批处理或减少 ROI 数量�?;
+        T_err_file = "文件�?;
+        T_err_roi1_invalid = "ROI[1] 非法（无有效 bounds）。无法生成细胞标签图�?;
+        T_err_labelmask_failed = "细胞标签图生成失败：填充后中心像素仍�?0�?;
+        T_err_labelmask_hint = "请检�?ROI[1] 是否为闭合面�?ROI，并确保 ROI 与图像区域有效重叠�?;
 
         T_log_sep = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
-        T_log_start = "✓ 开始：巨噬细胞四要素分析";
-        T_log_lang = "  ├─ 语言：中文";
+        T_log_start = "�?开始：巨噬细胞四要素分�?;
+        T_log_lang = "  ├─ 语言：中�?;
         T_log_dir = "  ├─ 文件夹：已选择";
-        T_log_mode = "  └─ 模式：%s";
-        T_log_roi_phase_start = "✓ 步骤：细胞 ROI 标注";
-        T_log_roi_phase_done = "✓ 完成：细胞 ROI 标注";
-        T_log_sampling_start = "✓ 步骤：目标 beads 抽样";
-        T_log_sampling_cancel = "✓ 完成：抽样（用户结束抽样）";
-        T_log_sampling_img = "  ├─ 抽样 [%i/%n]：%f";
-        T_log_sampling_rois = "  │  └─ ROI 数量：%i";
-        T_log_params_calc = "✓ 完成：默认参数已推断";
-        T_log_main_start = "✓ 开始：批量分析（静默模式）";
-        T_log_processing = "  ├─ 处理 [%i/%n]：%f";
-        T_log_missing_roi = "  │  ⚠ 缺少 ROI：%f";
-        T_log_missing_choice = "  │  └─ 选择：%s";
-        T_log_load_roi = "  │  ├─ 加载 ROI";
-        T_log_roi_count = "  │  │  └─ 细胞数：%i";
-        T_log_bead_detect = "  │  ├─ 检测 beads 并统计";
-        T_log_bead_count = "  │  │  ├─ beads 总数：%i";
-        T_log_bead_incell = "  │  │  ├─ 细胞内 beads：%i";
-        T_log_cell_withbead = "  │  │  └─ 含 beads 细胞：%i";
-        T_log_bead_summary_done = "  │  │  └─ beads 统计完成";
-        T_log_complete = "  │  └─ ✓ 完成";
-        T_log_skip_roi = "  │  ✗ 跳过：缺少 ROI";
-        T_log_skip_nocell = "  │  ✗ 跳过：ROI 中无有效细胞";
-        T_log_results_save = "✓ 完成：结果已写入 Results 表";
-        T_log_opt_done = "✓ 数据优化完成";
-        T_log_all_done = "✓✓✓ 全部完成 ✓✓✓";
-        T_log_summary = "📊 汇总：共处理 %i 张图像";
-        T_log_unit_sync_keep = "  └─ beads 尺度：使用抽样推断值 = %s";
-        T_log_unit_sync_ui = "  └─ beads 尺度：检测到手动修改，改用 UI 中值 = %s";
+        T_log_mode = "  └─ 模式�?s";
+        T_log_roi_phase_start = "�?步骤：细�?ROI 标注";
+        T_log_roi_phase_done = "�?完成：细�?ROI 标注";
+        T_log_sampling_start = "�?步骤：目�?beads 抽样";
+        T_log_sampling_cancel = "�?完成：抽样（用户结束抽样�?;
+        T_log_sampling_img = "  ├─ 抽样 [%i/%n]�?f";
+        T_log_sampling_rois = "  �? └─ ROI 数量�?i";
+        T_log_params_calc = "�?完成：默认参数已推断";
+        T_log_main_start = "�?开始：批量分析（静默模式）";
+        T_log_processing = "  ├─ 处理 [%i/%n]�?f";
+        T_log_missing_roi = "  �? �?缺少 ROI�?f";
+        T_log_missing_choice = "  �? └─ 选择�?s";
+        T_log_load_roi = "  �? ├─ 加载 ROI";
+        T_log_roi_count = "  �? �? └─ 细胞数：%i";
+        T_log_bead_detect = "  �? ├─ 检�?beads 并统�?;
+        T_log_bead_count = "  �? �? ├─ beads 总数�?i";
+        T_log_bead_incell = "  �? �? ├─ 细胞�?beads�?i";
+        T_log_cell_withbead = "  �? �? └─ �?beads 细胞�?i";
+        T_log_bead_summary_done = "  �? �? └─ beads 统计完成";
+        T_log_complete = "  �? └─ �?完成";
+        T_log_skip_roi = "  �? �?跳过：缺�?ROI";
+        T_log_skip_nocell = "  �? �?跳过：ROI 中无有效细胞";
+        T_log_results_save = "�?完成：结果已写入 Results �?;
+        T_log_opt_done = "�?数据优化完成";
+        T_log_all_done = "✓✓�?全部完成 ✓✓�?;
+        T_log_summary = "📊 汇总：共处�?%i 张图�?;
+        T_log_unit_sync_keep = "  └─ beads 尺度：使用抽样推断�?= %s";
+        T_log_unit_sync_ui = "  └─ beads 尺度：检测到手动修改，改�?UI 中�?= %s";
         T_log_analyze_header = "  ├─ 解析参数";
-        T_log_analyze_img = "  ├─ 图像：%f";
-        T_log_analyze_roi = "  │  ├─ ROI：%s";
-        T_log_analyze_size = "  │  ├─ 尺寸：%w x %h";
-        T_log_analyze_bead_params = "  │  ├─ beads 参数：area=%min-%max, circ>=%circ, unit=%unit";
-        T_log_analyze_strict = "  │  ├─ 严格度：%strict，融合策略：%policy";
-        T_log_analyze_bg = "  │  ├─ 背景扣除：rolling=%r";
-        T_log_analyze_excl_on = "  │  ├─ 排除：mode=%mode thr=%thr strict=%strict sizeGate=%gate range=%min-%max";
-        T_log_analyze_excl_off = "  │  └─ 排除：未启用";
-        T_log_analyze_method = "  │  └─ 检测流程：A=Yen+Mask+Watershed；B=Edges+Otsu+Mask+Watershed；融合=%policy";
-        T_log_analyze_excl_adjust = "  │  └─ 动态阈值：mean=%mean std=%std kstd=%kstd thr=%thr";
-        T_log_label_mask = "  │  ├─ 细胞标签图：%s";
-        T_log_label_mask_ok = "已生成";
+        T_log_analyze_img = "  ├─ 图像�?f";
+        T_log_analyze_roi = "  �? ├─ ROI�?s";
+        T_log_analyze_size = "  �? ├─ 尺寸�?w x %h";
+        T_log_analyze_bead_params = "  �? ├─ beads 参数：area=%min-%max, circ>=%circ, unit=%unit";
+        T_log_analyze_strict = "  �? ├─ 严格度：%strict，融合策略：%policy";
+        T_log_analyze_bg = "  �? ├─ 背景扣除：rolling=%r";
+        T_log_analyze_excl_on = "  �? ├─ 排除：mode=%mode thr=%thr strict=%strict sizeGate=%gate range=%min-%max";
+        T_log_analyze_excl_off = "  �? └─ 排除：未启用";
+        T_log_analyze_method = "  �? └─ 检测流程：A=Yen+Mask+Watershed；B=Edges+Otsu+Mask+Watershed；融�?%policy";
+        T_log_analyze_excl_adjust = "  �? └─ 动态阈值：mean=%mean std=%std kstd=%kstd thr=%thr";
+        T_log_label_mask = "  �? ├─ 细胞标签图：%s";
+        T_log_label_mask_ok = "已生�?;
         T_log_label_mask_fail = "生成失败";
         T_log_policy_strict = "严格";
         T_log_policy_union = "并集";
         T_log_policy_loose = "宽松";
-        T_log_df_header = "  ├─ 数据格式化：自定义解析明细";
-        T_log_df_rule = "  │  ├─ 规则：%s";
-        T_log_df_cols = "  │  ├─ 列格式：%s";
-        T_log_df_sort_asc = "  │  ├─ 排序：F 升序";
-        T_log_df_sort_desc = "  │  ├─ 排序：F 降序";
-        T_log_df_item = "  │  └─ item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
+        T_log_df_header = "  ├─ 数据格式化：自定义解析明�?;
+        T_log_df_rule = "  �? ├─ 规则�?s";
+        T_log_df_cols = "  �? ├─ 列格式：%s";
+        T_log_df_sort_asc = "  �? ├─ 排序：F 升序";
+        T_log_df_sort_desc = "  �? ├─ 排序：F 降序";
+        T_log_df_item = "  �? └─ item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
 
-        T_reason_no_target = "未进行目标 beads 抽样：将使用默认 beads 尺度与默认 Rolling Ball。";
-        T_reason_target_ok = "已基于目标 beads 抽样推断 beads 尺度与 Rolling Ball（稳健估计）。";
-        T_reason_excl_on = "排除过滤已启用：阈值由排除抽样推断（如提示不可靠，请在参数窗口手动调整）。";
-        T_reason_excl_off = "排除过滤未启用。";
-        T_reason_excl_size_ok = "排除对象面积范围：已基于排除样本推断。";
-        T_reason_excl_size_off = "未提供足够的排除 beads 面积样本：默认关闭面积门控。";
+        T_reason_no_target = "未进行目�?beads 抽样：将使用默认 beads 尺度与默�?Rolling Ball�?;
+        T_reason_target_ok = "已基于目�?beads 抽样推断 beads 尺度�?Rolling Ball（稳健估计）�?;
+        T_reason_excl_on = "排除过滤已启用：阈值由排除抽样推断（如提示不可靠，请在参数窗口手动调整）�?;
+        T_reason_excl_off = "排除过滤未启用�?;
+        T_reason_excl_size_ok = "排除对象面积范围：已基于排除样本推断�?;
+        T_reason_excl_size_off = "未提供足够的排除 beads 面积样本：默认关闭面积门控�?;
 
         T_mottos = newArray(
             "\"实事求是\"",
@@ -1781,192 +1781,192 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "\"认识来源于实践\""
         );
 
-    } else if (lang == "日本語") {
-        T_choose = "画像と ROI ファイルを含むフォルダーを選択してください";
-        T_exit = "フォルダーが選択されませんでした。スクリプトを終了します。";
-        T_noImages = "選択したフォルダーに画像ファイル（tif/tiff/png/jpg/jpeg）が見つかりません。スクリプトを終了します。";
-        T_exitScript = "ユーザー操作によりスクリプトを終了しました。";
+    } else if (lang == "日本�?) {
+        T_choose = "画像�?ROI ファイルを含むフォルダーを選択してください";
+        T_exit = "フォルダーが選択されませんでした。スクリプトを終了します�?;
+        T_noImages = "選択したフォルダーに画像ファイル（tif/tiff/png/jpg/jpeg）が見つかりません。スクリプトを終了します�?;
+        T_exitScript = "ユーザー操作によりスクリプトを終了しました�?;
 
-        T_mode_title = "作業モード";
-        T_mode_label = "モード";
-        T_mode_1 = "細胞 ROI のみ作成（*_cells.zip を生成）";
+        T_mode_title = "作業モー�?;
+        T_mode_label = "モー�?;
+        T_mode_1 = "細胞 ROI のみ作成�?_cells.zip を生成）";
         T_mode_2 = "4要素解析のみ（既存の細胞 ROI が必要）";
         T_mode_3 = "細胞 ROI 作成後に 4要素解析（推奨）";
         T_mode_msg =
             "作業モードを選択してください（プルダウン）：\n\n" +
-            "1）細胞 ROI のみ作成\n" +
-            "   • 画像を順に開きます。\n" +
-            "   • 細胞輪郭を手動で描画し、ROI Manager に追加します。\n" +
-            "   • 完了後、細胞 ROI を zip（既定：画像名 + “_cells.zip”）として保存します。\n\n" +
-            "2）4要素解析のみ\n" +
-            "   • beads 検出と統計を実行します。\n" +
-            "   • 各画像に対応する細胞 ROI（既定：画像名 + “_cells.zip”）が必須です。\n\n" +
+            "1）細�?ROI のみ作成\n" +
+            "   �?画像を順に開きます。\n" +
+            "   �?細胞輪郭を手動で描画し、ROI Manager に追加します。\n" +
+            "   �?完了後、細�?ROI �?zip（既定：画像�?+ “_cells.zip”）として保存します。\n\n" +
+            "2�?要素解析のみ\n" +
+            "   �?beads 検出と統計を実行します。\n" +
+            "   �?各画像に対応する細胞 ROI（既定：画像�?+ “_cells.zip”）が必須です。\n\n" +
             "3）作成→解析（推奨）\n" +
-            "   • 不足している細胞 ROI を先に作成します。\n" +
-            "   • その後、ターゲット beads サンプリング（必要に応じて除外サンプリング）を行い、最後にバッチ解析を実行します。\n\n" +
-            "説明： “OK” で確定してください。";
+            "   �?不足している細胞 ROI を先に作成します。\n" +
+            "   �?その後、ターゲット beads サンプリング（必要に応じて除外サンプリング）を行い、最後にバッチ解析を実行します。\n\n" +
+            "説明�?“OK�?で確定してください�?;
 
-        T_step_roi_title = "手順 1：細胞 ROI 作成";
+        T_step_roi_title = "手順 1：細�?ROI 作成";
         T_step_roi_msg =
-            "【細胞 ROI 作成】を開始します。\n\n" +
+            "【細�?ROI 作成】を開始します。\n\n" +
             "この手順で行うこと：\n" +
             "1）現在選択している描画ツールで細胞輪郭を描画します（推奨：フリーハンド）。\n" +
-            "2）輪郭を 1 つ描いたら、キーボードの “T” で ROI Manager に追加します。\n" +
-            "3）この画像の細胞がすべて完了したら、このウィンドウの “OK” を押して次へ進みます。\n\n" +
+            "2）輪郭を 1 つ描いたら、キーボード�?“T�?�?ROI Manager に追加します。\n" +
+            "3）この画像の細胞がすべて完了したら、このウィンドウ�?“OK�?を押して次へ進みます。\n\n" +
             "保存：\n" +
-            "• ROI は zip（画像名 + “%s.zip”）として保存されます。\n\n" +
+            "�?ROI �?zip（画像名 + �?s.zip”）として保存されます。\n\n" +
             "重要：\n" +
-            "• 本スクリプトは描画ツールを自動で切り替えません。\n" +
-            "• 安定した結果のため、輪郭は閉じた領域 ROI として作成してください。";
+            "�?本スクリプトは描画ツールを自動で切り替えません。\n" +
+            "�?安定した結果のため、輪郭は閉じた領�?ROI として作成してください�?;
 
         T_step_bead_title = "手順 2：ターゲット beads サンプリング";
         T_step_bead_msg =
             "【ターゲット beads サンプリング】を開始します。\n\n" +
             "目的：\n" +
-            "• サンプルから「単体 beads の典型的な面積スケール」と「濃度特性」を推定します。\n" +
-            "• 推定値は既定の検出パラメータ、塊（クラスタ）の面積による beads 数推定、背景補正値（Rolling Ball）の提案に利用されます。\n\n" +
+            "�?サンプルから「単�?beads の典型的な面積スケール」と「濃度特性」を推定します。\n" +
+            "�?推定値は既定の検出パラメータ、塊（クラスタ）の面積による beads 数推定、背景補正値（Rolling Ball）の提案に利用されます。\n\n" +
             "操作：\n" +
             "1）楕円ツールでターゲット beads をマークします（厳密な精度は不要ですが、可能な範囲でフィットさせてください）。\n" +
-            "2）塊ではなく、代表的な単体 beads を優先してマークしてください。\n" +
-            "3）ROI を 1 つ追加するたびに “T” を押して ROI Manager に追加します。\n" +
+            "2）塊ではなく、代表的な単�?beads を優先してマークしてください。\n" +
+            "3）ROI �?1 つ追加するたびに “T�?を押して ROI Manager に追加します。\n" +
             "4）この画像のサンプリングが完了したら “OK”。\n" +
-            "5）続く “次の操作” で、継続 / 終了して次へ / 終了 を選択します。";
+            "5）続�?“次の操作�?で、継�?/ 終了して次へ / 終了 を選択します�?;
 
-        T_step_bead_ex_title = "手順 3：除外サンプリング（任意）";
+        T_step_bead_ex_title = "手順 3：除外サンプリング（任意�?;
         T_step_bead_ex_msg =
-            "【除外サンプリング】を開始します（複数種類の beads や紛らわしい干渉物がある場合に使用）。\n\n" +
+            "【除外サンプリング】を開始します（複数種類�?beads や紛らわしい干渉物がある場合に使用）。\n\n" +
             "目的：\n" +
-            "• 除外対象の濃度閾値（必要に応じて面積範囲）を学習し、誤検出を抑制します。\n\n" +
+            "�?除外対象の濃度閾値（必要に応じて面積範囲）を学習し、誤検出を抑制します。\n\n" +
             "ROI の扱い：\n" +
-            "• 楕円/矩形 ROI：除外 beads サンプル（濃度＋面積）として扱います。\n" +
-            "• フリーハンド/ポリゴン ROI：除外領域（濃度のみ）として扱います。\n\n" +
+            "�?楕円/矩形 ROI：除�?beads サンプル（濃度＋面積）として扱います。\n" +
+            "�?フリーハンド/ポリゴン ROI：除外領域（濃度のみ）として扱います。\n\n" +
             "手順：\n" +
             "1）除外したい対象または領域をマークします。\n" +
-            "2）ROI ごとに “T” を押して ROI Manager に追加します。\n" +
+            "2）ROI ごと�?“T�?を押して ROI Manager に追加します。\n" +
             "3）完了後 “OK”。\n" +
-            "4）続くプルダウンで継続 / 終了して計算 / 終了 を選択します。";
+            "4）続くプルダウンで継�?/ 終了して計算 / 終了 を選択します�?;
 
         T_step_param_title = "手順 4：パラメータ確認";
         T_step_param_msg =
             "【パラメータ設定】ウィンドウを開きます。\n\n" +
             "表示内容：\n" +
-            "• ターゲット beads サンプルから推定した面積範囲、beads スケール（塊推定用）、Rolling Ball の提案値。\n" +
-            "• 除外フィルターを有効にした場合、濃度閾値と（任意の）面積ゲート範囲。\n\n" +
+            "�?ターゲッ�?beads サンプルから推定した面積範囲、beads スケール（塊推定用）、Rolling Ball の提案値。\n" +
+            "�?除外フィルターを有効にした場合、濃度閾値と（任意の）面積ゲート範囲。\n\n" +
             "推奨：\n" +
-            "• 初回は既定値で一度バッチ解析を実行し、結果に応じて調整してください。\n\n" +
-            "説明： “OK” で確定し、バッチ解析へ進みます。";
+            "�?初回は既定値で一度バッチ解析を実行し、結果に応じて調整してください。\n\n" +
+            "説明�?“OK�?で確定し、バッチ解析へ進みます�?;
 
         T_step_main_title = "バッチ解析の開始";
         T_step_main_msg =
             "【バッチ解析】を開始します。\n\n" +
             "実行内容：\n" +
-            "• 細胞 ROI の読み込み\n" +
-            "• beads 検出と統計（塊推定、任意の除外フィルターを含む）\n" +
-            "• Results 表への集計出力\n\n" +
+            "�?細胞 ROI の読み込み\n" +
+            "�?beads 検出と統計（塊推定、任意の除外フィルターを含む）\n" +
+            "�?Results 表への集計出力\n\n" +
             "実行方式：\n" +
-            "• 中間ウィンドウを抑制するため、サイレントモードで実行します。\n\n" +
+            "�?中間ウィンドウを抑制するため、サイレントモードで実行します。\n\n" +
             "細胞 ROI が不足している場合：\n" +
-            "• 作成 / スキップ / すべてスキップ / 終了 を選択できます。\n" +
-            "• スキップした画像も Results に行を残します（値は空）。\n\n" +
-            "説明： “OK” で開始します。";
+            "�?作成 / スキップ / すべてスキッ�?/ 終了 を選択できます。\n" +
+            "�?スキップした画像�?Results に行を残します（値は空）。\n\n" +
+            "説明�?“OK�?で開始します�?;
 
         T_cell_title = "細胞 ROI 作成";
         T_cell_msg =
-            "進捗：%i / %n\n" +
-            "ファイル：%f\n\n" +
+            "進捗�?i / %n\n" +
+            "ファイル�?f\n\n" +
             "細胞輪郭を作成してください：\n" +
             "1）輪郭を描画します。\n" +
-            "2）“T” で ROI Manager に追加します。\n" +
+            "2）“T�?�?ROI Manager に追加します。\n" +
             "3）この画像の細胞がすべて完了するまで繰り返します。\n\n" +
-            "完了後 “OK” で保存して次へ進みます。\n\n" +
-            "保存：画像名 + “%s.zip”";
+            "完了�?“OK�?で保存して次へ進みます。\n\n" +
+            "保存：画像名 + �?s.zip�?;
 
-        T_exist_title = "既存の細胞 ROI を検出しました";
+        T_exist_title = "既存の細�?ROI を検出しまし�?;
         T_exist_label = "操作";
         T_exist_edit = "読み込みして編集（推奨）";
         T_exist_redraw = "再作成して上書き保存";
         T_exist_skip = "この画像をスキップ（既存 ROI を保持）";
-        T_exist_skip_all = "既存 ROI の画像をすべてスキップ";
+        T_exist_skip_all = "既存 ROI の画像をすべてスキッ�?;
         T_exist_msg =
-            "この画像には既存の細胞 ROI が存在します。\n\n" +
-            "進捗：%i / %n\n" +
-            "画像：%f\n" +
-            "ROI：%b%s.zip\n\n" +
+            "この画像には既存の細�?ROI が存在します。\n\n" +
+            "進捗�?i / %n\n" +
+            "画像�?f\n" +
+            "ROI�?b%s.zip\n\n" +
             "選択肢：\n" +
-            "• 読み込みして編集：既存 ROI を開き、追記または修正します。\n" +
-            "• 再作成して上書き：新規に作成し、既存 zip を上書きします。\n" +
-            "• スキップ：画像を開かずに次へ進みます。\n" +
-            "• すべてスキップ：以後、既存 ROI に対して確認を表示せずスキップします。\n\n" +
+            "�?読み込みして編集：既�?ROI を開き、追記または修正します。\n" +
+            "�?再作成して上書き：新規に作成し、既�?zip を上書きします。\n" +
+            "�?スキップ：画像を開かずに次へ進みます。\n" +
+            "�?すべてスキップ：以後、既�?ROI に対して確認を表示せずスキップします。\n\n" +
             "操作を選択してください（プルダウン）：";
 
         T_missing_title = "細胞 ROI が不足しています";
         T_missing_label = "操作";
         T_missing_anno = "今ここで細胞 ROI を作成し、解析を継続する";
-        T_missing_skip = "この画像をスキップ（結果は空）";
+        T_missing_skip = "この画像をスキップ（結果は空�?;
         T_missing_skip_all = "不足 ROI の画像をすべてスキップ（以後表示しない）";
         T_missing_exit = "スクリプトを終了";
         T_missing_msg =
-            "この画像に対応する細胞 ROI ファイルが見つかりません。\n\n" +
-            "画像：%f\n" +
-            "想定 ROI：%b%s.zip\n\n" +
+            "この画像に対応する細�?ROI ファイルが見つかりません。\n\n" +
+            "画像�?f\n" +
+            "想定 ROI�?b%s.zip\n\n" +
             "説明：\n" +
-            "• 4要素解析には細胞 ROI が必要です。\n" +
-            "• スキップしても Results 表に行は残ります（値は空）。\n\n" +
+            "�?4要素解析には細胞 ROI が必要です。\n" +
+            "�?スキップして�?Results 表に行は残ります（値は空）。\n\n" +
             "操作を選択してください（プルダウン）：";
 
         T_sampling = "サンプリング";
         T_promptAddROI =
-            "進捗：%i / %n\n" +
-            "ファイル：%f\n\n" +
-            "ターゲット beads をマークしてください（代表的な単体 beads を推奨。塊は避けてください）。\n" +
-            "• ROI を追加するたびに “T” を押してください。\n\n" +
-            "完了後 “OK”。\n" +
-            "続く “次の操作” で継続・終了・終了を選択します。";
+            "進捗�?i / %n\n" +
+            "ファイル�?f\n\n" +
+            "ターゲッ�?beads をマークしてください（代表的な単�?beads を推奨。塊は避けてください）。\n" +
+            "�?ROI を追加するたびに “T�?を押してください。\n\n" +
+            "完了�?“OK”。\n" +
+            "続く “次の操作�?で継続・終了・終了を選択します�?;
 
         T_promptAddROI_EX =
-            "進捗：%i / %n\n" +
-            "ファイル：%f\n\n" +
+            "進捗�?i / %n\n" +
+            "ファイル�?f\n\n" +
             "除外対象をマークしてください。\n" +
-            "• 楕円/矩形：除外 beads（濃度＋面積）\n" +
-            "• フリーハンド/ポリゴン：除外領域（濃度）\n\n" +
-            "ROI ごとに “T” を押して追加します。\n" +
-            "完了後 “OK”。\n" +
-            "続くプルダウンで継続・計算・終了を選択します。";
+            "�?楕円/矩形：除�?beads（濃度＋面積）\n" +
+            "�?フリーハンド/ポリゴン：除外領域（濃度）\n\n" +
+            "ROI ごと�?“T�?を押して追加します。\n" +
+            "完了�?“OK”。\n" +
+            "続くプルダウンで継続・計算・終了を選択します�?;
 
         T_ddLabel = "次の操作";
         T_ddNext = "次の画像（サンプリング継続）";
-        T_ddStep = "ターゲット抽出を終了して次へ（既定値を推定）";
-        T_ddCompute = "除外抽出を終了して計算（パラメータ設定へ）";
-        T_ddExit = "スクリプト終了";
+        T_ddStep = "ターゲット抽出を終了して次へ（既定値を推定�?;
+        T_ddCompute = "除外抽出を終了して計算（パラメータ設定へ�?;
+        T_ddExit = "スクリプト終�?;
 
         T_ddInfo_target =
             "次の操作を選択してください（プルダウン）：\n\n" +
-            "• 次の画像：次の画像でサンプリングを続けます。\n" +
-            "• ターゲット抽出を終了して次へ：サンプリングを停止し、既存サンプルから既定値を推定します。\n" +
-            "• スクリプト終了：ただちに終了します（以降のバッチ解析は実行されません）。\n\n" +
-            "説明： “OK” で確定します。";
+            "�?次の画像：次の画像でサンプリングを続けます。\n" +
+            "�?ターゲット抽出を終了して次へ：サンプリングを停止し、既存サンプルから既定値を推定します。\n" +
+            "�?スクリプト終了：ただちに終了します（以降のバッチ解析は実行されません）。\n\n" +
+            "説明�?“OK�?で確定します�?;
 
         T_ddInfo_excl =
             "次の操作を選択してください（プルダウン）：\n\n" +
-            "• 次の画像：次の画像でサンプリングを続けます。\n" +
-            "• 除外抽出を終了して計算：除外サンプリングを停止し、パラメータ設定へ進みます。\n" +
-            "• スクリプト終了：ただちに終了します。\n\n" +
-            "説明： “OK” で確定します。";
+            "�?次の画像：次の画像でサンプリングを続けます。\n" +
+            "�?除外抽出を終了して計算：除外サンプリングを停止し、パラメータ設定へ進みます。\n" +
+            "�?スクリプト終了：ただちに終了します。\n\n" +
+            "説明�?“OK�?で確定します�?;
 
-        T_param = "パラメータ設定";
-        T_param_note_title = "既定値の根拠と説明";
-        T_section_target = "ターゲット beads";
+        T_param = "パラメータ設�?;
+        T_param_note_title = "既定値の根拠と説�?;
+        T_section_target = "ターゲッ�?beads";
         T_section_bg = "背景処理";
         T_section_roi = "細胞 ROI";
-        T_section_excl = "除外フィルター（任意）";
-        T_section_format = "データ整形";
+        T_section_excl = "除外フィルター（任意�?;
+        T_section_format = "データ整�?;
         T_section_sep = "---- %s ----";
 
-        T_minA = "ターゲット beads 最小面積（px^2）";
-        T_maxA = "ターゲット beads 最大面積（px^2）";
-        T_circ = "ターゲット beads 最小円形度（0–1）";
-        T_allow_clumps = "塊を面積で分割して beads 数を推定する";
-        T_min_phago_enable = "微量貪食は未貪食として扱う（動的しきい値、既定で有効）";
+        T_minA = "ターゲッ�?beads 最小面積（px^2�?;
+        T_maxA = "ターゲッ�?beads 最大面積（px^2�?;
+        T_circ = "ターゲッ�?beads 最小円形度�?�?�?;
+        T_allow_clumps = "塊を面積で分割し�?beads 数を推定する";
+        T_min_phago_enable = "微量貪食は未貪食として扱う（動的しきい値、既定で有効�?;
 
         T_strict = "検出の厳しさ";
         T_strict_S = "厳格（誤検出を抑制）";
@@ -1977,164 +1977,164 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_suffix = "細胞 ROI ファイル接尾辞（拡張子なし）";
 
         T_excl_enable = "除外フィルターを有効化（濃度閾値）";
-        T_excl_thr = "除外閾値（0–255）";
+        T_excl_thr = "除外閾値（0�?55�?;
         T_excl_mode = "除外方向";
-        T_excl_high = "明るい対象を除外（濃度 ≥ 閾値）";
-        T_excl_low = "暗い対象を除外（濃度 ≤ 閾値）";
+        T_excl_high = "明るい対象を除外（濃�?�?閾値）";
+        T_excl_low = "暗い対象を除外（濃度 �?閾値）";
         T_excl_strict = "除外を強化（動的しきい値、より厳格）";
 
         T_excl_size_gate = "除外対象の面積範囲内のみ閾値除外を適用（推奨）";
-        T_excl_minA = "除外対象 最小面積（px^2）";
-        T_excl_maxA = "除外対象 最大面積（px^2）";
+        T_excl_minA = "除外対象 最小面積（px^2�?;
+        T_excl_maxA = "除外対象 最大面積（px^2�?;
 
-        T_data_format_enable = "データ整形を有効にする";
-        T_data_format_rule = "ファイル名ルール（pn/f）";
-        T_data_format_cols = "表の列フォーマット";
-        T_data_opt_enable = "データ最適化（IBR/PCR）";
+        T_data_format_enable = "データ整形を有効にす�?;
+        T_data_format_rule = "ファイル名ルール（pn/f�?;
+        T_data_format_cols = "表の列フォーマッ�?;
+        T_data_opt_enable = "データ最適化（IBR/PCR�?;
         T_data_format_doc =
             "【データ整形 - ルール説明】\n\n" +
             "A. ファイル名ルール（pn/f）：\n" +
             "  A.1 目的：ファイル名から プロジェクト名（pn）と番号（f）を抽出します。\n" +
-            "  A.2 書式：pn/f または f/pn（“/”は1つだけ）。\n" +
+            "  A.2 書式：pn/f また�?f/pn（�?”は1つだけ）。\n" +
             "  A.3 記号：\n" +
             "      - pn：プロジェクト名（数字以外の部分）。\n" +
-            "      - f ：番号が“1,2,3...”の形式（先頭 0 なし）。\n" +
-            "      - f1：番号が“01,02,03...”や“001,002,003...”の形式（先頭 0 あり）。\n" +
-            "  A.4 補足：f と f1 は番号の書式判定のみ。並び順は数値で判定します。\n\n" +
+            "      - f ：番号が�?,2,3...”の形式（先�?0 なし）。\n" +
+            "      - f1：番号が�?1,02,03...”や�?01,002,003...”の形式（先�?0 あり）。\n" +
+            "  A.4 補足：f �?f1 は番号の書式判定のみ。並び順は数値で判定します。\n\n" +
             "B. 表の列フォーマット：\n" +
-            "  B.1 書式：列1/列2/列3（左から右）。\n" +
+            "  B.1 書式：列1/�?/�?（左から右）。\n" +
             "  B.2 内蔵列コード（既定の列名 / 意味）：\n" +
             "      - PN：PN / プロジェクト名。\n" +
             "      - F：F / 番号。\n" +
             "      - TB：Total Beads / beads 総数。\n" +
-            "      - BiC：Beads in Cells / 細胞内 beads 数。\n" +
+            "      - BiC：Beads in Cells / 細胞�?beads 数。\n" +
             "      - CwB：Cells with Beads / beads を含む細胞数。\n" +
             "      - CwBa：Cells with Beads (Adj) / beads を含む細胞数（微量補正）。\n" +
             "      - TC：Total Cells / 細胞総数。\n" +
             "      - IBR：IBR / BiC / TB。\n" +
             "      - PCR：PCR / CwB / TC。\n" +
-            "      - eIBR：eIBR / プロジェクト内 IBR 平均。\n" +
-            "      - ePCR：ePCR / プロジェクト内 PCR 平均。\n" +
+            "      - eIBR：eIBR / プロジェクト�?IBR 平均。\n" +
+            "      - ePCR：ePCR / プロジェクト�?PCR 平均。\n" +
             "  B.3 カスタム列：任意のコード（内蔵列と重複不可）。\n" +
-            "  B.4 パラメータ：カンマ区切りで name=\"...\" または value=\"...\"。\n" +
+            "  B.4 パラメータ：カンマ区切り�?name=\"...\" また�?value=\"...\"。\n" +
             "      - name：列名（空白可）。\n" +
             "      - value：全行に固定値。\n" +
-            "  B.5 “$”接頭：カスタム列のみ。列は1回だけ表示（PN 拡張しない）。\n\n" +
+            "  B.5 �?”接頭：カスタム列のみ。列�?回だけ表示（PN 拡張しない）。\n\n" +
             "C. 記号注意：\n" +
-            "  C.1 パラメータはカンマ区切り、キーと値は“=”で接続。\n" +
+            "  C.1 パラメータはカンマ区切り、キーと値は�?”で接続。\n" +
             "  C.2 値は英語の二重引用符で囲む。\n" +
-            "  C.3 空の列は禁止（“//”や先頭/末尾“/”は不可）。\n";
-        T_data_format_err_title = "データ整形 - 入力エラー";
-        T_data_format_err_hint = "修正して再試行してください。";
+            "  C.3 空の列は禁止（�?/”や先頭/末尾�?”は不可）。\n";
+        T_data_format_err_title = "データ整�?- 入力エラ�?;
+        T_data_format_err_hint = "修正して再試行してください�?;
         T_log_toggle_on = "有効";
         T_log_toggle_off = "無効";
 
-        T_err_df_rule_empty = "ファイル名ルールが空です。例：pn/f または f/pn";
-        T_err_df_rule_slash = "ファイル名ルールは“/”を1つだけ含めてください。例：pn/f または f/pn";
-        T_err_df_rule_parts = "ファイル名ルールの2つの要素をどちらも入力してください。";
-        T_err_df_rule_tokens = "ファイル名ルールは“pn”と“f/f1(またはfで始まる)”のみ使用できます。";
-        T_err_df_rule_need_both = "ファイル名ルールには pn と f の両方が必要です。";
-        T_err_df_rule_order = "ファイル名ルールの順序は pn/f または f/pn のみです。";
-        T_err_df_cols_empty = "列フォーマットが空です。";
-        T_err_df_cols_empty_item = "列フォーマットに空項目があります（“//”や先頭/末尾“/”の可能性）。";
-        T_err_df_cols_empty_token = "列フォーマットに空の列コードがあります。";
+        T_err_df_rule_empty = "ファイル名ルールが空です。例：pn/f また�?f/pn";
+        T_err_df_rule_slash = "ファイル名ルールは�?”を1つだけ含めてください。例：pn/f また�?f/pn";
+        T_err_df_rule_parts = "ファイル名ルール�?つの要素をどちらも入力してください�?;
+        T_err_df_rule_tokens = "ファイル名ルールは“pn”と“f/f1(またはfで始まる)”のみ使用できます�?;
+        T_err_df_rule_need_both = "ファイル名ルールには pn �?f の両方が必要です�?;
+        T_err_df_rule_order = "ファイル名ルールの順序は pn/f また�?f/pn のみです�?;
+        T_err_df_cols_empty = "列フォーマットが空です�?;
+        T_err_df_cols_empty_item = "列フォーマットに空項目があります（�?/”や先頭/末尾�?”の可能性）�?;
+        T_err_df_cols_empty_token = "列フォーマットに空の列コードがあります�?;
         T_err_df_cols_params_comma = "パラメータはカンマ区切りで指定してください。例：X,value=\"2\",name=\"hours\"";
-        T_err_df_cols_dollar_missing = "“$”の後には列コードが必要です。";
-        T_err_df_cols_dollar_builtin = "“$”はカスタム列のみ使用できます（PN/F/TB/BiC/CwB/CwBa/TC/IBR/PCR/eIBR/ePCR は不可）。";
-        T_err_df_cols_param_kv = "パラメータは key=\"value\" 形式で指定してください。";
-        T_err_df_cols_param_unknown_prefix = "不明なパラメータ：";
+        T_err_df_cols_dollar_missing = "�?”の後には列コードが必要です�?;
+        T_err_df_cols_dollar_builtin = "�?”はカスタム列のみ使用できます（PN/F/TB/BiC/CwB/CwBa/TC/IBR/PCR/eIBR/ePCR は不可）�?;
+        T_err_df_cols_param_kv = "パラメータは key=\"value\" 形式で指定してください�?;
+        T_err_df_cols_param_unknown_prefix = "不明なパラメータ�?;
         T_err_df_cols_param_quote = "値は英語の二重引用符で囲んでください。例：name=\"Cell with Beads\"";
 
         T_beads_type_title = "対象タイプの確認";
         T_beads_type_msg =
             "画像に複数種類の beads または混同しやすい対象が含まれるか確認してください。\n\n" +
-            "• 単一タイプの場合：除外フィルターは通常不要です。\n" +
-            "• 複数タイプ/干渉物がある場合：除外フィルターを有効にし、除外サンプリングを推奨します。\n\n" +
-            "説明：ここで有効にしても、後のパラメータ設定で無効化できます。";
+            "�?単一タイプの場合：除外フィルターは通常不要です。\n" +
+            "�?複数タイ�?干渉物がある場合：除外フィルターを有効にし、除外サンプリングを推奨します。\n\n" +
+            "説明：ここで有効にしても、後のパラメータ設定で無効化できます�?;
         T_beads_type_checkbox = "複数種類が存在する（除外フィルターを有効化）";
 
-        T_excl_note_few_samples = "濃度サンプルが不足しています（<3）。推定は信頼できません。手動設定を推奨します。";
-        T_excl_note_few_effective = "有効な濃度サンプルが不足しています（飽和などの可能性）。手動設定を推奨します。";
-        T_excl_note_diff_small = "ターゲットと除外の濃度差が小さすぎます（<8）。手動設定を推奨します。";
-        T_excl_note_overlap_high = "分布の重なりが大きいため、保守的な閾値を採用しました（除外側の低分位に近い）。確認を推奨します。";
-        T_excl_note_good_sep_high = "分離が良好です。ターゲット高分位と除外低分位から閾値を推定しました。";
-        T_excl_note_overlap_low = "分布の重なりが大きいため、保守的な閾値を採用しました（除外側の高分位に近い）。確認を推奨します。";
-        T_excl_note_good_sep_low = "分離が良好です。ターゲット低分位と除外高分位から閾値を推定しました。";
+        T_excl_note_few_samples = "濃度サンプルが不足しています�?3）。推定は信頼できません。手動設定を推奨します�?;
+        T_excl_note_few_effective = "有効な濃度サンプルが不足しています（飽和などの可能性）。手動設定を推奨します�?;
+        T_excl_note_diff_small = "ターゲットと除外の濃度差が小さすぎます（<8）。手動設定を推奨します�?;
+        T_excl_note_overlap_high = "分布の重なりが大きいため、保守的な閾値を採用しました（除外側の低分位に近い）。確認を推奨します�?;
+        T_excl_note_good_sep_high = "分離が良好です。ターゲット高分位と除外低分位から閾値を推定しました�?;
+        T_excl_note_overlap_low = "分布の重なりが大きいため、保守的な閾値を採用しました（除外側の高分位に近い）。確認を推奨します�?;
+        T_excl_note_good_sep_low = "分離が良好です。ターゲット低分位と除外高分位から閾値を推定しました�?;
 
         T_err_need_window =
             "ステージ [%stage] で必要なウィンドウが見つかりません。\n\n" +
             "ウィンドウ：%w\n" +
-            "ファイル：%f\n\n" +
-            "対処：同名ウィンドウを閉じ、タイトル衝突を避けて再試行してください。";
+            "ファイル�?f\n\n" +
+            "対処：同名ウィンドウを閉じ、タイトル衝突を避けて再試行してください�?;
         T_err_too_many_cells = "細胞 ROI 数が 65535 を超えています：";
-        T_err_too_many_cells_hint = "現在の実装では 1..65535 を 16-bit ラベル値として使用します。分割処理または ROI 数の削減を推奨します。";
-        T_err_file = "ファイル：";
-        T_err_roi1_invalid = "ROI[1] が不正です（有効な bounds がありません）。ラベル画像を生成できません。";
-        T_err_labelmask_failed = "細胞ラベル画像の生成に失敗しました。塗りつぶし後の中心画素が 0 のままです。";
-        T_err_labelmask_hint = "ROI[1] が閉じた面積 ROI であり、画像と有効に重なっているか確認してください。";
+        T_err_too_many_cells_hint = "現在の実装で�?1..65535 �?16-bit ラベル値として使用します。分割処理または ROI 数の削減を推奨します�?;
+        T_err_file = "ファイル�?;
+        T_err_roi1_invalid = "ROI[1] が不正です（有効�?bounds がありません）。ラベル画像を生成できません�?;
+        T_err_labelmask_failed = "細胞ラベル画像の生成に失敗しました。塗りつぶし後の中心画素�?0 のままです�?;
+        T_err_labelmask_hint = "ROI[1] が閉じた面積 ROI であり、画像と有効に重なっているか確認してください�?;
 
         T_log_sep = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
-        T_log_start = "✓ 開始：マクロファージ 4要素解析";
-        T_log_lang = "  ├─ 言語：日本語";
+        T_log_start = "�?開始：マクロファージ 4要素解析";
+        T_log_lang = "  ├─ 言語：日本�?;
         T_log_dir = "  ├─ フォルダー：選択済み";
         T_log_mode = "  └─ モード：%s";
-        T_log_roi_phase_start = "✓ 手順：細胞 ROI 作成";
-        T_log_roi_phase_done = "✓ 完了：細胞 ROI 作成";
-        T_log_sampling_start = "✓ 手順：ターゲット beads サンプリング";
-        T_log_sampling_cancel = "✓ 完了：サンプリング（ユーザー終了）";
-        T_log_sampling_img = "  ├─ サンプル [%i/%n]：%f";
-        T_log_sampling_rois = "  │  └─ ROI 数：%i";
-        T_log_params_calc = "✓ 完了：既定パラメータを推定しました";
-        T_log_main_start = "✓ 開始：バッチ解析（サイレント）";
-        T_log_processing = "  ├─ 処理 [%i/%n]：%f";
-        T_log_missing_roi = "  │  ⚠ ROI 不足：%f";
-        T_log_missing_choice = "  │  └─ 選択：%s";
-        T_log_load_roi = "  │  ├─ ROI を読み込み";
-        T_log_roi_count = "  │  │  └─ 細胞数：%i";
-        T_log_bead_detect = "  │  ├─ beads を検出して集計";
-        T_log_bead_count = "  │  │  ├─ beads 合計：%i";
-        T_log_bead_incell = "  │  │  ├─ 細胞内 beads：%i";
-        T_log_cell_withbead = "  │  │  └─ beads を含む細胞：%i";
-        T_log_bead_summary_done = "  │  │  └─ beads 集計完了";
-        T_log_complete = "  │  └─ ✓ 完了";
-        T_log_skip_roi = "  │  ✗ スキップ：ROI 不足";
-        T_log_skip_nocell = "  │  ✗ スキップ：ROI に有効な細胞がありません";
-        T_log_results_save = "✓ 完了：Results 表に出力しました";
-        T_log_opt_done = "✓ データ最適化完了";
-        T_log_all_done = "✓✓✓ 完了 ✓✓✓";
-        T_log_summary = "📊 サマリー：合計 %i 枚を処理";
+        T_log_roi_phase_start = "�?手順：細�?ROI 作成";
+        T_log_roi_phase_done = "�?完了：細�?ROI 作成";
+        T_log_sampling_start = "�?手順：ターゲット beads サンプリング";
+        T_log_sampling_cancel = "�?完了：サンプリング（ユーザー終了�?;
+        T_log_sampling_img = "  ├─ サンプル [%i/%n]�?f";
+        T_log_sampling_rois = "  �? └─ ROI 数：%i";
+        T_log_params_calc = "�?完了：既定パラメータを推定しまし�?;
+        T_log_main_start = "�?開始：バッチ解析（サイレント�?;
+        T_log_processing = "  ├─ 処理 [%i/%n]�?f";
+        T_log_missing_roi = "  �? �?ROI 不足�?f";
+        T_log_missing_choice = "  �? └─ 選択�?s";
+        T_log_load_roi = "  �? ├─ ROI を読み込�?;
+        T_log_roi_count = "  �? �? └─ 細胞数：%i";
+        T_log_bead_detect = "  �? ├─ beads を検出して集�?;
+        T_log_bead_count = "  �? �? ├─ beads 合計�?i";
+        T_log_bead_incell = "  �? �? ├─ 細胞�?beads�?i";
+        T_log_cell_withbead = "  �? �? └─ beads を含む細胞�?i";
+        T_log_bead_summary_done = "  �? �? └─ beads 集計完了";
+        T_log_complete = "  �? └─ �?完了";
+        T_log_skip_roi = "  �? �?スキップ：ROI 不足";
+        T_log_skip_nocell = "  �? �?スキップ：ROI に有効な細胞がありません";
+        T_log_results_save = "�?完了：Results 表に出力しました";
+        T_log_opt_done = "�?データ最適化完了";
+        T_log_all_done = "✓✓�?完了 ✓✓�?;
+        T_log_summary = "📊 サマリー：合�?%i 枚を処理";
         T_log_unit_sync_keep = "  └─ beads スケール：サンプル推定値を使用 = %s";
         T_log_unit_sync_ui = "  └─ beads スケール：手動変更を検出。UI 中値を使用 = %s";
-        T_log_analyze_header = "  ├─ 解析パラメータ";
-        T_log_analyze_img = "  ├─ 画像：%f";
-        T_log_analyze_roi = "  │  ├─ ROI：%s";
-        T_log_analyze_size = "  │  ├─ サイズ：%w x %h";
-        T_log_analyze_bead_params = "  │  ├─ beads パラメータ：area=%min-%max, circ>=%circ, unit=%unit";
-        T_log_analyze_strict = "  │  ├─ 厳密度：%strict，統合ポリシー：%policy";
-        T_log_analyze_bg = "  │  ├─ 背景補正：rolling=%r";
-        T_log_analyze_excl_on = "  │  ├─ 除外：mode=%mode thr=%thr strict=%strict sizeGate=%gate range=%min-%max";
-        T_log_analyze_excl_off = "  │  └─ 除外：無効";
-        T_log_analyze_method = "  │  └─ 検出手順：A=Yen+Mask+Watershed；B=Edges+Otsu+Mask+Watershed；統合=%policy";
-        T_log_analyze_excl_adjust = "  │  └─ 動的閾値：mean=%mean std=%std kstd=%kstd thr=%thr";
-        T_log_label_mask = "  │  ├─ 細胞ラベル画像：%s";
+        T_log_analyze_header = "  ├─ 解析パラメー�?;
+        T_log_analyze_img = "  ├─ 画像�?f";
+        T_log_analyze_roi = "  �? ├─ ROI�?s";
+        T_log_analyze_size = "  �? ├─ サイズ：%w x %h";
+        T_log_analyze_bead_params = "  �? ├─ beads パラメータ：area=%min-%max, circ>=%circ, unit=%unit";
+        T_log_analyze_strict = "  �? ├─ 厳密度：%strict，統合ポリシー：%policy";
+        T_log_analyze_bg = "  �? ├─ 背景補正：rolling=%r";
+        T_log_analyze_excl_on = "  �? ├─ 除外：mode=%mode thr=%thr strict=%strict sizeGate=%gate range=%min-%max";
+        T_log_analyze_excl_off = "  �? └─ 除外：無�?;
+        T_log_analyze_method = "  �? └─ 検出手順：A=Yen+Mask+Watershed；B=Edges+Otsu+Mask+Watershed；統�?%policy";
+        T_log_analyze_excl_adjust = "  �? └─ 動的閾値：mean=%mean std=%std kstd=%kstd thr=%thr";
+        T_log_label_mask = "  �? ├─ 細胞ラベル画像：%s";
         T_log_label_mask_ok = "生成済み";
         T_log_label_mask_fail = "生成失敗";
         T_log_policy_strict = "厳格";
         T_log_policy_union = "統合";
         T_log_policy_loose = "緩い";
-        T_log_df_header = "  ├─ データ整形：カスタム解析の詳細";
-        T_log_df_rule = "  │  ├─ ルール：%s";
-        T_log_df_cols = "  │  ├─ 列フォーマット：%s";
-        T_log_df_sort_asc = "  │  ├─ ソート：F 昇順";
-        T_log_df_sort_desc = "  │  ├─ ソート：F 降順";
-        T_log_df_item = "  │  └─ item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
+        T_log_df_header = "  ├─ データ整形：カスタム解析の詳�?;
+        T_log_df_rule = "  �? ├─ ルール：%s";
+        T_log_df_cols = "  �? ├─ 列フォーマット：%s";
+        T_log_df_sort_asc = "  �? ├─ ソート：F 昇順";
+        T_log_df_sort_desc = "  �? ├─ ソート：F 降順";
+        T_log_df_item = "  �? └─ item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
 
-        T_reason_no_target = "ターゲット beads のサンプリングなし：既定の beads スケールと Rolling Ball を使用します。";
-        T_reason_target_ok = "ターゲット beads サンプルから beads スケールと Rolling Ball を推定しました（ロバスト推定）。";
-        T_reason_excl_on = "除外フィルター有効：除外サンプルから閾値を推定しました（不確実な場合は手動で調整してください）。";
-        T_reason_excl_off = "除外フィルター無効。";
-        T_reason_excl_size_ok = "除外対象の面積範囲：除外サンプルから推定しました。";
-        T_reason_excl_size_off = "除外 beads の面積サンプルが不足：面積ゲートは無効（既定）です。";
+        T_reason_no_target = "ターゲッ�?beads のサンプリングなし：既定�?beads スケール�?Rolling Ball を使用します�?;
+        T_reason_target_ok = "ターゲッ�?beads サンプルから beads スケール�?Rolling Ball を推定しました（ロバスト推定）�?;
+        T_reason_excl_on = "除外フィルター有効：除外サンプルから閾値を推定しました（不確実な場合は手動で調整してください）�?;
+        T_reason_excl_off = "除外フィルター無効�?;
+        T_reason_excl_size_ok = "除外対象の面積範囲：除外サンプルから推定しました�?;
+        T_reason_excl_size_off = "除外 beads の面積サンプルが不足：面積ゲートは無効（既定）です�?;
 
         T_mottos = newArray(
             "\"実事求是\"",
@@ -2161,80 +2161,80 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_mode_msg =
             "Select a work mode (dropdown):\n\n" +
             "1) Annotate cell ROIs only\n" +
-            "   • Images will be opened one by one.\n" +
-            "   • You will draw cell outlines and add them to ROI Manager.\n" +
-            "   • The script will save cell ROIs as a zip file (default: image name + “_cells.zip”).\n\n" +
+            "   �?Images will be opened one by one.\n" +
+            "   �?You will draw cell outlines and add them to ROI Manager.\n" +
+            "   �?The script will save cell ROIs as a zip file (default: image name + “_cells.zip�?.\n\n" +
             "2) Analyze only\n" +
-            "   • Runs bead detection and statistics directly.\n" +
-            "   • A corresponding cell ROI zip must exist for each image (default: image name + “_cells.zip”).\n\n" +
+            "   �?Runs bead detection and statistics directly.\n" +
+            "   �?A corresponding cell ROI zip must exist for each image (default: image name + “_cells.zip�?.\n\n" +
             "3) Annotate then analyze (recommended)\n" +
-            "   • Creates missing cell ROIs first.\n" +
-            "   • Then performs target bead sampling (and optional exclusion sampling), followed by batch analysis.\n\n" +
-            "Note: Click “OK” to confirm your selection.";
+            "   �?Creates missing cell ROIs first.\n" +
+            "   �?Then performs target bead sampling (and optional exclusion sampling), followed by batch analysis.\n\n" +
+            "Note: Click “OK�?to confirm your selection.";
 
         T_step_roi_title = "Step 1: Cell ROI annotation";
         T_step_roi_msg =
             "You are about to enter the Cell ROI annotation phase.\n\n" +
             "During this step:\n" +
             "1) Use your currently selected drawing tool to outline each cell (freehand is recommended).\n" +
-            "2) After completing an outline, press “T” to add it to ROI Manager.\n" +
-            "3) When the current image is complete, click “OK” to proceed to the next image.\n\n" +
+            "2) After completing an outline, press “T�?to add it to ROI Manager.\n" +
+            "3) When the current image is complete, click “OK�?to proceed to the next image.\n\n" +
             "Save rule:\n" +
-            "• ROIs are saved as: image name + “%s.zip”.\n\n" +
+            "�?ROIs are saved as: image name + �?s.zip�?\n\n" +
             "Important:\n" +
-            "• This script does not switch tools automatically and does not infer cell boundaries.\n" +
-            "• For stable results, ensure outlines form closed area ROIs covering the full cell region.";
+            "�?This script does not switch tools automatically and does not infer cell boundaries.\n" +
+            "�?For stable results, ensure outlines form closed area ROIs covering the full cell region.";
 
         T_step_bead_title = "Step 2: Target bead sampling";
         T_step_bead_msg =
             "You are about to enter the Target bead sampling phase.\n\n" +
             "Purpose:\n" +
-            "• Uses your samples to infer a typical single-bead area scale and intensity characteristics.\n" +
-            "• These estimates are used to propose default detection parameters, estimate bead counts from clumps, and suggest a Rolling Ball radius.\n\n" +
+            "�?Uses your samples to infer a typical single-bead area scale and intensity characteristics.\n" +
+            "�?These estimates are used to propose default detection parameters, estimate bead counts from clumps, and suggest a Rolling Ball radius.\n\n" +
             "Instructions:\n" +
             "1) Use the Oval Tool to mark target beads (high precision is not required, but keep it reasonably tight).\n" +
             "2) Prefer typical single beads; avoid obvious clumps to improve inference reliability.\n" +
-            "3) After each ROI, press “T” to add it to ROI Manager.\n" +
-            "4) When done with this image, click “OK”.\n" +
-            "5) A “Next action” dropdown will then appear to continue sampling, finish and proceed, or exit.";
+            "3) After each ROI, press “T�?to add it to ROI Manager.\n" +
+            "4) When done with this image, click “OK�?\n" +
+            "5) A “Next action�?dropdown will then appear to continue sampling, finish and proceed, or exit.";
 
         T_step_bead_ex_title = "Step 3: Exclusion sampling (optional)";
         T_step_bead_ex_msg =
             "You are about to enter the Exclusion sampling phase (recommended when multiple bead types or confounding objects are present).\n\n" +
             "Purpose:\n" +
-            "• Learns an exclusion intensity threshold (and optional size range) to reduce false positives.\n\n" +
+            "�?Learns an exclusion intensity threshold (and optional size range) to reduce false positives.\n\n" +
             "ROI conventions:\n" +
-            "• Oval/Rectangle ROIs: treated as exclusion bead samples (learn intensity and size).\n" +
-            "• Freehand/Polygon ROIs: treated as exclusion regions (learn intensity only).\n\n" +
+            "�?Oval/Rectangle ROIs: treated as exclusion bead samples (learn intensity and size).\n" +
+            "�?Freehand/Polygon ROIs: treated as exclusion regions (learn intensity only).\n\n" +
             "Instructions:\n" +
             "1) Mark objects or regions to be excluded.\n" +
-            "2) Press “T” to add each ROI to ROI Manager.\n" +
-            "3) Click “OK” when finished.\n" +
+            "2) Press “T�?to add each ROI to ROI Manager.\n" +
+            "3) Click “OK�?when finished.\n" +
             "4) Use the dropdown to continue, finish & compute, or exit.";
 
         T_step_param_title = "Step 4: Confirm parameters";
         T_step_param_msg =
             "The Parameters dialog will open next.\n\n" +
             "You will see:\n" +
-            "• Defaults inferred from target bead samples (area range, bead scale for clump estimation, Rolling Ball suggestion).\n" +
-            "• If exclusion is enabled, an inferred intensity threshold and (optional) size gate range.\n\n" +
+            "�?Defaults inferred from target bead samples (area range, bead scale for clump estimation, Rolling Ball suggestion).\n" +
+            "�?If exclusion is enabled, an inferred intensity threshold and (optional) size gate range.\n\n" +
             "Recommendation:\n" +
-            "• For first-time use, run once with defaults and adjust only if needed.\n\n" +
-            "Note: Click “OK” to confirm and proceed to batch analysis.";
+            "�?For first-time use, run once with defaults and adjust only if needed.\n\n" +
+            "Note: Click “OK�?to confirm and proceed to batch analysis.";
 
         T_step_main_title = "Start batch analysis";
         T_step_main_msg =
             "You are about to start batch analysis.\n\n" +
             "The script will process all images in the selected folder:\n" +
-            "• Load cell ROIs\n" +
-            "• Detect beads and compute statistics (including clump estimation and optional exclusion)\n" +
-            "• Write a summary table to the Results window\n\n" +
+            "�?Load cell ROIs\n" +
+            "�?Detect beads and compute statistics (including clump estimation and optional exclusion)\n" +
+            "�?Write a summary table to the Results window\n\n" +
             "Execution mode:\n" +
-            "• Runs in silent/batch mode to minimize intermediate windows.\n\n" +
+            "�?Runs in silent/batch mode to minimize intermediate windows.\n\n" +
             "If a cell ROI is missing:\n" +
-            "• You will be prompted to annotate now / skip / skip all / exit.\n" +
-            "• Skipped images remain in the Results table with blank values.\n\n" +
-            "Note: Click “OK” to start.";
+            "�?You will be prompted to annotate now / skip / skip all / exit.\n" +
+            "�?Skipped images remain in the Results table with blank values.\n\n" +
+            "Note: Click “OK�?to start.";
 
         T_cell_title = "Cell ROI annotation";
         T_cell_msg =
@@ -2242,10 +2242,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "File: %f\n\n" +
             "Create cell outlines:\n" +
             "1) Draw a cell outline.\n" +
-            "2) Press “T” to add it to ROI Manager.\n" +
+            "2) Press “T�?to add it to ROI Manager.\n" +
             "3) Repeat until all cells in this image are complete.\n\n" +
-            "Click “OK” to save and continue.\n\n" +
-            "Saved as: image name + “%s.zip”";
+            "Click “OK�?to save and continue.\n\n" +
+            "Saved as: image name + �?s.zip�?;
 
         T_exist_title = "Existing cell ROI detected";
         T_exist_label = "Action";
@@ -2259,10 +2259,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "Image: %f\n" +
             "ROI: %b%s.zip\n\n" +
             "Options:\n" +
-            "• Load and continue editing: opens existing ROIs for review and correction.\n" +
-            "• Re-annotate and overwrite: starts from an empty ROI set and overwrites the zip.\n" +
-            "• Skip this image: does not open the image and proceeds.\n" +
-            "• Skip all: future existing-ROI images will be skipped without prompting.\n\n" +
+            "�?Load and continue editing: opens existing ROIs for review and correction.\n" +
+            "�?Re-annotate and overwrite: starts from an empty ROI set and overwrites the zip.\n" +
+            "�?Skip this image: does not open the image and proceeds.\n" +
+            "�?Skip all: future existing-ROI images will be skipped without prompting.\n\n" +
             "Select an action (dropdown):";
 
         T_missing_title = "Missing cell ROI";
@@ -2276,8 +2276,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "Image: %f\n" +
             "Expected ROI: %b%s.zip\n\n" +
             "Notes:\n" +
-            "• Four-factor analysis requires a cell ROI.\n" +
-            "• If skipped, the image remains in the Results table with blank values.\n\n" +
+            "�?Four-factor analysis requires a cell ROI.\n" +
+            "�?If skipped, the image remains in the Results table with blank values.\n\n" +
             "Select an action (dropdown):";
 
         T_sampling = "Sampling";
@@ -2285,18 +2285,18 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "Progress: %i / %n\n" +
             "File: %f\n\n" +
             "Mark target beads (prefer typical single beads; avoid obvious clumps).\n" +
-            "• Press “T” to add each ROI to ROI Manager.\n\n" +
-            "Click “OK” when finished.\n" +
+            "�?Press “T�?to add each ROI to ROI Manager.\n\n" +
+            "Click “OK�?when finished.\n" +
             "Then choose the next action in the dropdown dialog.";
 
         T_promptAddROI_EX =
             "Progress: %i / %n\n" +
             "File: %f\n\n" +
             "Mark objects/regions to exclude.\n" +
-            "• Oval/Rectangle: exclusion bead samples (intensity + size)\n" +
-            "• Freehand/Polygon: exclusion regions (intensity only)\n\n" +
-            "Press “T” to add each ROI.\n" +
-            "Click “OK” when finished.\n" +
+            "�?Oval/Rectangle: exclusion bead samples (intensity + size)\n" +
+            "�?Freehand/Polygon: exclusion regions (intensity only)\n\n" +
+            "Press “T�?to add each ROI.\n" +
+            "Click “OK�?when finished.\n" +
             "Then choose the next action in the dropdown dialog.";
 
         T_ddLabel = "Next action";
@@ -2307,17 +2307,17 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
         T_ddInfo_target =
             "Select the next action (dropdown):\n\n" +
-            "• Next image: continue sampling on the next image.\n" +
-            "• Finish target sampling and proceed: stop sampling and infer default parameters from collected samples.\n" +
-            "• Exit script: terminate immediately (batch analysis will not run).\n\n" +
-            "Note: Click “OK” to confirm.";
+            "�?Next image: continue sampling on the next image.\n" +
+            "�?Finish target sampling and proceed: stop sampling and infer default parameters from collected samples.\n" +
+            "�?Exit script: terminate immediately (batch analysis will not run).\n\n" +
+            "Note: Click “OK�?to confirm.";
 
         T_ddInfo_excl =
             "Select the next action (dropdown):\n\n" +
-            "• Next image: continue sampling on the next image.\n" +
-            "• Finish exclusion sampling and compute: stop exclusion sampling and open the Parameters dialog.\n" +
-            "• Exit script: terminate immediately.\n\n" +
-            "Note: Click “OK” to confirm.";
+            "�?Next image: continue sampling on the next image.\n" +
+            "�?Finish exclusion sampling and compute: stop exclusion sampling and open the Parameters dialog.\n" +
+            "�?Exit script: terminate immediately.\n\n" +
+            "Note: Click “OK�?to confirm.";
 
         T_param = "Parameters";
         T_param_note_title = "Rationale and notes";
@@ -2330,7 +2330,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
         T_minA = "Target bead minimum area (px^2)";
         T_maxA = "Target bead maximum area (px^2)";
-        T_circ = "Target bead minimum circularity (0–1)";
+        T_circ = "Target bead minimum circularity (0�?)";
         T_allow_clumps = "Estimate bead counts from clumps by area";
         T_min_phago_enable = "Treat tiny uptake as no uptake (dynamic threshold, default on)";
 
@@ -2343,10 +2343,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_suffix = "Cell ROI file suffix (without extension)";
 
         T_excl_enable = "Enable exclusion filter (intensity threshold)";
-        T_excl_thr = "Exclusion threshold (0–255)";
+        T_excl_thr = "Exclusion threshold (0�?55)";
         T_excl_mode = "Exclusion direction";
-        T_excl_high = "Exclude brighter objects (intensity ≥ threshold)";
-        T_excl_low = "Exclude darker objects (intensity ≤ threshold)";
+        T_excl_high = "Exclude brighter objects (intensity �?threshold)";
+        T_excl_low = "Exclude darker objects (intensity �?threshold)";
         T_excl_strict = "Stronger exclusion (dynamic threshold, stricter)";
 
         T_excl_size_gate = "Apply exclusion only within an exclusion size range (recommended)";
@@ -2361,11 +2361,11 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "【Data Formatting - Rules】\n\n" +
             "A. Filename rule (pn/f):\n" +
             "  A.1 Purpose: extract Project Name (pn) and index (f) from filenames.\n" +
-            "  A.2 Syntax: pn/f or f/pn (exactly one “/”).\n" +
+            "  A.2 Syntax: pn/f or f/pn (exactly one �?�?.\n" +
             "  A.3 Tokens:\n" +
             "      - pn: project name (non-digit part).\n" +
-            "      - f : index in “1,2,3...” format (no leading zeros).\n" +
-            "      - f1: index in “01,02,03...” or “001,002,003...” format (leading zeros).\n" +
+            "      - f : index in �?,2,3...�?format (no leading zeros).\n" +
+            "      - f1: index in �?1,02,03...�?or �?01,002,003...�?format (leading zeros).\n" +
             "  A.4 Note: f vs f1 only affects parsing format; sorting is always numeric.\n\n" +
             "B. Table column format:\n" +
             "  B.1 Syntax: col1/col2/col3 (left to right).\n" +
@@ -2385,11 +2385,11 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "  B.4 Params: comma-separated name=\"...\" or value=\"...\".\n" +
             "      - name: column label (spaces allowed).\n" +
             "      - value: constant value for all rows.\n" +
-            "  B.5 “$” prefix: custom columns only; show once (no PN expansion).\n\n" +
+            "  B.5 �?�?prefix: custom columns only; show once (no PN expansion).\n\n" +
             "C. Symbol notes:\n" +
-            "  C.1 Params must be comma-separated; key and value joined with “=”.\n" +
+            "  C.1 Params must be comma-separated; key and value joined with �?�?\n" +
             "  C.2 Values must be wrapped in English double quotes.\n" +
-            "  C.3 Empty items are not allowed (avoid “//” or leading/trailing “/”).\n";
+            "  C.3 Empty items are not allowed (avoid �?/�?or leading/trailing �?�?.\n";
         T_data_format_err_title = "Data Formatting - Input Error";
         T_data_format_err_hint = "Please correct the input and try again.";
         T_log_toggle_on = "ON";
@@ -2414,8 +2414,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_beads_type_title = "Object type confirmation";
         T_beads_type_msg =
             "Confirm whether multiple bead types or confounding objects are present.\n\n" +
-            "• Single bead type: exclusion is typically unnecessary.\n" +
-            "• Multiple bead types / confounders: exclusion is recommended; run exclusion sampling.\n\n" +
+            "�?Single bead type: exclusion is typically unnecessary.\n" +
+            "�?Multiple bead types / confounders: exclusion is recommended; run exclusion sampling.\n\n" +
             "Note: You can still disable exclusion later in the Parameters dialog.";
         T_beads_type_checkbox = "Multiple bead types present (enable exclusion)";
 
@@ -2440,60 +2440,60 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_err_labelmask_hint = "Verify that ROI[1] is a closed area ROI and overlaps the image content.";
 
         T_log_sep = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
-        T_log_start = "✓ Start: Macrophage four-factor analysis";
+        T_log_start = "�?Start: Macrophage four-factor analysis";
         T_log_lang = "  ├─ Language: English";
         T_log_dir = "  ├─ Folder: selected";
         T_log_mode = "  └─ Mode: %s";
-        T_log_roi_phase_start = "✓ Step: Cell ROI annotation";
-        T_log_roi_phase_done = "✓ Complete: Cell ROI annotation";
-        T_log_sampling_start = "✓ Step: Target bead sampling";
-        T_log_sampling_cancel = "✓ Complete: Sampling (finished by user)";
+        T_log_roi_phase_start = "�?Step: Cell ROI annotation";
+        T_log_roi_phase_done = "�?Complete: Cell ROI annotation";
+        T_log_sampling_start = "�?Step: Target bead sampling";
+        T_log_sampling_cancel = "�?Complete: Sampling (finished by user)";
         T_log_sampling_img = "  ├─ Sample [%i/%n]: %f";
-        T_log_sampling_rois = "  │  └─ ROI count: %i";
-        T_log_params_calc = "✓ Complete: Default parameters inferred";
-        T_log_main_start = "✓ Start: Batch analysis (silent mode)";
+        T_log_sampling_rois = "  �? └─ ROI count: %i";
+        T_log_params_calc = "�?Complete: Default parameters inferred";
+        T_log_main_start = "�?Start: Batch analysis (silent mode)";
         T_log_processing = "  ├─ Processing [%i/%n]: %f";
-        T_log_missing_roi = "  │  ⚠ Missing ROI: %f";
-        T_log_missing_choice = "  │  └─ Action: %s";
-        T_log_load_roi = "  │  ├─ Load ROI";
-        T_log_roi_count = "  │  │  └─ Cell count: %i";
-        T_log_bead_detect = "  │  ├─ Detect beads and compute statistics";
-        T_log_bead_count = "  │  │  ├─ Total beads: %i";
-        T_log_bead_incell = "  │  │  ├─ Beads in cells: %i";
-        T_log_cell_withbead = "  │  │  └─ Cells with beads: %i";
-        T_log_bead_summary_done = "  │  │  └─ Bead statistics completed";
-        T_log_complete = "  │  └─ ✓ Done";
-        T_log_skip_roi = "  │  ✗ Skipped: missing ROI";
-        T_log_skip_nocell = "  │  ✗ Skipped: no valid cells in ROI";
-        T_log_results_save = "✓ Complete: Results written to the Results table";
-        T_log_opt_done = "✓ Data optimization completed";
-        T_log_all_done = "✓✓✓ All tasks completed ✓✓✓";
+        T_log_missing_roi = "  �? �?Missing ROI: %f";
+        T_log_missing_choice = "  �? └─ Action: %s";
+        T_log_load_roi = "  �? ├─ Load ROI";
+        T_log_roi_count = "  �? �? └─ Cell count: %i";
+        T_log_bead_detect = "  �? ├─ Detect beads and compute statistics";
+        T_log_bead_count = "  �? �? ├─ Total beads: %i";
+        T_log_bead_incell = "  �? �? ├─ Beads in cells: %i";
+        T_log_cell_withbead = "  �? �? └─ Cells with beads: %i";
+        T_log_bead_summary_done = "  �? �? └─ Bead statistics completed";
+        T_log_complete = "  �? └─ �?Done";
+        T_log_skip_roi = "  �? �?Skipped: missing ROI";
+        T_log_skip_nocell = "  �? �?Skipped: no valid cells in ROI";
+        T_log_results_save = "�?Complete: Results written to the Results table";
+        T_log_opt_done = "�?Data optimization completed";
+        T_log_all_done = "✓✓�?All tasks completed ✓✓�?;
         T_log_summary = "📊 Summary: %i images processed";
         T_log_unit_sync_keep = "  └─ Bead scale: using inferred value = %s";
         T_log_unit_sync_ui = "  └─ Bead scale: manual change detected; using UI midpoint = %s";
         T_log_analyze_header = "  ├─ Analysis parameters";
         T_log_analyze_img = "  ├─ Image: %f";
-        T_log_analyze_roi = "  │  ├─ ROI: %s";
-        T_log_analyze_size = "  │  ├─ Size: %w x %h";
-        T_log_analyze_bead_params = "  │  ├─ Bead params: area=%min-%max, circ>=%circ, unit=%unit";
-        T_log_analyze_strict = "  │  ├─ Strictness: %strict, merge policy: %policy";
-        T_log_analyze_bg = "  │  ├─ Background subtraction: rolling=%r";
-        T_log_analyze_excl_on = "  │  ├─ Exclusion: mode=%mode thr=%thr strict=%strict sizeGate=%gate range=%min-%max";
-        T_log_analyze_excl_off = "  │  └─ Exclusion: disabled";
-        T_log_analyze_method = "  │  └─ Detection flow: A=Yen+Mask+Watershed; B=Edges+Otsu+Mask+Watershed; merge=%policy";
-        T_log_analyze_excl_adjust = "  │  └─ Dynamic threshold: mean=%mean std=%std kstd=%kstd thr=%thr";
-        T_log_label_mask = "  │  ├─ Cell label mask: %s";
+        T_log_analyze_roi = "  �? ├─ ROI: %s";
+        T_log_analyze_size = "  �? ├─ Size: %w x %h";
+        T_log_analyze_bead_params = "  �? ├─ Bead params: area=%min-%max, circ>=%circ, unit=%unit";
+        T_log_analyze_strict = "  �? ├─ Strictness: %strict, merge policy: %policy";
+        T_log_analyze_bg = "  �? ├─ Background subtraction: rolling=%r";
+        T_log_analyze_excl_on = "  �? ├─ Exclusion: mode=%mode thr=%thr strict=%strict sizeGate=%gate range=%min-%max";
+        T_log_analyze_excl_off = "  �? └─ Exclusion: disabled";
+        T_log_analyze_method = "  �? └─ Detection flow: A=Yen+Mask+Watershed; B=Edges+Otsu+Mask+Watershed; merge=%policy";
+        T_log_analyze_excl_adjust = "  �? └─ Dynamic threshold: mean=%mean std=%std kstd=%kstd thr=%thr";
+        T_log_label_mask = "  �? ├─ Cell label mask: %s";
         T_log_label_mask_ok = "generated";
         T_log_label_mask_fail = "failed";
         T_log_policy_strict = "STRICT";
         T_log_policy_union = "UNION";
         T_log_policy_loose = "LOOSE";
         T_log_df_header = "  ├─ Data formatting: custom parsing details";
-        T_log_df_rule = "  │  ├─ Rule: %s";
-        T_log_df_cols = "  │  ├─ Column format: %s";
-        T_log_df_sort_asc = "  │  ├─ Sort: F ascending";
-        T_log_df_sort_desc = "  │  ├─ Sort: F descending";
-        T_log_df_item = "  │  └─ item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
+        T_log_df_rule = "  �? ├─ Rule: %s";
+        T_log_df_cols = "  �? ├─ Column format: %s";
+        T_log_df_sort_asc = "  �? ├─ Sort: F ascending";
+        T_log_df_sort_desc = "  �? ├─ Sort: F descending";
+        T_log_df_item = "  �? └─ item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
 
         T_reason_no_target = "No target bead sampling was performed: using default bead scale and default Rolling Ball.";
         T_reason_target_ok = "Bead scale and Rolling Ball were inferred from target samples (robust estimation).";
@@ -2515,7 +2515,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     }
 
     // -----------------------------------------------------------------------------
-    // フェーズ3: 作業モード選択（ROIのみ / 解析のみ / ROI+解析）
+    // フェーズ3: 作業モード選択（ROIのみ / 解析のみ / ROI+解析�?
     // -----------------------------------------------------------------------------
     Dialog.create(T_mode_title);
     Dialog.addMessage(T_mode_msg);
@@ -2574,7 +2574,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     roiSuffix = "_cells";
     nTotalImgs = imgFilesSorted.length;
 
-    // 画像名とROIパスの対応表を作成する
+    // 画像名とROIパスの対応表を作成す�?
     bases = newArray(nTotalImgs);
     roiPaths = newArray(nTotalImgs);
     k = 0;
@@ -2614,14 +2614,14 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     if (doROI && !doAnalyze) {
         // -----------------------------------------------------------------------------
-        // ROIのみ実行時はここで終了する
+        // ROIのみ実行時はここで終了す�?
         // -----------------------------------------------------------------------------
         maybePrintMotto();
         exit("");
     }
 
     // -----------------------------------------------------------------------------
-    // フェーズ6: 目標beadsのサンプリング
+    // フェーズ6: 目標beadsのサンプリン�?
     // -----------------------------------------------------------------------------
     waitForUser(T_step_bead_title, T_step_bead_msg);
     log(T_log_sampling_start);
@@ -2682,7 +2682,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         log(replaceSafe(T_log_sampling_rois, "%i", "" + nR));
 
         if (nR > 0) {
-            // 8-bit画像でROIを計測して面積・平均灰度を収集する
+            // 8-bit画像でROIを計測して面積・平均灰度を収集す�?
             safeClose("__tmp8_target");
             selectWindow(origTitle);
             run("Duplicate...", "title=__tmp8_target");
@@ -2762,7 +2762,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
             if (nR > 0) {
 
-                // 8-bit画像でROIを計測して灰度分布と面積の候補を収集する
+                // 8-bit画像でROIを計測して灰度分布と面積の候補を収集す�?
                 safeClose("__tmp8_excl");
                 selectWindow(origTitle);
                 run("Duplicate...", "title=__tmp8_excl");
@@ -2844,10 +2844,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     dataOptimizeEnable = 1;
 
     // -----------------------------------------------------------------------------
-    // フェーズ8: パラメータ推定（面積・閾値・Rolling Ball）
+    // フェーズ8: パラメータ推定（面積・閾値・Rolling Ball�?
     // -----------------------------------------------------------------------------
     if (targetAreas.length == 0) {
-        reasonMsg = reasonMsg + "• " + T_reason_no_target + "\n";
+        reasonMsg = reasonMsg + "�?" + T_reason_no_target + "\n";
     } else {
         // 目標beadsの面積範囲と代表値を推定する
         range = estimateAreaRangeSafe(targetAreas, DEF_MINA, DEF_MAXA);
@@ -2855,7 +2855,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         defMaxA = range[1];
         beadUnitArea = range[2];
         defRoll = estimateRollingFromUnitArea(beadUnitArea);
-        reasonMsg = reasonMsg + "• " + T_reason_target_ok + "\n";
+        reasonMsg = reasonMsg + "�?" + T_reason_target_ok + "\n";
     }
 
     // -----------------------------------------------------------------------------
@@ -2864,12 +2864,12 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     if (HAS_MULTI_BEADS) {
         useExcl = 1;
 
-        // 排除対象の灰度分布から閾値と方向を推定する
+        // 排除対象の灰度分布から閾値と方向を推定す�?
         exInfo = estimateExclusionSafe(targetMeans, exclMeansAll);
         exclMode = exInfo[1];
         exclThr = exInfo[2];
 
-        reasonMsg = reasonMsg + "• " + T_reason_excl_on + "\n";
+        reasonMsg = reasonMsg + "�?" + T_reason_excl_on + "\n";
         reasonMsg = reasonMsg + "  - " + exInfo[4] + "\n";
 
         if (exclAreasBead.length > 0) {
@@ -2877,18 +2877,18 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             exRange = estimateAreaRangeSafe(exclAreasBead, DEF_MINA, DEF_MAXA);
             defExMinA = exRange[0];
             defExMaxA = exRange[1];
-            reasonMsg = reasonMsg + "• " + T_reason_excl_size_ok + "\n";
+            reasonMsg = reasonMsg + "�?" + T_reason_excl_size_ok + "\n";
         } else {
             defExMinA = DEF_MINA;
             defExMaxA = DEF_MAXA;
             useExclSizeGate = 0;
-            reasonMsg = reasonMsg + "• " + T_reason_excl_size_off + "\n";
+            reasonMsg = reasonMsg + "�?" + T_reason_excl_size_off + "\n";
         }
     } else {
         useExcl = 0;
         useExclStrict = 0;
         useExclSizeGate = 0;
-        reasonMsg = reasonMsg + "• " + T_reason_excl_off + "\n";
+        reasonMsg = reasonMsg + "�?" + T_reason_excl_off + "\n";
     }
 
     log(T_log_params_calc);
@@ -2981,7 +2981,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     }
 
     // -----------------------------------------------------------------------------
-    // フェーズ10: パラメータ検証と正規化
+    // フェーズ10: パラメータ検証と正規�?
     // -----------------------------------------------------------------------------
     EPS_A = 0.000001;
 
@@ -3002,7 +3002,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
     if (beadUnitArea < 1) beadUnitArea = 1;
 
-    // 厳密度に応じて実際の検出範囲を拡縮する
+    // 厳密度に応じて実際の検出範囲を拡縮す�?
     effMinArea = beadMinArea;
     effMaxArea = beadMaxArea;
     effMinCirc = beadMinCirc;
@@ -3052,7 +3052,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     else useExclStrict = 0;
 
     // -----------------------------------------------------------------------------
-    // フェーズ11: データ形式の設定（ドキュメント付き、バリデーションあり）
+    // フェーズ11: データ形式の設定（ドキュメント付き、バリデーションあり�?
     // -----------------------------------------------------------------------------
     docMsg = T_data_format_doc;
 
@@ -3089,7 +3089,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     log(T_log_sep);
 
     // -----------------------------------------------------------------------------
-    // フェーズ12: バッチ解析メインループ
+    // フェーズ12: バッチ解析メインルー�?
     // -----------------------------------------------------------------------------
     setBatchMode(true);
     run("Set Measurements...", "area centroid redirect=None decimal=3");
@@ -3239,7 +3239,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         line = replaceSafe(line, "%policy", policyLabel);
         log(line);
 
-        // beads検出用の8-bit画像を作成する
+        // beads検出用の8-bit画像を作成す�?
         selectImage(origID);
         safeClose("__bead_gray");
         run("Duplicate...", "title=__bead_gray");
@@ -3247,14 +3247,14 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         run("8-bit");
         if (rollingRadius > 0) run("Subtract Background...", "rolling=" + rollingRadius);
 
-        // 細胞ラベルマスクを生成する
+        // 細胞ラベルマスクを生成す�?
         cellLabelTitle = "__cellLabel";
         HAS_LABEL_MASK = buildCellLabelMaskFromOriginal(cellLabelTitle, origID, w, h, nCellsAll, imgName);
         labelStatus = T_log_label_mask_fail;
         if (HAS_LABEL_MASK == 1) labelStatus = T_log_label_mask_ok;
         log(replaceSafe(T_log_label_mask, "%s", labelStatus));
 
-        // 排除フィルタが有効な場合は画像ごとに閾値を微調整する
+        // 排除フィルタが有効な場合は画像ごとに閾値を微調整す�?
         exclThrImg = exclThr;
         if (useExcl == 1 && useExclStrict == 1) {
             selectWindow("__bead_gray");
@@ -3278,7 +3278,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             log(line);
         }
 
-        // beads検出と細胞内集計を実行する
+        // beads検出と細胞内集計を実行す�?
         flat = detectBeadsFusion("__bead_gray", strictChoice, effMinArea, effMaxArea, effMinCirc, beadUnitArea, imgName);
 
         cnt = countBeadsByFlat(
@@ -3804,7 +3804,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     log(T_log_sep);
 
     // -----------------------------------------------------------------------------
-    // フェーズ14: 終了メッセージ
+    // フェーズ14: 終了メッセー�?
     // -----------------------------------------------------------------------------
     maybePrintMotto();
 }
