@@ -11,7 +11,7 @@ Fiji 专用 ImageJ 宏，用于对巨噬细胞图像中的目标物（beads）�
 - 团块检测与面积估算数量
 - 可选排除过滤（灰度阈值 + 面积门控）
 - 四要素统计与可选微量吞噬修正
-- 灵活的 PN/F/T 解析、按细胞展开与数据优化
+- 灵活的 PN/F/T 解析与按细胞展开
 
 ## 概览
 - 主脚本：`Macrophage Image Four-Factor Analysis_3.0.0.ijm`
@@ -267,7 +267,6 @@ F4：细胞内团块掩膜
 - 排除：默认关闭；启用时默认模式 HIGH、阈值 255、严格调节开启、面积门控仅在存在对象型样本时开启
 - 数据格式化：默认开启；默认规则 `<p>/<f>,f="F"`，子文件夹保持模式下为 `<f>/hr,f="T"//<p>/<f>`
 - 默认列：`TB/BIC/CWBA,name="Cell with Target Objects"/TC/IBR/PCR/EIBR/EPCR/ISDP/PSDP`
-- 数据优化：默认开启
 
 ## 数据格式化与结果布局
 格式化输出默认开启，通过规则解析 PN/F/T。
@@ -307,33 +306,6 @@ F4：细胞内团块掩膜
 - 若包含 BPC/EBPC/BPCSDP，则结果按细胞展开，每个细胞一行。
 - 仅单细胞相关列随行变化，其余列重复。
 - 汇总列（EIBR/EPCR/ISDP/PSDP/EBPC/BPCSDP）仍按 PN 与时间分组统计。
-
-## 数据优化（IBR/PCR/BPC）
-当启用数据优化（且启用格式化输出）时，按全局与 PN 平均进行平滑。
-
-定义：
-- IBR = BIC / TB
-- PCR = CWB / TC
-- BPC = BIC / TC
-
-计算流程：
-1. 计算每图像比值与全局均值（gIBR, gPCR, gBPC）。
-2. 计算 PN 均值（pnIBR, pnPCR, pnBPC）。
-3. 计算：
-   - betweenFactor = 1.0（单 PN）或 1.15 + 0.05 * min(pnCount-1, 3)
-   - withinFactor = clamp(0.55 + 0.20 / sqrt(nPn), 0.35, 0.75)，nPn>1；否则 0.75
-4. 调整比值：
-   - tIBR = gIBR + (pnIBR - gIBR)*betweenFactor + (ibrOrig - pnIBR)*withinFactor
-   - tPCR 同理。
-   - tBPC 在按细胞模式下同理。
-5. 还原为计数：
-   - adjBIC = round(tIBR * TB)
-   - adjCWB = round(tPCR * TC)
-   - 按细胞 BPC 用 factor = tBPC / bpcOrig 进行缩放。
-
-时间单调调整：
-- 若启用时间解析，则同一 PN 的平均 IBR 或 BPC 随时间强制非递减。
-- 若后续时间段均值低于上一段，则提升到上一段均值。
 
 ## 实操建议与注意事项
 - 采样时优先选择典型单个目标物，提高推断稳定性。

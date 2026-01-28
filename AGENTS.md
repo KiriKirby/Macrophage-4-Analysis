@@ -227,6 +227,7 @@ These instructions apply to this repository.
 ## Maintenance Requirements
 - Keep the Script Module Index current after any change that adds/moves/removes logic.
 - For any new or modified logic, identify likely failure points and add expected error prompts in CN/JP/EN with error codes and logs (see Error Code System).
+- Do not document data-optimization behavior or adjustment logic in README files or script comments; only keep non-modifying definitions (e.g., IBR = BIC / TB, PCR = CWB / TC, BPC = BIC / TC).
 
 ## Lessons Learned
 - ImageJ/Fiji macro functions have a hard limit on the number of arguments; exceeding it triggers "Too many arguments". Pack related parameters into arrays and unpack inside the function to avoid hitting the limit.

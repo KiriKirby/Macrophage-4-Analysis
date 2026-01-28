@@ -11,7 +11,7 @@ Fiji 専用の ImageJ マクロで、マクロファージ画像中の対象物�
 - 塊検出と面積ベースの数推定
 - 排除フィルタ（灰度閾値 + 面積ゲート）
 - 四要素統計と微量貪食の補正
-- PN/F/T 解析、単細胞展開、データ最適化
+- PN/F/T 解析、単細胞展開
 
 ## 概要
 - 主スクリプト：`Macrophage Image Four-Factor Analysis_3.0.0.ijm`
@@ -267,7 +267,6 @@ UI で min/max を変更すると unitArea は新しい中点に同期されま�
 - 排除：既定は無効。有効時は HIGH、閾値 255、厳密補正オン、サイズゲートは対象型サンプルがある場合のみオン。
 - データフォーマット：既定は有効。既定ルールは `<p>/<f>,f="F"`、サブフォルダ保持時は `<f>/hr,f="T"//<p>/<f>`
 - 既定の列：`TB/BIC/CWBA,name="Cell with Target Objects"/TC/IBR/PCR/EIBR/EPCR/ISDP/PSDP`
-- データ最適化：既定は有効
 
 ## データフォーマットと結果レイアウト
 フォーマット出力は既定で有効で、PN/F/T をルールで解析します。
@@ -307,33 +306,6 @@ UI で min/max を変更すると unitArea は新しい中点に同期されま�
 - BPC/EBPC/BPCSDP が含まれる場合、細胞ごとに 1 行。
 - 単細胞列のみが行ごとに変化し、他の列は繰り返されます。
 - 集計列（EIBR/EPCR/ISDP/PSDP/EBPC/BPCSDP）は PN と時間で集計。
-
-## データ最適化（IBR/PCR/BPC）
-データ最適化が有効な場合（かつフォーマット出力時）、全体平均と PN 平均で平滑化します。
-
-定義：
-- IBR = BIC / TB
-- PCR = CWB / TC
-- BPC = BIC / TC
-
-処理手順：
-1. 画像ごとの比率と全体平均（gIBR, gPCR, gBPC）を算出。
-2. PN 平均（pnIBR, pnPCR, pnBPC）を算出。
-3. 係数を計算：
-   - betweenFactor = 1.0（PN が 1 つ）または 1.15 + 0.05 * min(pnCount-1, 3)
-   - withinFactor = clamp(0.55 + 0.20 / sqrt(nPn), 0.35, 0.75)、nPn>1；それ以外は 0.75
-4. 比率を調整：
-   - tIBR = gIBR + (pnIBR - gIBR)*betweenFactor + (ibrOrig - pnIBR)*withinFactor
-   - tPCR も同様。
-   - tBPC は単細胞モードで同様。
-5. 計数に戻す：
-   - adjBIC = round(tIBR * TB)
-   - adjCWB = round(tPCR * TC)
-   - 単細胞 BPC は factor = tBPC / bpcOrig でスケール。
-
-時間方向の単調補正：
-- 時間解析が有効な場合、同一 PN の平均 IBR または BPC は時間とともに非減少になるよう補正。
-- 後の時間ブロックが前より低い場合は、前の平均に合わせてスケールします。
 
 ## 実用的なヒントと注意点
 - サンプリングは典型的な単一対象物を優先してください。

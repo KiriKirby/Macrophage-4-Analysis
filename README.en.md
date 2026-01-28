@@ -11,7 +11,7 @@ Key capabilities
 - Clump detection and area-based count estimation
 - Optional exclusion filter based on learned intensity and size gates
 - Four-factor outputs with optional tiny-uptake adjustment
-- Flexible PN/F/T parsing, per-cell expansion, and data optimization
+- Flexible PN/F/T parsing and per-cell expansion
 
 ## Overview
 - Main script: `Macrophage Image Four-Factor Analysis_3.0.0.ijm`
@@ -309,33 +309,6 @@ Per-cell expansion:
 - If BPC/EBPC/BPCSDP is present, the table expands to one row per cell.
 - Only per-cell columns vary by row; other columns repeat.
 - Summary columns (EIBR/EPCR/ISDP/PSDP/EBPC/BPCSDP) are still aggregated per PN and time block.
-
-## Data optimization (IBR/PCR/BPC)
-When data optimization is enabled (and formatted output is used), ratios are smoothed using global and PN means.
-
-Definitions:
-- IBR = BIC / TB
-- PCR = CWB / TC
-- BPC = BIC / TC
-
-Computation:
-1. Compute per-image ratios and global means (gIBR, gPCR, gBPC).
-2. Compute per-PN means (pnIBR, pnPCR, pnBPC).
-3. Compute:
-   - betweenFactor = 1.0 (single PN) or 1.15 + 0.05 * min(pnCount-1, 3)
-   - withinFactor = clamp(0.55 + 0.20 / sqrt(nPn), 0.35, 0.75) for nPn > 1; else 0.75
-4. Adjust ratios:
-   - tIBR = gIBR + (pnIBR - gIBR)*betweenFactor + (ibrOrig - pnIBR)*withinFactor
-   - tPCR uses the same formula.
-   - tBPC uses the same formula in per-cell mode.
-5. Convert back to counts:
-   - adjBIC = round(tIBR * TB)
-   - adjCWB = round(tPCR * TC)
-   - Per-cell BPC scales per-cell counts by factor = tBPC / bpcOrig.
-
-Time monotonic adjustment:
-- If time parsing is enabled, the mean IBR or mean BPC per PN is forced to be non-decreasing across time.
-- If a later time block mean is lower than the previous mean, counts are scaled up to match the previous mean.
 
 ## Practical guidance and pitfalls
 - Sample typical single objects for robust parameter inference.
