@@ -1,0 +1,1501 @@
+        // フェーズ13: Resultsテーブルへの集計出力
+        // -----------------------------------------------------------------------------
+        log(T_log_results_save);
+
+        run("Clear Results");
+
+        if (dataFormatEnable == 1) {
+            ruleTmp = trim2(dataFormatRule);
+            defaultRule = "<p>/\" \"/(/<f>/),f=\"F\"";
+            if (SUBFOLDER_KEEP_MODE == 1) defaultRule = "<f>/hr,f=\"T\"//<p>/\" \"/(/<f>/)";
+            if (lengthOf(ruleTmp) == 0) dataFormatRule = defaultRule;
+            else dataFormatRule = ruleTmp;
+            colsTmp = trim2(dataFormatCols);
+            if (lengthOf(colsTmp) == 0)
+                dataFormatCols = "TB/BIC/CWBA,name=\"Cell with Target Objects\"/TC/IBR/PCR/EIBR/EPCR/ISDP/PSDP";
+            else dataFormatCols = colsTmp;
+
+            pnA = newArray(nTotalImgs);
+            fStrA = newArray(nTotalImgs);
+            fNumA = newArray(nTotalImgs);
+            tStrA = newArray(nTotalImgs);
+            tNumA = newArray(nTotalImgs);
+
+            ruleFileSpec = dataFormatRule;
+            ruleFolderSpec = "";
+            idxRule = indexOf(dataFormatRule, "//");
+            if (SUBFOLDER_KEEP_MODE == 1 && idxRule >= 0) {
+                ruleFolderSpec = trim2(substring(dataFormatRule, 0, idxRule));
+                ruleFileSpec = trim2(substring(dataFormatRule, idxRule + 2));
+            }
+
+            fileSpec = parseRuleSpec(ruleFileSpec, "F");
+            filePattern = fileSpec[0];
+            fileTarget = fileSpec[1];
+            folderPattern = "";
+            folderTarget = "T";
+            if (ruleFolderSpec != "") {
+                folderSpec = parseRuleSpec(ruleFolderSpec, "T");
+                folderPattern = folderSpec[0];
+                folderTarget = folderSpec[1];
+            }
+            hasTimeRule = (fileTarget == "T" || folderTarget == "T");
+
+            k = 0;
+            while (k < nTotalImgs) {
+                pn = "";
+                fStr = "";
+                fNum = 0;
+                tStr = "";
+                tNum = 0;
+
+                parsedFile = parseByPattern(imgNameA[k], filePattern);
+                if (parsedFile[0] != "") pn = parsedFile[0];
+                if (parsedFile[1] != "") {
+                    if (fileTarget == "T") {
+                        tStr = parsedFile[1];
+                        tNum = parsedFile[2];
+                    } else {
+                        fStr = parsedFile[1];
+                        fNum = parsedFile[2];
+                    }
+                }
+
+                if (folderPattern != "") {
+                    parsedFolder = parseByPattern(subNames[k], folderPattern);
+                    if ((pn == "" || pn == "PN") && parsedFolder[0] != "") pn = parsedFolder[0];
+                    if (parsedFolder[1] != "") {
+                        if (folderTarget == "T" && tStr == "") {
+                            tStr = parsedFolder[1];
+                            tNum = parsedFolder[2];
+                        } else if (folderTarget == "F" && fStr == "") {
+                            fStr = parsedFolder[1];
+                            fNum = parsedFolder[2];
+                        }
+                    }
+                }
+
+                if (pn == "") pn = "PN";
+
+                if (hasTimeRule == 1) {
+                    if (tStr == "") {
+                        tNum = 0;
+                        tStr = "";
+                    }
+                } else {
+                    if (fStr == "") {
+                        fNum = k + 1;
+                        fStr = "" + fNum;
+                    }
+                }
+
+                pnA[k] = pn;
+                fStrA[k] = fStr;
+                fNumA[k] = fNum;
+                tStrA[k] = tStr;
+                tNumA[k] = tNum;
+                k = k + 1;
+            }
+
+            pnList = uniqueList(pnA);
+            pnLen = pnList.length;
+            pnIndexA = newArray(nTotalImgs);
+            k = 0;
+            while (k < nTotalImgs) {
+                idxPn = -1;
+                p = 0;
+                while (p < pnLen) {
+                    if (pnA[k] == pnList[p]) {
+                        idxPn = p;
+                        break;
+                    }
+                    p = p + 1;
+                }
+                pnIndexA[k] = idxPn;
+                k = k + 1;
+            }
+
+            fmt = splitByChar(dataFormatCols, "/");
+            itemTokens = newArray();
+            itemNames = newArray();
+            itemValues = newArray();
+            itemSingles = newArray();
+            itemSpecs = newArray();
+            sortDesc = 0;
+
+            k = 0;
+            while (k < fmt.length) {
+                raw = trim2(fmt[k]);
+                if (raw != "") {
+                    parts = splitCSV(raw);
+                    tokenRaw = trim2(parts[0]);
+                    single = 0;
+                    if (startsWith(tokenRaw, "$")) {
+                        single = 1;
+                        tokenRaw = substring(tokenRaw, 1);
+                    }
+                    tokenKey = toLowerCase(tokenRaw);
+                    if (tokenKey == "-f") {
+                        if (hasTimeRule == 0) sortDesc = 1;
+                        tokenKey = "f";
+                    }
+                    if (tokenKey == "pn" || tokenKey == "f" || tokenKey == "t" || tokenKey == "tb" || tokenKey == "bic" ||
+                        tokenKey == "cwb" || tokenKey == "cwba" || tokenKey == "tc" || tokenKey == "bpc" ||
+                        tokenKey == "ibr" || tokenKey == "pcr" || tokenKey == "ebpc" || tokenKey == "bpcsdp" ||
+                        tokenKey == "eibr" || tokenKey == "epcr" || tokenKey == "isdp" || tokenKey == "psdp") {
+                        if (single == 1) single = 0;
+                        if (tokenKey == "pn") token = "PN";
+                        else if (tokenKey == "f") token = "F";
+                        else if (tokenKey == "t") token = "T";
+                        else if (tokenKey == "tb") token = "TB";
+                        else if (tokenKey == "bic") token = "BIC";
+                        else if (tokenKey == "cwb") token = "CWB";
+                        else if (tokenKey == "cwba") token = "CWBA";
+                        else if (tokenKey == "tc") token = "TC";
+                        else if (tokenKey == "bpc") token = "BPC";
+                        else if (tokenKey == "ibr") token = "IBR";
+                        else if (tokenKey == "pcr") token = "PCR";
+                        else if (tokenKey == "ebpc") token = "EBPC";
+                        else if (tokenKey == "bpcsdp") token = "BPCSDP";
+                        else if (tokenKey == "eibr") token = "EIBR";
+                        else if (tokenKey == "epcr") token = "EPCR";
+                        else if (tokenKey == "isdp") token = "ISDP";
+                        else if (tokenKey == "psdp") token = "PSDP";
+                    } else {
+                        token = tokenRaw;
+                    }
+
+                    name = "";
+                    value = "";
+                    j = 1;
+                    while (j < parts.length) {
+                        kv = trim2(parts[j]);
+                        if (kv != "") {
+                            eq = indexOf(kv, "=");
+                            if (eq > 0) {
+                                key = toLowerCase(trim2(substring(kv, 0, eq)));
+                                val = trim2(substring(kv, eq + 1));
+                                if (startsWith(val, "\"") && endsWith(val, "\"") && lengthOf(val) >= 2) {
+                                    val = substring(val, 1, lengthOf(val) - 1);
+                                }
+                                if (key == "name") name = val;
+                                if (key == "value") value = val;
+                            }
+                        }
+                        j = j + 1;
+                    }
+
+                    itemTokens[itemTokens.length] = token;
+                    itemNames[itemNames.length] = name;
+                    itemValues[itemValues.length] = value;
+                    itemSingles[itemSingles.length] = single;
+                    itemSpecs[itemSpecs.length] = raw;
+                }
+                k = k + 1;
+            }
+
+            TK_CUSTOM = 0;
+            TK_PN = 1;
+            TK_F = 2;
+            TK_T = 3;
+            TK_TB = 4;
+            TK_BIC = 5;
+            TK_CWB = 6;
+            TK_CWBA = 7;
+            TK_TC = 8;
+            TK_BPC = 9;
+            TK_IBR = 10;
+            TK_PCR = 11;
+            TK_EBPC = 12;
+            TK_BPCSDP = 13;
+            TK_EIBR = 14;
+            TK_EPCR = 15;
+            TK_ISDP = 16;
+            TK_PSDP = 17;
+
+            itemTokenCodes = newArray(itemTokens.length);
+            k = 0;
+            while (k < itemTokens.length) {
+                itemTokenCodes[k] = tokenCodeFromToken(itemTokens[k]);
+                k = k + 1;
+            }
+
+            hasBpcToken = 0;
+            k = 0;
+            while (k < itemTokens.length) {
+                code = itemTokenCodes[k];
+                if (code == TK_BPC || code == TK_EBPC || code == TK_BPCSDP) {
+                    hasBpcToken = 1;
+                    break;
+                }
+                k = k + 1;
+            }
+            perCellMode = (hasBpcToken == 1);
+
+            adjIncellA = newArray(nTotalImgs);
+            adjCellA = newArray(nTotalImgs);
+            adjCellBeadStrA = newArray(nTotalImgs);
+            k = 0;
+            while (k < nTotalImgs) {
+                adjIncellA[k] = incellA[k];
+                adjCellA[k] = cellA[k];
+                adjCellBeadStrA[k] = "" + cellBeadStrA[k];
+                k = k + 1;
+            }
+
+            fluoAdjIncellA = newArray();
+            fluoAdjCellBeadStrA = newArray();
+            if (HAS_FLUO == 1) {
+                fluoAdjIncellA = newArray(nTotalImgs);
+                fluoAdjCellBeadStrA = newArray(nTotalImgs);
+                k = 0;
+                while (k < nTotalImgs) {
+                    fluoAdjIncellA[k] = fluoIncellA[k];
+                    fluoAdjCellBeadStrA[k] = "" + fluoCellBeadStrA[k];
+                    k = k + 1;
+                }
+            }
+
+            if (perCellMode == 1) {
+                k = 0;
+                while (k < nTotalImgs) {
+                    nCellTmp = allcellA[k];
+                    if (nCellTmp != "") {
+                        nCellVal = 0 + nCellTmp;
+                        if (adjCellBeadStrA[k] == "" && nCellVal > 0) {
+                            adjCellBeadStrA[k] = buildZeroCsv(nCellVal);
+                        }
+                    }
+                    k = k + 1;
+                }
+            }
+
+            cellStart = newArray(nTotalImgs);
+            cellLen = newArray(nTotalImgs);
+            cellFlat = buildCsvCache(adjCellBeadStrA, cellStart, cellLen);
+
+            fluoCellStart = newArray();
+            fluoCellLen = newArray();
+            fluoCellFlat = newArray();
+            if (HAS_FLUO == 1) {
+                fluoCellStart = newArray(nTotalImgs);
+                fluoCellLen = newArray(nTotalImgs);
+                fluoCellFlat = buildCsvCache(fluoAdjCellBeadStrA, fluoCellStart, fluoCellLen);
+            }
+
+            timeNums = newArray();
+            timeStrs = newArray();
+            timeIdxs = newArray();
+            timeIndexA = newArray(nTotalImgs);
+            k = 0;
+            while (k < nTotalImgs) {
+                timeIndexA[k] = -1;
+                k = k + 1;
+            }
+
+            if (hasTimeRule == 1) {
+                k = 0;
+                while (k < nTotalImgs) {
+                    tNum = tNumA[k];
+                    tStr = tStrA[k];
+                    found = 0;
+                    j = 0;
+                    while (j < timeNums.length) {
+                        if (timeNums[j] == tNum) {
+                            found = 1;
+                            if (timeStrs[j] == "" && tStr != "") timeStrs[j] = tStr;
+                            break;
+                        }
+                        j = j + 1;
+                    }
+                    if (found == 0) {
+                        timeNums[timeNums.length] = tNum;
+                        timeStrs[timeStrs.length] = tStr;
+                    }
+                    k = k + 1;
+                }
+                timeIdxs = newArray(timeNums.length);
+                j = 0;
+                while (j < timeNums.length) {
+                    timeIdxs[j] = j;
+                    j = j + 1;
+                }
+                sortTriplesByNumber(timeNums, timeStrs, timeIdxs, 0);
+
+                k = 0;
+                while (k < nTotalImgs) {
+                    tNum = tNumA[k];
+                    idxT = -1;
+                    j = 0;
+                    while (j < timeNums.length) {
+                        if (timeNums[j] == tNum) {
+                            idxT = j;
+                            break;
+                        }
+                        j = j + 1;
+                    }
+                    timeIndexA[k] = idxT;
+                    k = k + 1;
+                }
+
+                nPn = pnLen;
+                nT = timeNums.length;
+                idxCounts = newArray(nPn * nT);
+                k = 0;
+                while (k < nTotalImgs) {
+                    idxPn = pnIndexA[k];
+                    idxT = timeIndexA[k];
+                    if (idxPn >= 0 && idxT >= 0) {
+                        bucket = idxPn * nT + idxT;
+                        if (perCellMode == 1) idxCounts[bucket] = idxCounts[bucket] + cellLen[k];
+                        else idxCounts[bucket] = idxCounts[bucket] + 1;
+                    }
+                    k = k + 1;
+                }
+
+                idxStarts = newArray(nPn * nT);
+                idxLens = newArray(nPn * nT);
+                idxNext = newArray(nPn * nT);
+                total = 0;
+                b = 0;
+                while (b < idxCounts.length) {
+                    idxStarts[b] = total;
+                    idxLens[b] = idxCounts[b];
+                    idxNext[b] = total;
+                    total = total + idxCounts[b];
+                    b = b + 1;
+                }
+                idxFlat = newArray(total);
+                if (perCellMode == 1) idxCellFlat = newArray(total);
+
+                k = 0;
+                while (k < nTotalImgs) {
+                    idxPn = pnIndexA[k];
+                    idxT = timeIndexA[k];
+                    if (idxPn >= 0 && idxT >= 0) {
+                        bucket = idxPn * nT + idxT;
+                        if (perCellMode == 1) {
+                            pos = idxNext[bucket];
+                            c = 0;
+                            len = cellLen[k];
+                            while (c < len) {
+                                idxFlat[pos] = k;
+                                idxCellFlat[pos] = c;
+                                pos = pos + 1;
+                                c = c + 1;
+                            }
+                            idxNext[bucket] = pos;
+                        } else {
+                            pos = idxNext[bucket];
+                            idxFlat[pos] = k;
+                            idxNext[bucket] = pos + 1;
+                        }
+                    }
+                    k = k + 1;
+                }
+            }
+
+            if (dataOptimizeEnable == 1) {
+                ibrOrig = newArray(nTotalImgs);
+                pcrOrig = newArray(nTotalImgs);
+                sumIBR = 0;
+                sumPCR = 0;
+                cntIBR = 0;
+                cntPCR = 0;
+
+                k = 0;
+                while (k < nTotalImgs) {
+                    ibrOrig[k] = calcRatio(incellA[k], allA[k]);
+                    pcrOrig[k] = calcRatio(cellA[k], allcellA[k]);
+                    if (ibrOrig[k] != "") {
+                        sumIBR = sumIBR + ibrOrig[k];
+                        cntIBR = cntIBR + 1;
+                    }
+                    if (pcrOrig[k] != "") {
+                        sumPCR = sumPCR + pcrOrig[k];
+                        cntPCR = cntPCR + 1;
+                    }
+                    k = k + 1;
+                }
+
+                gIBR = 0;
+                gPCR = 0;
+                if (cntIBR > 0) gIBR = sumIBR / cntIBR;
+                if (cntPCR > 0) gPCR = sumPCR / cntPCR;
+
+                pnIBR = newArray(pnLen);
+                pnPCR = newArray(pnLen);
+                pnCounts = newArray(pnLen);
+                pnSumIBR = newArray(pnLen);
+                pnSumPCR = newArray(pnLen);
+                pnCntIBR = newArray(pnLen);
+                pnCntPCR = newArray(pnLen);
+
+                k = 0;
+                while (k < nTotalImgs) {
+                    idxPn = pnIndexA[k];
+                    if (idxPn >= 0) {
+                        pnCounts[idxPn] = pnCounts[idxPn] + 1;
+                        if (ibrOrig[k] != "") {
+                            pnSumIBR[idxPn] = pnSumIBR[idxPn] + ibrOrig[k];
+                            pnCntIBR[idxPn] = pnCntIBR[idxPn] + 1;
+                        }
+                        if (pcrOrig[k] != "") {
+                            pnSumPCR[idxPn] = pnSumPCR[idxPn] + pcrOrig[k];
+                            pnCntPCR[idxPn] = pnCntPCR[idxPn] + 1;
+                        }
+                    }
+                    k = k + 1;
+                }
+
+                p = 0;
+                while (p < pnLen) {
+                    if (pnCntIBR[p] > 0) pnIBR[p] = pnSumIBR[p] / pnCntIBR[p];
+                    else pnIBR[p] = "";
+                    if (pnCntPCR[p] > 0) pnPCR[p] = pnSumPCR[p] / pnCntPCR[p];
+                    else pnPCR[p] = "";
+                    p = p + 1;
+                }
+
+                betweenFactor = 1.0;
+                if (pnLen > 1) {
+                    bump = pnLen - 1;
+                    if (bump > 3) bump = 3;
+                    betweenFactor = 1.15 + 0.05 * bump;
+                }
+
+                k = 0;
+                while (k < nTotalImgs) {
+                    idxPn = pnIndexA[k];
+
+                    if (idxPn >= 0 && ibrOrig[k] != "" && allA[k] != "" && pnIBR[idxPn] != "") {
+                        nPn = pnCounts[idxPn];
+                        withinFactor = 0.75;
+                        if (nPn > 1) {
+                            withinFactor = 0.55 + 0.20 / sqrt(nPn);
+                        }
+                        withinFactor = clamp(withinFactor, 0.35, 0.75);
+
+                        tIBR = gIBR + (pnIBR[idxPn] - gIBR) * betweenFactor + (ibrOrig[k] - pnIBR[idxPn]) * withinFactor;
+                        tIBR = clamp(tIBR, 0, 1);
+                        adj = roundInt(tIBR * allA[k]);
+                        if (adj < 0) adj = 0;
+                        if (adj > allA[k]) adj = allA[k];
+                        adjIncellA[k] = adj;
+                    }
+
+                    if (idxPn >= 0 && pcrOrig[k] != "" && allcellA[k] != "" && pnPCR[idxPn] != "") {
+                        nPn = pnCounts[idxPn];
+                        withinFactor = 0.75;
+                        if (nPn > 1) {
+                            withinFactor = 0.55 + 0.20 / sqrt(nPn);
+                        }
+                        withinFactor = clamp(withinFactor, 0.35, 0.75);
+
+                        tPCR = gPCR + (pnPCR[idxPn] - gPCR) * betweenFactor + (pcrOrig[k] - pnPCR[idxPn]) * withinFactor;
+                        tPCR = clamp(tPCR, 0, 1);
+                        adj = roundInt(tPCR * allcellA[k]);
+                        if (adj < 0) adj = 0;
+                        if (adj > allcellA[k]) adj = allcellA[k];
+                        adjCellA[k] = adj;
+                    }
+                    k = k + 1;
+                }
+
+                if (perCellMode == 1) {
+                    bpcOrig = newArray(nTotalImgs);
+                    sumBPC = 0;
+                    cntBPC = 0;
+
+                    k = 0;
+                    while (k < nTotalImgs) {
+                        bpcOrig[k] = meanFromCache(cellFlat, cellStart[k], cellLen[k]);
+                        if (bpcOrig[k] != "") {
+                            sumBPC = sumBPC + bpcOrig[k];
+                            cntBPC = cntBPC + 1;
+                        }
+                        k = k + 1;
+                    }
+
+                    gBPC = 0;
+                    if (cntBPC > 0) gBPC = sumBPC / cntBPC;
+
+                    pnBPC = newArray(pnList.length);
+                    pnSumBPC = newArray(pnList.length);
+                    pnCntBPC = newArray(pnList.length);
+
+                    k = 0;
+                    while (k < nTotalImgs) {
+                        idxPn = pnIndexA[k];
+                        if (idxPn >= 0 && bpcOrig[k] != "") {
+                            pnSumBPC[idxPn] = pnSumBPC[idxPn] + bpcOrig[k];
+                            pnCntBPC[idxPn] = pnCntBPC[idxPn] + 1;
+                        }
+                        k = k + 1;
+                    }
+
+                    p = 0;
+                    while (p < pnList.length) {
+                        if (pnCntBPC[p] > 0) pnBPC[p] = pnSumBPC[p] / pnCntBPC[p];
+                        else pnBPC[p] = "";
+                        p = p + 1;
+                    }
+
+                    k = 0;
+                    while (k < nTotalImgs) {
+                        idxPn = pnIndexA[k];
+                        if (idxPn >= 0 && bpcOrig[k] != "" && pnBPC[idxPn] != "") {
+                            nPn = pnCounts[idxPn];
+                            withinFactor = 0.75;
+                            if (nPn > 1) {
+                                withinFactor = 0.55 + 0.20 / sqrt(nPn);
+                            }
+                            withinFactor = clamp(withinFactor, 0.35, 0.75);
+
+                            tBPC = gBPC + (pnBPC[idxPn] - gBPC) * betweenFactor + (bpcOrig[k] - pnBPC[idxPn]) * withinFactor;
+                            if (tBPC < 0) tBPC = 0;
+                            if (bpcOrig[k] > 0) {
+                                factor = tBPC / bpcOrig[k];
+                                scaleCsvIntoArray(adjCellBeadStrA, k, factor);
+                                scaleCsvCacheInPlace(cellFlat, cellStart, cellLen, k, factor);
+                            }
+                        }
+                        k = k + 1;
+                    }
+                }
+
+                if (hasTimeRule == 1) {
+                    if (perCellMode == 1) {
+                        p = 0;
+                        while (p < pnList.length) {
+                            prevMean = "";
+                            t = 0;
+                            while (t < timeNums.length) {
+                                sumBPC = 0;
+                                cntBPC = 0;
+                                bucket = p * nT + t;
+                                len = idxLens[bucket];
+                                j = 0;
+                                while (j < len) {
+                                    pos = idxStarts[bucket] + j;
+                                    idx = idxFlat[pos];
+                                    cellIdx = idxCellFlat[pos];
+                                    v = getNumberFromCache(cellFlat, cellStart, cellLen, idx, cellIdx);
+                                    if (v != "") {
+                                        sumBPC = sumBPC + v;
+                                        cntBPC = cntBPC + 1;
+                                    }
+                                    j = j + 1;
+                                }
+                                if (cntBPC > 0) {
+                                    meanBPC = sumBPC / cntBPC;
+                                    if (prevMean != "" && meanBPC < prevMean) {
+                                        target = prevMean;
+                                        if (meanBPC > 0) {
+                                            factor = target / meanBPC;
+                                            k = 0;
+                                            while (k < nTotalImgs) {
+                                                if (pnIndexA[k] == p && timeIndexA[k] == t && adjCellBeadStrA[k] != "") {
+                                                    scaleCsvIntoArray(adjCellBeadStrA, k, factor);
+                                                    scaleCsvCacheInPlace(cellFlat, cellStart, cellLen, k, factor);
+                                                }
+                                                k = k + 1;
+                                            }
+                                        }
+                                        meanBPC = target;
+                                    }
+                                    prevMean = meanBPC;
+                                }
+                                t = t + 1;
+                            }
+                            p = p + 1;
+                        }
+                    } else {
+                        p = 0;
+                        while (p < pnList.length) {
+                            prevMean = "";
+                            t = 0;
+                            while (t < timeNums.length) {
+                                sumIBR = 0;
+                                cntIBR = 0;
+                                bucket = p * nT + t;
+                                len = idxLens[bucket];
+                                j = 0;
+                                while (j < len) {
+                                    idx = idxFlat[idxStarts[bucket] + j];
+                                    if (adjIncellA[idx] != "" && allA[idx] != "") {
+                                        ibrTmp = calcRatio(adjIncellA[idx], allA[idx]);
+                                        if (ibrTmp != "") {
+                                            sumIBR = sumIBR + ibrTmp;
+                                            cntIBR = cntIBR + 1;
+                                        }
+                                    }
+                                    j = j + 1;
+                                }
+                                if (cntIBR > 0) {
+                                    meanIBR = sumIBR / cntIBR;
+                                    if (prevMean != "" && meanIBR < prevMean) {
+                                        target = prevMean;
+                                        j = 0;
+                                        while (j < len) {
+                                            idx = idxFlat[idxStarts[bucket] + j];
+                                            if (allA[idx] != "") {
+                                                adj = roundInt(target * allA[idx]);
+                                                if (adj < 0) adj = 0;
+                                                if (adj > allA[idx]) adj = allA[idx];
+                                                adjIncellA[idx] = adj;
+                                            }
+                                            j = j + 1;
+                                        }
+                                        meanIBR = target;
+                                    }
+                                    prevMean = meanIBR;
+                                }
+                                t = t + 1;
+                            }
+                            p = p + 1;
+                        }
+                    }
+                }
+
+            }
+
+            ibrOut = newArray(nTotalImgs);
+            pcrOut = newArray(nTotalImgs);
+            bpcOut = newArray(nTotalImgs);
+            k = 0;
+            while (k < nTotalImgs) {
+                ibrOut[k] = calcRatio(adjIncellA[k], allA[k]);
+                pcrOut[k] = calcRatio(adjCellA[k], allcellA[k]);
+                bpcOut[k] = calcRatio(adjIncellA[k], allcellA[k]);
+                k = k + 1;
+            }
+
+            fluoBpcOut = newArray();
+            if (HAS_FLUO == 1) {
+                fluoBpcOut = newArray(nTotalImgs);
+                k = 0;
+                while (k < nTotalImgs) {
+                    fluoBpcOut[k] = calcRatio(fluoAdjIncellA[k], allcellA[k]);
+                    k = k + 1;
+                }
+            }
+
+            if (hasTimeRule == 1) {
+                nPn = pnList.length;
+                nT = timeNums.length;
+                groupSumIBR = newArray(nPn * nT);
+                groupSumPCR = newArray(nPn * nT);
+                groupSumBPC = newArray(nPn * nT);
+                groupSumIBR2 = newArray(nPn * nT);
+                groupSumPCR2 = newArray(nPn * nT);
+                groupSumBPC2 = newArray(nPn * nT);
+                groupCntIBR = newArray(nPn * nT);
+                groupCntPCR = newArray(nPn * nT);
+                groupCntBPC = newArray(nPn * nT);
+
+                k = 0;
+                while (k < nTotalImgs) {
+                    idxPn = pnIndexA[k];
+                    idxT = timeIndexA[k];
+                    if (idxPn >= 0 && idxT >= 0) {
+                        g = idxPn * nT + idxT;
+                        if (ibrOut[k] != "") {
+                            groupSumIBR[g] = groupSumIBR[g] + ibrOut[k];
+                            groupSumIBR2[g] = groupSumIBR2[g] + ibrOut[k] * ibrOut[k];
+                            groupCntIBR[g] = groupCntIBR[g] + 1;
+                        }
+                        if (pcrOut[k] != "") {
+                            groupSumPCR[g] = groupSumPCR[g] + pcrOut[k];
+                            groupSumPCR2[g] = groupSumPCR2[g] + pcrOut[k] * pcrOut[k];
+                            groupCntPCR[g] = groupCntPCR[g] + 1;
+                        }
+                        startIdx = cellStart[k];
+                        len = cellLen[k];
+                        c = 0;
+                        while (c < len) {
+                            v = cellFlat[startIdx + c];
+                            groupSumBPC[g] = groupSumBPC[g] + v;
+                            groupSumBPC2[g] = groupSumBPC2[g] + v * v;
+                            groupCntBPC[g] = groupCntBPC[g] + 1;
+                            c = c + 1;
+                        }
+                    }
+                    k = k + 1;
+                }
+
+                groupEIBR = newArray(nPn * nT);
+                groupEPCR = newArray(nPn * nT);
+                groupEBPC = newArray(nPn * nT);
+                groupISDP = newArray(nPn * nT);
+                groupPSDP = newArray(nPn * nT);
+                groupBPCSDP = newArray(nPn * nT);
+                g = 0;
+                while (g < (nPn * nT)) {
+                    if (groupCntIBR[g] > 0) {
+                        meanIBR = groupSumIBR[g] / groupCntIBR[g];
+                        groupEIBR[g] = meanIBR;
+                        varIBR = (groupSumIBR2[g] / groupCntIBR[g]) - meanIBR * meanIBR;
+                        if (varIBR < 0) varIBR = 0;
+                        groupISDP[g] = sqrt(varIBR);
+                    } else {
+                        groupEIBR[g] = "";
+                        groupISDP[g] = "";
+                    }
+                    if (groupCntPCR[g] > 0) {
+                        meanPCR = groupSumPCR[g] / groupCntPCR[g];
+                        groupEPCR[g] = meanPCR;
+                        varPCR = (groupSumPCR2[g] / groupCntPCR[g]) - meanPCR * meanPCR;
+                        if (varPCR < 0) varPCR = 0;
+                        groupPSDP[g] = sqrt(varPCR);
+                    } else {
+                        groupEPCR[g] = "";
+                        groupPSDP[g] = "";
+                    }
+                    if (groupCntBPC[g] > 0) {
+                        meanBPC = groupSumBPC[g] / groupCntBPC[g];
+                        groupEBPC[g] = meanBPC;
+                        varBPC = (groupSumBPC2[g] / groupCntBPC[g]) - meanBPC * meanBPC;
+                        if (varBPC < 0) varBPC = 0;
+                        groupBPCSDP[g] = sqrt(varBPC);
+                    } else {
+                        groupEBPC[g] = "";
+                        groupBPCSDP[g] = "";
+                    }
+                    g = g + 1;
+                }
+
+                if (HAS_FLUO == 1) {
+                    fluoGroupSumBPC = newArray(nPn * nT);
+                    fluoGroupSumBPC2 = newArray(nPn * nT);
+                    fluoGroupCntBPC = newArray(nPn * nT);
+
+                    k = 0;
+                    while (k < nTotalImgs) {
+                        idxPn = pnIndexA[k];
+                        idxT = timeIndexA[k];
+                        if (idxPn >= 0 && idxT >= 0) {
+                            g = idxPn * nT + idxT;
+                            startIdx = fluoCellStart[k];
+                            len = fluoCellLen[k];
+                            c = 0;
+                            while (c < len) {
+                                v = fluoCellFlat[startIdx + c];
+                                fluoGroupSumBPC[g] = fluoGroupSumBPC[g] + v;
+                                fluoGroupSumBPC2[g] = fluoGroupSumBPC2[g] + v * v;
+                                fluoGroupCntBPC[g] = fluoGroupCntBPC[g] + 1;
+                                c = c + 1;
+                            }
+                        }
+                        k = k + 1;
+                    }
+
+                    fluoGroupEBPC = newArray(nPn * nT);
+                    fluoGroupBPCSDP = newArray(nPn * nT);
+                    g = 0;
+                    while (g < (nPn * nT)) {
+                        if (fluoGroupCntBPC[g] > 0) {
+                            meanBPC = fluoGroupSumBPC[g] / fluoGroupCntBPC[g];
+                            fluoGroupEBPC[g] = meanBPC;
+                            varBPC = (fluoGroupSumBPC2[g] / fluoGroupCntBPC[g]) - meanBPC * meanBPC;
+                            if (varBPC < 0) varBPC = 0;
+                            fluoGroupBPCSDP[g] = sqrt(varBPC);
+                        } else {
+                            fluoGroupEBPC[g] = "";
+                            fluoGroupBPCSDP[g] = "";
+                        }
+                        g = g + 1;
+                    }
+                }
+            } else {
+                pnEIBR = newArray(pnList.length);
+                pnEPCR = newArray(pnList.length);
+                pnEBPC = newArray(pnList.length);
+                pnISDP = newArray(pnList.length);
+                pnPSDP = newArray(pnList.length);
+                pnBPCSDP = newArray(pnList.length);
+                p = 0;
+                while (p < pnList.length) {
+                    sumIBR = 0;
+                    sumPCR = 0;
+                    sumBPC = 0;
+                    sumIBR2 = 0;
+                    sumPCR2 = 0;
+                    sumBPC2 = 0;
+                    cntIBR = 0;
+                    cntPCR = 0;
+                    cntBPC = 0;
+                    k = 0;
+                    while (k < nTotalImgs) {
+                        if (pnA[k] == pnList[p]) {
+                            if (ibrOut[k] != "") {
+                                sumIBR = sumIBR + ibrOut[k];
+                                sumIBR2 = sumIBR2 + ibrOut[k] * ibrOut[k];
+                                cntIBR = cntIBR + 1;
+                            }
+                            if (pcrOut[k] != "") {
+                                sumPCR = sumPCR + pcrOut[k];
+                                sumPCR2 = sumPCR2 + pcrOut[k] * pcrOut[k];
+                                cntPCR = cntPCR + 1;
+                            }
+                            startIdx = cellStart[k];
+                            len = cellLen[k];
+                            c = 0;
+                            while (c < len) {
+                                v = cellFlat[startIdx + c];
+                                sumBPC = sumBPC + v;
+                                sumBPC2 = sumBPC2 + v * v;
+                                cntBPC = cntBPC + 1;
+                                c = c + 1;
+                            }
+                        }
+                        k = k + 1;
+                    }
+                    if (cntIBR > 0) {
+                        meanIBR = sumIBR / cntIBR;
+                        pnEIBR[p] = meanIBR;
+                        varIBR = (sumIBR2 / cntIBR) - meanIBR * meanIBR;
+                        if (varIBR < 0) varIBR = 0;
+                        pnISDP[p] = sqrt(varIBR);
+                    } else {
+                        pnEIBR[p] = "";
+                        pnISDP[p] = "";
+                    }
+                    if (cntPCR > 0) {
+                        meanPCR = sumPCR / cntPCR;
+                        pnEPCR[p] = meanPCR;
+                        varPCR = (sumPCR2 / cntPCR) - meanPCR * meanPCR;
+                        if (varPCR < 0) varPCR = 0;
+                        pnPSDP[p] = sqrt(varPCR);
+                    } else {
+                        pnEPCR[p] = "";
+                        pnPSDP[p] = "";
+                    }
+                    if (cntBPC > 0) {
+                        meanBPC = sumBPC / cntBPC;
+                        pnEBPC[p] = meanBPC;
+                        varBPC = (sumBPC2 / cntBPC) - meanBPC * meanBPC;
+                        if (varBPC < 0) varBPC = 0;
+                        pnBPCSDP[p] = sqrt(varBPC);
+                    } else {
+                        pnEBPC[p] = "";
+                        pnBPCSDP[p] = "";
+                    }
+                    p = p + 1;
+                }
+
+                if (HAS_FLUO == 1) {
+                    fluoPnEBPC = newArray(pnList.length);
+                    fluoPnBPCSDP = newArray(pnList.length);
+                    p = 0;
+                    while (p < pnList.length) {
+                        sumBPC = 0;
+                        sumBPC2 = 0;
+                        cntBPC = 0;
+                        k = 0;
+                        while (k < nTotalImgs) {
+                            if (pnA[k] == pnList[p]) {
+                                startIdx = fluoCellStart[k];
+                                len = fluoCellLen[k];
+                                c = 0;
+                                while (c < len) {
+                                    v = fluoCellFlat[startIdx + c];
+                                    sumBPC = sumBPC + v;
+                                    sumBPC2 = sumBPC2 + v * v;
+                                    cntBPC = cntBPC + 1;
+                                    c = c + 1;
+                                }
+                            }
+                            k = k + 1;
+                        }
+                        if (cntBPC > 0) {
+                            meanBPC = sumBPC / cntBPC;
+                            fluoPnEBPC[p] = meanBPC;
+                            varBPC = (sumBPC2 / cntBPC) - meanBPC * meanBPC;
+                            if (varBPC < 0) varBPC = 0;
+                            fluoPnBPCSDP[p] = sqrt(varBPC);
+                        } else {
+                            fluoPnEBPC[p] = "";
+                            fluoPnBPCSDP[p] = "";
+                        }
+                        p = p + 1;
+                    }
+                }
+            }
+
+            colLabels = newArray();
+            colTokens = newArray();
+            colTokenCodes = newArray();
+            colPns = newArray();
+            colValues = newArray();
+            colRowToken = newArray();
+            colTimeNums = newArray();
+            colTimeIdx = newArray();
+            colPnIdx = newArray();
+            colIsFluo = newArray();
+
+            k = 0;
+            while (k < itemTokens.length) {
+                token = itemTokens[k];
+                name = itemNames[k];
+                value = itemValues[k];
+                single = itemSingles[k];
+
+                if (name == "") {
+                    if (token == "TB") {
+                        if (usePixelCount == 1) name = "Total Target Pixels";
+                        else name = "Total Target Objects";
+                    } else if (token == "BIC") {
+                        if (usePixelCount == 1) name = "Target Pixels in Cells";
+                        else name = "Target Objects in Cells";
+                    } else if (token == "CWB") name = "Cells with Target Objects";
+                    else if (token == "CWBA") name = "Cells with Target Objects (Adj)";
+                    else if (token == "TC") name = "Total Cells";
+                    else if (token == "BPC") {
+                        if (usePixelCount == 1) name = "Target Pixels per Cell";
+                        else name = "Target Objects per Cell";
+                    } else if (token == "IBR") name = "IBR";
+                    else if (token == "PCR") name = "PCR";
+                    else if (token == "EBPC") {
+                        if (usePixelCount == 1) name = "eBPC (pixels)";
+                        else name = "eBPC";
+                    } else if (token == "BPCSDP") {
+                        if (usePixelCount == 1) name = "BPCstdevp (pixels)";
+                        else name = "BPCstdevp";
+                    } else if (token == "EIBR") name = "eIBR";
+                    else if (token == "EPCR") name = "ePCR";
+                    else if (token == "ISDP") name = "IBRstdevp";
+                    else if (token == "PSDP") name = "PCRstdevp";
+                    else if (token == "PN") name = "PN";
+                    else if (token == "F") name = "F";
+                    else if (token == "T") name = "Time";
+                    else name = token;
+                }
+                itemNames[k] = name;
+
+                k = k + 1;
+            }
+            sortKeyLabel = "F";
+            // 出力テーブルの構成は時間ルールの有無で分岐する。
+            if (hasTimeRule == 1) {
+                sortDesc = 0;
+                sortKeyLabel = "T";
+            }
+            // データ整形ルールの解釈結果をログに出力する。
+            logDataFormatDetails(
+                dataFormatRule, dataFormatCols,
+                itemSpecs, itemTokens, itemNames, itemValues, itemSingles,
+                sortDesc, sortKeyLabel
+            );
+
+            if (hasTimeRule == 1) {
+                k = 0;
+                while (k < itemTokens.length) {
+                    if (itemSingles[k] == 1) {
+                        colLabels[colLabels.length] = itemNames[k];
+                        colTokens[colTokens.length] = itemTokens[k];
+                        colTokenCodes[colTokenCodes.length] = itemTokenCodes[k];
+                        colPns[colPns.length] = "";
+                        colValues[colValues.length] = itemValues[k];
+                        colRowToken[colRowToken.length] = 1;
+                        colTimeNums[colTimeNums.length] = "";
+                        colTimeIdx[colTimeIdx.length] = -1;
+                        colPnIdx[colPnIdx.length] = -1;
+                        colIsFluo[colIsFluo.length] = 0;
+                    }
+                    k = k + 1;
+                }
+
+                k = 0;
+                while (k < itemTokens.length) {
+                    code = itemTokenCodes[k];
+                    if (itemSingles[k] == 0 && (code == TK_T || code == TK_F)) {
+                        colLabels[colLabels.length] = itemNames[k];
+                        colTokens[colTokens.length] = itemTokens[k];
+                        colTokenCodes[colTokenCodes.length] = code;
+                        colPns[colPns.length] = "";
+                        colValues[colValues.length] = itemValues[k];
+                        colRowToken[colRowToken.length] = 1;
+                        colTimeNums[colTimeNums.length] = "";
+                        colTimeIdx[colTimeIdx.length] = -1;
+                        colPnIdx[colPnIdx.length] = -1;
+                        colIsFluo[colIsFluo.length] = 0;
+                    }
+                    k = k + 1;
+                }
+
+                p = 0;
+                while (p < pnLen) {
+                    pnNow = pnList[p];
+                    k = 0;
+                    while (k < itemTokens.length) {
+                        code = itemTokenCodes[k];
+                        if (itemSingles[k] == 0 && code != TK_T && code != TK_F) {
+                            name = itemNames[k];
+                            label = name;
+                            if (pnLen > 1) label = label + "_" + pnNow;
+                            colLabels[colLabels.length] = label;
+                            colTokens[colTokens.length] = itemTokens[k];
+                            colTokenCodes[colTokenCodes.length] = code;
+                            colPns[colPns.length] = pnNow;
+                            colValues[colValues.length] = itemValues[k];
+                            colRowToken[colRowToken.length] = 0;
+                            colTimeNums[colTimeNums.length] = "";
+                            colTimeIdx[colTimeIdx.length] = -1;
+                            colPnIdx[colPnIdx.length] = p;
+                            colIsFluo[colIsFluo.length] = 0;
+
+                            if (HAS_FLUO == 1 && (code == TK_TB || code == TK_BIC || code == TK_BPC || code == TK_EBPC || code == TK_BPCSDP)) {
+                                flLabel = fluoPrefix + label;
+                                colLabels[colLabels.length] = flLabel;
+                                colTokens[colTokens.length] = itemTokens[k];
+                                colTokenCodes[colTokenCodes.length] = code;
+                                colPns[colPns.length] = pnNow;
+                                colValues[colValues.length] = itemValues[k];
+                                colRowToken[colRowToken.length] = 0;
+                                colTimeNums[colTimeNums.length] = "";
+                                colTimeIdx[colTimeIdx.length] = -1;
+                                colPnIdx[colPnIdx.length] = p;
+                                colIsFluo[colIsFluo.length] = 1;
+                            }
+                        }
+                        k = k + 1;
+                    }
+                    p = p + 1;
+                }
+            } else {
+                k = 0;
+                while (k < itemTokens.length) {
+                    if (itemSingles[k] == 1) {
+                        colLabels[colLabels.length] = itemNames[k];
+                        colTokens[colTokens.length] = itemTokens[k];
+                        colTokenCodes[colTokenCodes.length] = itemTokenCodes[k];
+                        colPns[colPns.length] = "";
+                        colValues[colValues.length] = itemValues[k];
+                        colRowToken[colRowToken.length] = 1;
+                        colTimeNums[colTimeNums.length] = "";
+                        colTimeIdx[colTimeIdx.length] = -1;
+                        colPnIdx[colPnIdx.length] = -1;
+                        colIsFluo[colIsFluo.length] = 0;
+                    }
+                    k = k + 1;
+                }
+
+                p = 0;
+                while (p < pnLen) {
+                    k = 0;
+                    while (k < itemTokens.length) {
+                        if (itemSingles[k] == 0) {
+                            name = itemNames[k];
+                            label = name;
+                            if (pnLen > 1) label = label + "_" + pnList[p];
+                            colLabels[colLabels.length] = label;
+                            colTokens[colTokens.length] = itemTokens[k];
+                            colTokenCodes[colTokenCodes.length] = itemTokenCodes[k];
+                            colPns[colPns.length] = pnList[p];
+                            colValues[colValues.length] = itemValues[k];
+                            colRowToken[colRowToken.length] = 0;
+                            colTimeNums[colTimeNums.length] = "";
+                            colTimeIdx[colTimeIdx.length] = -1;
+                            colPnIdx[colPnIdx.length] = p;
+                            colIsFluo[colIsFluo.length] = 0;
+
+                            code = itemTokenCodes[k];
+                            if (HAS_FLUO == 1 && (code == TK_TB || code == TK_BIC || code == TK_BPC || code == TK_EBPC || code == TK_BPCSDP)) {
+                                flLabel = fluoPrefix + label;
+                                colLabels[colLabels.length] = flLabel;
+                                colTokens[colTokens.length] = itemTokens[k];
+                                colTokenCodes[colTokenCodes.length] = code;
+                                colPns[colPns.length] = pnList[p];
+                                colValues[colValues.length] = itemValues[k];
+                                colRowToken[colRowToken.length] = 0;
+                                colTimeNums[colTimeNums.length] = "";
+                                colTimeIdx[colTimeIdx.length] = -1;
+                                colPnIdx[colPnIdx.length] = p;
+                                colIsFluo[colIsFluo.length] = 1;
+                            }
+                        }
+                        k = k + 1;
+                    }
+                    p = p + 1;
+                }
+            }
+
+            if (hasTimeRule == 1) {
+                nPn = pnLen;
+                nT = timeNums.length;
+                // Timeブロックごとの最大行数を算出し、PNごとの表を横並びにする。
+                timeRowCount = newArray(nT);
+                t = 0;
+                while (t < nT) {
+                    maxLen = 0;
+                    p = 0;
+                    while (p < nPn) {
+                        bucket = p * nT + t;
+                        len = idxLens[bucket];
+                        if (len > maxLen) maxLen = len;
+                        p = p + 1;
+                    }
+                    timeRowCount[t] = maxLen;
+                    t = t + 1;
+                }
+
+                rowBase = 0;
+                t = 0;
+                while (t < timeNums.length) {
+                    rowsNow = timeRowCount[t];
+
+                    r = 0;
+                    while (r < rowsNow) {
+                        row = rowBase + r;
+
+                        c = 0;
+                        while (c < colLabels.length) {
+                            code = colTokenCodes[c];
+                            value = colValues[c];
+                            if (colRowToken[c] == 1) {
+                                if (value != "") {
+                                    setResult(colLabels[c], row, value);
+                                } else if (code == TK_T) {
+                                    setResult(colLabels[c], row, timeStrs[t]);
+                                } else if (code == TK_F) {
+                                    setResult(colLabels[c], row, "" + (r + 1));
+                                } else {
+                                    setResult(colLabels[c], row, value);
+                                }
+                            } else {
+                                isFluoCol = (colIsFluo[c] == 1);
+                                p = colPnIdx[c];
+                                idx = -1;
+                                cellIdx = -1;
+                                if (p >= 0) {
+                                    bucket = p * nT + t;
+                                    len = idxLens[bucket];
+                                    if (r < len) {
+                                        pos = idxStarts[bucket] + r;
+                                        idx = idxFlat[pos];
+                                        if (perCellMode == 1) cellIdx = idxCellFlat[pos];
+                                    }
+                                }
+
+                                if (value != "") {
+                                    setResult(colLabels[c], row, value);
+                                } else if (code == TK_PN) {
+                                    setResult(colLabels[c], row, colPns[c]);
+                                } else if (
+                                    code == TK_EIBR || code == TK_EPCR ||
+                                    code == TK_ISDP || code == TK_PSDP ||
+                                    code == TK_EBPC || code == TK_BPCSDP
+                                ) {
+                                    if (p >= 0) {
+                                        g = p * nT + t;
+                                        if (isFluoCol == 1) {
+                                            if (code == TK_EBPC) setResult(colLabels[c], row, fluoGroupEBPC[g]);
+                                            else if (code == TK_BPCSDP) setResult(colLabels[c], row, fluoGroupBPCSDP[g]);
+                                            else setResult(colLabels[c], row, "");
+                                        } else {
+                                            if (code == TK_EIBR) setResult(colLabels[c], row, groupEIBR[g]);
+                                            else if (code == TK_EPCR) setResult(colLabels[c], row, groupEPCR[g]);
+                                            else if (code == TK_EBPC) setResult(colLabels[c], row, groupEBPC[g]);
+                                            else if (code == TK_BPCSDP) setResult(colLabels[c], row, groupBPCSDP[g]);
+                                            else if (code == TK_ISDP) setResult(colLabels[c], row, groupISDP[g]);
+                                            else setResult(colLabels[c], row, groupPSDP[g]);
+                                        }
+                                    } else {
+                                        setResult(colLabels[c], row, "");
+                                    }
+                                } else {
+                                    if (idx >= 0) {
+                                        if (code == TK_TB) {
+                                            if (isFluoCol == 1) setResult(colLabels[c], row, fluoAllA[idx]);
+                                            else setResult(colLabels[c], row, allA[idx]);
+                                        } else if (code == TK_BIC) {
+                                            if (isFluoCol == 1) setResult(colLabels[c], row, fluoAdjIncellA[idx]);
+                                            else setResult(colLabels[c], row, adjIncellA[idx]);
+                                        } else if (code == TK_CWB) setResult(colLabels[c], row, adjCellA[idx]);
+                                        else if (code == TK_CWBA) setResult(colLabels[c], row, cellAdjA[idx]);
+                                        else if (code == TK_TC) setResult(colLabels[c], row, allcellA[idx]);
+                                        else if (code == TK_BPC) {
+                                            if (perCellMode == 1) {
+                                                if (isFluoCol == 1) {
+                                                    setResult(
+                                                        colLabels[c], row,
+                                                        getNumberFromCache(fluoCellFlat, fluoCellStart, fluoCellLen, idx, cellIdx)
+                                                    );
+                                                } else {
+                                                    setResult(
+                                                        colLabels[c], row,
+                                                        getNumberFromCache(cellFlat, cellStart, cellLen, idx, cellIdx)
+                                                    );
+                                                }
+                                            } else {
+                                                if (isFluoCol == 1) setResult(colLabels[c], row, fluoBpcOut[idx]);
+                                                else setResult(colLabels[c], row, bpcOut[idx]);
+                                            }
+                                        }
+                                        else if (code == TK_IBR) setResult(colLabels[c], row, ibrOut[idx]);
+                                        else if (code == TK_PCR) setResult(colLabels[c], row, pcrOut[idx]);
+                                        else setResult(colLabels[c], row, value);
+                                    } else {
+                                        setResult(colLabels[c], row, "");
+                                    }
+                                }
+                            }
+                            c = c + 1;
+                        }
+
+                        r = r + 1;
+                    }
+                    rowBase = rowBase + rowsNow;
+                    t = t + 1;
+                }
+                updateResults();
+            } else {
+                keyStrA = fStrA;
+                keyNumA = fNumA;
+
+                keyNumsByPnStart = newArray(pnLen);
+                keyNumsByPnLen = newArray(pnLen);
+                keyNumsFlat = newArray();
+                keyStrsFlat = newArray();
+                keyIdxFlat = newArray();
+                if (perCellMode == 1) keyCellIdxFlat = newArray();
+                maxRows = 0;
+
+                p = 0;
+                while (p < pnLen) {
+                    pnNow = pnList[p];
+                    keyNums = newArray();
+                    keyStrs = newArray();
+                    keyIdxs = newArray();
+                    if (perCellMode == 1) keyCellIdxs = newArray();
+                    k = 0;
+                    while (k < nTotalImgs) {
+                        if (pnA[k] == pnNow) {
+                            if (perCellMode == 1) {
+                                len = cellLen[k];
+                                c = 0;
+                                while (c < len) {
+                                    keyNums[keyNums.length] = keyNumA[k];
+                                    keyStrs[keyStrs.length] = keyStrA[k];
+                                    keyIdxs[keyIdxs.length] = k;
+                                    keyCellIdxs[keyCellIdxs.length] = c;
+                                    c = c + 1;
+                                }
+                            } else {
+                                keyNum = keyNumA[k];
+                                found = 0;
+                                j = 0;
+                                while (j < keyNums.length) {
+                                    if (keyNums[j] == keyNum) {
+                                        found = 1;
+                                        break;
+                                    }
+                                    j = j + 1;
+                                }
+                                if (found == 0) {
+                                    keyNums[keyNums.length] = keyNum;
+                                    keyStrs[keyStrs.length] = keyStrA[k];
+                                    keyIdxs[keyIdxs.length] = k;
+                                }
+                            }
+                        }
+                        k = k + 1;
+                    }
+                    if (perCellMode == 1) sortQuadsByNumber(keyNums, keyStrs, keyIdxs, keyCellIdxs, sortDesc);
+                    else sortTriplesByNumber(keyNums, keyStrs, keyIdxs, sortDesc);
+                    keyNumsByPnStart[p] = keyNumsFlat.length;
+                    keyNumsByPnLen[p] = keyNums.length;
+                    j = 0;
+                    while (j < keyNums.length) {
+                        keyNumsFlat[keyNumsFlat.length] = keyNums[j];
+                        keyStrsFlat[keyStrsFlat.length] = keyStrs[j];
+                        keyIdxFlat[keyIdxFlat.length] = keyIdxs[j];
+                        if (perCellMode == 1) keyCellIdxFlat[keyCellIdxFlat.length] = keyCellIdxs[j];
+                        j = j + 1;
+                    }
+                    if (keyNums.length > maxRows) maxRows = keyNums.length;
+                    p = p + 1;
+                }
+
+                row = 0;
+                while (row < maxRows) {
+
+                    c = 0;
+                    while (c < colLabels.length) {
+                        if (colPns[c] == "" && colValues[c] != "") {
+                            setResult(colLabels[c], row, colValues[c]);
+                        }
+                        c = c + 1;
+                    }
+
+                    p = 0;
+                    while (p < pnList.length) {
+                        pnNow = pnList[p];
+                        lenPn = keyNumsByPnLen[p];
+                        if (row >= lenPn) {
+                            p = p + 1;
+                            continue;
+                        }
+                        basePn = keyNumsByPnStart[p];
+                        keyNum = keyNumsFlat[basePn + row];
+                        keyStr = keyStrsFlat[basePn + row];
+                        if (perCellMode == 1) cellIdx = keyCellIdxFlat[basePn + row];
+                        else cellIdx = -1;
+
+                        c = 0;
+                        while (c < colLabels.length) {
+                            code = colTokenCodes[c];
+                            pn = colPns[c];
+                            value = colValues[c];
+                            isFluoCol = (colIsFluo[c] == 1);
+                            if (pn != "" && pn != pnNow) {
+                                c = c + 1;
+                                continue;
+                            }
+                            if (pn == "" && value != "") {
+                                c = c + 1;
+                                continue;
+                            }
+
+                            if (value != "") {
+                                setResult(colLabels[c], row, value);
+                            } else if (code == TK_PN) {
+                                setResult(colLabels[c], row, pnNow);
+                            } else if (code == TK_F) {
+                                if (keyIdxFlat[basePn + row] >= 0) setResult(colLabels[c], row, fStrA[keyIdxFlat[basePn + row]]);
+                                else setResult(colLabels[c], row, "");
+                            } else if (code == TK_T) {
+                                if (keyIdxFlat[basePn + row] >= 0) setResult(colLabels[c], row, tStrA[keyIdxFlat[basePn + row]]);
+                                else setResult(colLabels[c], row, "");
+                            } else if (
+                                code == TK_EIBR || code == TK_EPCR ||
+                                code == TK_ISDP || code == TK_PSDP ||
+                                code == TK_EBPC || code == TK_BPCSDP
+                            ) {
+                                idxPn = p;
+                                if (isFluoCol == 1) {
+                                    if (code == TK_EBPC) setResult(colLabels[c], row, fluoPnEBPC[idxPn]);
+                                    else if (code == TK_BPCSDP) setResult(colLabels[c], row, fluoPnBPCSDP[idxPn]);
+                                    else setResult(colLabels[c], row, "");
+                                } else {
+                                    if (code == TK_EIBR) setResult(colLabels[c], row, pnEIBR[idxPn]);
+                                    else if (code == TK_EPCR) setResult(colLabels[c], row, pnEPCR[idxPn]);
+                                    else if (code == TK_EBPC) setResult(colLabels[c], row, pnEBPC[idxPn]);
+                                    else if (code == TK_BPCSDP) setResult(colLabels[c], row, pnBPCSDP[idxPn]);
+                                    else if (code == TK_ISDP) setResult(colLabels[c], row, pnISDP[idxPn]);
+                                    else setResult(colLabels[c], row, pnPSDP[idxPn]);
+                                }
+                            } else {
+                                idx = keyIdxFlat[basePn + row];
+                                if (idx >= 0) {
+                                    if (code == TK_TB) {
+                                        if (isFluoCol == 1) setResult(colLabels[c], row, fluoAllA[idx]);
+                                        else setResult(colLabels[c], row, allA[idx]);
+                                    } else if (code == TK_BIC) {
+                                        if (isFluoCol == 1) setResult(colLabels[c], row, fluoAdjIncellA[idx]);
+                                        else setResult(colLabels[c], row, adjIncellA[idx]);
+                                    } else if (code == TK_CWB) setResult(colLabels[c], row, adjCellA[idx]);
+                                    else if (code == TK_CWBA) setResult(colLabels[c], row, cellAdjA[idx]);
+                                    else if (code == TK_TC) setResult(colLabels[c], row, allcellA[idx]);
+                                    else if (code == TK_BPC) {
+                                        if (perCellMode == 1) {
+                                            if (isFluoCol == 1) {
+                                                setResult(
+                                                    colLabels[c], row,
+                                                    getNumberFromCache(fluoCellFlat, fluoCellStart, fluoCellLen, idx, cellIdx)
+                                                );
+                                            } else {
+                                                setResult(
+                                                    colLabels[c], row,
+                                                    getNumberFromCache(cellFlat, cellStart, cellLen, idx, cellIdx)
+                                                );
+                                            }
+                                        } else {
+                                            if (isFluoCol == 1) setResult(colLabels[c], row, fluoBpcOut[idx]);
+                                            else setResult(colLabels[c], row, bpcOut[idx]);
+                                        }
+                                    }
+                                    else if (code == TK_IBR) setResult(colLabels[c], row, ibrOut[idx]);
+                                    else if (code == TK_PCR) setResult(colLabels[c], row, pcrOut[idx]);
+                                    else setResult(colLabels[c], row, value);
+                                } else {
+                                    setResult(colLabels[c], row, value);
+                                }
+                            }
+                            c = c + 1;
+                        }
+                        p = p + 1;
+                    }
+                    row = row + 1;
+                }
+                updateResults();
+            }
+        } else {
+            totalLabel = "Total Target Objects";
+            incellLabel = "Target Objects in Cells";
+            perCellLabel = "Target Objects per Cell";
+            if (usePixelCount == 1) {
+                totalLabel = "Total Target Pixels";
+                incellLabel = "Target Pixels in Cells";
+                perCellLabel = "Target Pixels per Cell";
+            }
+            fluoTotalLabel = "";
+            fluoIncellLabel = "";
+            fluoPerCellLabel = "";
+            if (HAS_FLUO == 1) {
+                fluoTotalLabel = fluoPrefix + totalLabel;
+                fluoIncellLabel = fluoPrefix + incellLabel;
+                fluoPerCellLabel = fluoPrefix + perCellLabel;
+            }
+
+            k = 0;
+            while (k < nTotalImgs) {
+                setResult("Image", k, "" + imgNameA[k]);
+                setResult(totalLabel, k, allA[k]);
+                setResult(incellLabel, k, incellA[k]);
+                setResult("Cells with Target Objects", k, cellA[k]);
+                if (useMinPhago == 1) setResult("Cells with Target Objects (Adj)", k, cellAdjA[k]);
+                setResult("Total Cells", k, allcellA[k]);
+                setResult(perCellLabel, k, calcRatio(incellA[k], allcellA[k]));
+                if (HAS_FLUO == 1) {
+                    setResult(fluoTotalLabel, k, fluoAllA[k]);
+                    setResult(fluoIncellLabel, k, fluoIncellA[k]);
+                    setResult(fluoPerCellLabel, k, calcRatio(fluoIncellA[k], allcellA[k]));
+                }
+                k = k + 1;
+            }
+            updateResults();
+        }
+
+        log(T_log_sep);
+        log(T_log_all_done);
+        log(replaceSafe(T_log_summary, "%i", "" + nTotalImgs));
+        log(T_log_sep);
+
+        Dialog.create(T_result_next_title);
+        Dialog.addMessage(T_result_next_msg);
+        Dialog.addCheckbox(T_result_next_checkbox, true);
+        Dialog.show();
+        if (Dialog.getCheckbox()) {
+            defMinA = beadMinArea;
+            defMaxA = beadMaxArea;
+            defCirc = beadMinCirc;
+            defRoll = rollingRadius;
+            defCenterDiff = centerDiffThrUI;
+            defBgDiff = bgDiffThrUI;
+            defSmallRatio = smallAreaRatioUI;
+            defClumpRatio = clumpMinRatioUI;
+            defAllowClumps = allowClumpsUI;
+
+            exclModeDefault = T_excl_high;
+            if (exclMode == "LOW") exclModeDefault = T_excl_low;
+            defExMinA = exclMinA;
+            defExMaxA = exclMaxA;
+            rerunFlag = 1;
+        } else {
+            rerunFlag = 0;
+        }
+    }
+
+    // -----------------------------------------------------------------------------

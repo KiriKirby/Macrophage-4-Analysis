@@ -6,8 +6,14 @@
 
 These instructions apply to this repository.
 
+## Encoding / Character Set Requirements
+- All repository text files must remain UTF-8 encoded.
+- Do not introduce emoji, dingbats, box-drawing characters, or other decorative symbols.
+- Prefer ASCII for structural markers in logs/UI text (examples: "OK", "WARN", "X", "|-", "-").
+- CJK characters and standard punctuation already used in the script are allowed.
+
 ## IMPORTANT: Script Module Index (Update Required)
-- This repository maintains a module index for `Macrophage Image Four-Factor Analysis_3.0.0.ijm`.
+- This repository maintains a module index for `Macrophage Image Four-Factor Analysis_4.0.0.ijm`.
 - Every code change that adds/moves/removes logic must update the index line numbers below.
 - Keep the index in sync so future AI can locate modules quickly.
 
@@ -21,7 +27,7 @@ These instructions apply to this repository.
   - A corresponding entry in the Error Code Index below.
 - Validation errors inside dialogs should be recoverable (prompt the user to correct input and continue), not hard-exit the script unless the failure is truly fatal.
 
-## Error Code Index (Macrophage Image Four-Factor Analysis_3.0.0.ijm)
+## Error Code Index (Macrophage Image Four-Factor Analysis_4.0.0.ijm)
 - E001: Required window missing (requireWindow).
 - E002: Image open failed (openImageSafe).
 - E003: Too many cell ROIs (>65535) for label mask.
@@ -37,7 +43,7 @@ These instructions apply to this repository.
 - E013: No feature selected.
 - E020: Feature reference image unavailable or timed out.
 - E101: Filename rule empty.
-- E102: Filename rule must contain exactly one slash.
+- E102: Filename rule format invalid (split failed).
 - E103: Filename rule parts missing.
 - E104: Filename rule tokens invalid (only <p>/<f> allowed).
 - E105: Filename rule must include both <p> and <f>.
@@ -50,6 +56,7 @@ These instructions apply to this repository.
 - E112: Rule parameter value must be in English double quotes.
 - E113: Invalid f parameter value (must be "F" or "T").
 - E114: Duplicate f parameter in rule spec.
+- E115: Quoted literals are not supported in filename rules.
 - E121: Column format empty.
 - E122: Column format contains empty item.
 - E123: Column format contains empty token.
@@ -65,38 +72,54 @@ These instructions apply to this repository.
 - E133: Duplicate column parameter key.
 - E134: Custom column missing name/value parameter.
 - E135: Multiple "$" custom columns specified.
+- E141: Fluorescence prefix empty.
+- E142: Fluorescence prefix contains invalid path separator.
+- E143: No fluorescence images found with the specified prefix.
+- E144: No target fluorescence color samples selected.
+- E145: No near/halo fluorescence color samples selected.
+- E146: Fluorescence RGB format invalid.
+- E147: Fluorescence RGB range invalid.
+- E148: Exclusion colors enabled but none provided.
+- E149: Fluorescence image size mismatch vs normal image.
 - E201: Non-numeric value entered in numeric parameter dialog fields.
+- E202: Parameter spec format invalid.
+- E203: Parameter spec unknown or duplicate key.
+- E204: Parameter spec missing required key.
+- E205: Parameter spec value invalid.
+- E206: Tuning repeat count invalid.
+- E207: Fluorescence tuning requires at least two time points with fluorescence images.
+- E208: Fluorescence tuning could not compute valid eTPC/#eTPC pairs.
 - E199: Data formatting validation error fallback (missing code in message).
 
-### Module Index (Macrophage Image Four-Factor Analysis_3.0.0.ijm)
-- Header + settings: `Macrophage Image Four-Factor Analysis_3.0.0.ijm:1`
-- Log + math utilities: `Macrophage Image Four-Factor Analysis_3.0.0.ijm:25`
-- File/string/CSV helpers: `Macrophage Image Four-Factor Analysis_3.0.0.ijm:114`
-- Token/rule parsing + data-format validation: `Macrophage Image Four-Factor Analysis_3.0.0.ijm:472`
-- Grouping/sorting/ratio helpers: `Macrophage Image Four-Factor Analysis_3.0.0.ijm:937`
-- Image/window safety helpers: `Macrophage Image Four-Factor Analysis_3.0.0.ijm:1232`
-- Data-format logging + mottos: `Macrophage Image Four-Factor Analysis_3.0.0.ijm:1296`
-- ROI annotation helper: `Macrophage Image Four-Factor Analysis_3.0.0.ijm:1390`
-- Sampling + parameter estimation: `Macrophage Image Four-Factor Analysis_3.0.0.ijm:1484`
-- Cell label mask: `Macrophage Image Four-Factor Analysis_3.0.0.ijm:1869`
-- Bead detection (fusion): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:2275`
-- Bead counting + exclusion filter: `Macrophage Image Four-Factor Analysis_3.0.0.ijm:2649`
-- Main flow entry: `Macrophage Image Four-Factor Analysis_3.0.0.ijm:2935`
+### Module Index (Macrophage Image Four-Factor Analysis_4.0.0.ijm)
+- Header + settings: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:1`
+- Log + math utilities: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:48`
+- File/string/CSV helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:156`
+- Token/rule parsing + data-format validation: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:2191`
+- Grouping/sorting/ratio helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:2400`
+- Image/window safety helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:2967`
+- Data-format logging + mottos: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3031`
+- ROI annotation helper: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3125`
+- Sampling + parameter estimation: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3219`
+- Cell label mask: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3604`
+- Bead detection (fusion): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4010`
+- Bead counting + exclusion filter: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4384`
+- Main flow entry: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:5517`
 - Phases:
-  - Phase 1 (UI language): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:2955`
-  - Phase 2 (UI text definitions): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:2964`
-  - Phase 3 (mode select): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:4523`
-  - Phase 4 (folder + file list): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:4535`
-  - Phase 5 (ROI annotation): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:4703`
-  - Phase 6 (target sampling): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:4728`
-- Phase 7 (exclusion sampling): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:5035`
-- Phase 8 (parameter estimation): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:5221`
-- Phase 9 (parameter dialog): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:5318`
-- Phase 10 (parameter validation): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:5455`
-- Phase 11 (data format): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:5572`
-- Phase 12 (batch loop): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:5638`
-- Phase 13 (results output): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:5930`
-- Phase 14 (finish): `Macrophage Image Four-Factor Analysis_3.0.0.ijm:7232`
+- Phase 1 (UI language): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:5537`
+- Phase 2 (UI text definitions): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:5546`
+- Phase 3 (mode select): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:7693`
+- Phase 4 (folder + file list): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:7708`
+- Phase 5 (ROI annotation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:7994`
+- Phase 6 (target sampling): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8020`
+- Phase 7 (exclusion sampling): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8327`
+- Phase 8 (parameter estimation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8838`
+- Phase 9 (parameter dialog): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8942`
+- Phase 10 (parameter validation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9146`
+- Phase 11 (data format): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9151`
+- Phase 12 (batch loop): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9705`
+- Phase 13 (results output): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9780`
+- Phase 14 (finish): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:11077`
 
 ## Code Style
 - Language: ImageJ macro (.ijm). Script is designed for Fiji and should be treated as Fiji-only.
@@ -132,11 +155,11 @@ These instructions apply to this repository.
 
 ## Logging Style
 - Logging is structured and tree-like using `T_log_*` labels; do not inline raw log strings in logic.
-- Preserve the separator line format (e.g., "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━") and use it at phase boundaries.
+- Preserve the separator line format (e.g., "----------------------------------------") and use it at phase boundaries.
 - Use a consistent prefix scheme:
-  - Phase start/end: "✓ ..."
-  - Per-image entries: "  ├─ ..." and nested details with "  │  ├─"/"  │  └─"
-  - Skips/errors: "  │  ✗ ..." or "  │  ⚠ ..."
+  - Phase start/end: "OK ..."
+  - Per-image entries: "  |-" and nested details with "  |  |-" / "  |  -"
+  - Skips/errors: "  |  X ..." or "  |  WARN ..."
 - Keep log density similar to the current/old script: phase-level summaries plus per-image key stats; avoid adding verbose per-ROI logs unless explicitly requested.
 - Log parameter summaries with labeled placeholders (e.g., `%mode`, `%thr`, `%min-%max`) using `replaceSafe`.
 
@@ -146,10 +169,10 @@ These instructions apply to this repository.
 - Feature selection dialog text must state: feature 4 is in-cell only, feature 1 & 5 are mutually exclusive, and selected features control which feature-threshold parameters appear.
 - Use consistent structure in multi-line dialogs:
   - Short title, then sections like "目的/操作要求/操作步骤/说明" (CN), "目的/手順/説明" (JP), "Purpose/Steps/Notes" (EN).
-  - Use numbered steps with `1）` (CN/JP) and `1)` (EN); use bullet points with `•`.
+  - Use numbered steps with `1）` (CN/JP) and `1)` (EN); use bullet points with `-`.
 - Keep language parity: CN/JP/EN versions should convey the same intent and detail level, with terminology matched (beads, ROI, sampling, exclusion, parameters).
 - Preserve punctuation conventions from the old script:
-  - CN/JP text uses full-width punctuation and quoted keys like “OK”/“T”.
+  - CN/JP text uses full-width punctuation where already established.
   - EN uses ASCII punctuation and quoted keys like "OK"/"T".
 - Keep messages concise but complete; avoid long single paragraphs—prefer short blocks with clear line breaks.
 - UI strings are grouped by language blocks (CN/JP/EN). When adding new UI text, add it to all three blocks.
@@ -178,13 +201,55 @@ These instructions apply to this repository.
   - This rule applies whether or not per-cell output is enabled.
   - When time parsing is enabled (hasTimeRule): output is grouped by time in ascending numeric order; within each time block, row count equals the maximum PN length for that time; shorter PN blocks leave empty rows until the time block ends; then continue to the next time.
   - If a PN has no data at a time block, its entire block for that time is empty.
-  - Per-time summary columns (EIBR/EPCR/ISDP/PSDP/EBPC/BPCSDP) are computed across all images within the same PN and time, not per single image.
+  - Per-time summary columns (ETPC/TPCSEM) are computed across all images within the same PN and time, not per single image.
   - When no time rule is active, summary columns are computed across all images within the same PN.
-  - Per-cell expansion mode is active when any of BPC/EBPC/BPCSDP appears in dataFormatCols; only per-cell columns vary per row, other columns repeat as needed.
-  - If per-cell mode is active, per-time summaries (EBPC/BPCSDP) still aggregate across all cells in the PN+time block.
+  - Per-cell expansion mode is active when any of TPC/ETPC/TPCSEM appears in dataFormatCols; only per-cell columns vary per row, other columns repeat as needed.
+  - If per-cell mode is active, per-time summaries (ETPC/TPCSEM) still aggregate across all cells in the PN+time block.
   - "Time parsing enabled" means the filename/folder rule maps <f> to T (f="T") in either file rule or folder rule; time is extracted from subfolder names only when SUBFOLDER_KEEP_MODE is on and a folder rule is provided.
   - If SUBFOLDER_KEEP_MODE is off (flatten mode), time can only be extracted from filename rule; subfolder names are not used for T.
-  - If time parsing is enabled but a sample has no parsable time string, it is grouped into time=0 and the time label may be blank; do not drop such rows from summaries.
+- If time parsing is enabled but a sample has no parsable time string, it is grouped into time=0 and the time label may be blank; do not drop such rows from summaries.
+
+### Results Table Design (Detailed)
+- Column layout is deterministic and must remain stable across runs; never re-order columns implicitly.
+- Single columns (prefixed by "$" in the column format) appear once at the far-left, in the same order as specified.
+- When time is enabled (T column present):
+  - T and F columns (non-single) appear once near the left, before any PN-specific columns.
+  - Remaining columns are PN-specific and are duplicated per PN, left-to-right in PN order.
+  - For multiple PNs, each PN-specific column label is suffixed with `_<PN>` (for example `TPC_pGb`).
+  - Time blocks are stacked vertically in ascending numeric order of T.
+  - Within each time block, row count equals the maximum PN row count for that time; shorter PN tables are padded with empty strings (not 0).
+  - If a PN has no data for a time block, its entire block is empty.
+- When time is disabled (no T column):
+  - There are no time blocks; PN tables are placed left-to-right.
+  - Total row count equals the maximum PN row count; shorter PN tables are padded with empty strings (not 0).
+- Fluorescence columns:
+  - Only for tokens TB, BIC, TPC, ETPC, TPCSEM.
+  - Each fluorescence column is inserted immediately to the right of its base column.
+  - Label is `fluoPrefix + baseLabel` (default `#`, but configurable).
+  - When a fluorescence image is missing, the fluorescence cells are empty strings, not 0.
+- Per-cell expansion:
+  - Per-cell mode is active when any of TPC/ETPC/TPCSEM is requested.
+  - In per-cell mode, only per-cell columns vary by row; other columns repeat as needed.
+  - Time-block row counts still follow the max-per-PN rule within each time block.
+
+### Filename Extraction (Presets Only)
+- Custom filename rules are not supported. The user selects exactly one preset:
+  - Windows: `name (1)` (must include the space before `(`).
+  - Dolphin: `name1` (digits directly appended, no separator).
+  - macOS: `name 1` (single space before trailing digits).
+- Parsing behavior:
+  - PN is the name portion before the trailing number segment.
+  - F is the trailing number segment (digits only).
+  - Windows requires a terminal ` (digits)`; if not present, parsing fails.
+  - Dolphin rejects separators; if the character before trailing digits is a space, underscore, hyphen, or parenthesis, it is not Dolphin format.
+  - macOS requires a space immediately before the trailing digits.
+  - Parsing operates on the base filename (extension removed); fluorescence prefix is stripped before parsing.
+- Time extraction:
+  - Only the literal pattern `number + hr` is supported (for example `24hr`).
+  - With SUBFOLDER_KEEP_MODE on, time is read from the subfolder name.
+  - With SUBFOLDER_KEEP_MODE off, time is read from the filename.
+  - If time parsing fails while time is enabled, time defaults to 0 and the time label may be blank.
+- Verbose logs must include per-file parse details for both PN/F and time so failures can be diagnosed from logs alone.
 
 ## Comments
 - Add brief comments only when the logic is not self-explanatory.
@@ -214,8 +279,9 @@ These instructions apply to this repository.
 - Do not introduce new ImageJ macro features outside the supported subset (no regex, no advanced data structures, no ternary tricks).
 
 ## Repository Structure
-- `Macrophage Image Four-Factor Analysis_3.0.0.ijm` is the active script to modify unless told otherwise.
-- `old/` contains archived legacy scripts for reference only (current set: 1.0, 2.0b, 2.1, 2.2b, 2.2.3, 2.2.4, 2.2.4b).
+- `Macrophage Image Four-Factor Analysis_4.0.0.ijm` is the active script to modify unless told otherwise.
+- `Macrophage Image Four-Factor Analysis_3.0.2.ijm` is a permanent reference version for graduation research and must never be edited.
+- `old/` contains archived legacy scripts for reference only (current set: 1.0, 2.0b, 2.1, 2.2b, 2.2.3, 2.2.4, 2.2.4b, 3.0.0bad, 3.0.1).
 - Do not edit files under `old/` unless explicitly requested.
 - `README*.md` files are documentation entry points and should retain the AI edit notice.
 
@@ -227,10 +293,62 @@ These instructions apply to this repository.
 ## Maintenance Requirements
 - Keep the Script Module Index current after any change that adds/moves/removes logic.
 - For any new or modified logic, identify likely failure points and add expected error prompts in CN/JP/EN with error codes and logs (see Error Code System).
-- Do not document data-optimization behavior or adjustment logic in README files or script comments; only keep non-modifying definitions (e.g., IBR = BIC / TB, PCR = CWB / TC, BPC = BIC / TC).
+- Do not document data-optimization behavior or adjustment logic in README files or script comments; only keep non-modifying definitions (e.g., TPC = BIC / TC).
+- For every bug fix, add a brief, concrete lesson to the Lessons Learned section and keep it aligned with the fix.
 
 ## Lessons Learned
 - ImageJ/Fiji macro functions have a hard limit on the number of arguments; exceeding it triggers "Too many arguments". Pack related parameters into arrays and unpack inside the function to avoid hitting the limit.
+- ImageJ substring() requires valid bounds. Guard indices before substring calls, especially when scanning for tokens with variable lengths.
+- Some ImageJ/Fiji macro environments do not support getPixel(x, y, rgb). Use getPixel(x, y) and decode RGB manually when needed.
+- Avoid using trim2(...) directly in numeric expressions; assign to a temp string first, then coerce to number.
+- For string-returning functions, return a temporary string variable instead of an inline function call to avoid numeric return errors in older macro parsers.
+- For array-returning functions, return a temporary array variable instead of an inline function call to avoid array return errors in older macro parsers.
+- Avoid comparing string-returning function calls inline; use a temporary string or substring comparison to prevent numeric return errors.
+- For recursive helpers, pass mutable arrays (e.g., output lists) as explicit parameters; avoid relying on outer-scope identifiers to prevent "Undefined identifier" errors.
+- When validating rule parts, compare a temporary trimmed string instead of calling trim2(...) inline.
+- Whitespace-only rule segments (e.g., a single space between slashes) should be treated as literal spaces, not rejected as empty.
+- Avoid quoted literals in filename rules; represent spaces with a whitespace-only segment (/ /) and keep validation centralized.
+- Use charAtCompat in trim2-style helpers to avoid substring bound errors in inclusive substring environments.
+- Prefer charAtCompat in character-scanning utilities (splitByChar/splitCSV) to avoid substring bound errors.
+- In string-trimming loops, assign charAtCompat results to a temp before comparisons to avoid numeric-return errors.
+- Normalize validation return values to strings early and treat numeric "0" as empty to prevent E199 fallbacks.
+- When updating filename rule parsing, keep validation aligned by deriving token presence from parsed patterns (including inline tokens) and rejecting unknown <...> tokens early.
+- Keep phase-level default rules in sync with the current filename-rule syntax to prevent false validation errors.
+- Guard empty parse arrays before indexing to avoid "Empty array" runtime errors in rule parsing.
+- Normalize full-width parentheses/spaces and allow leading/trailing spaces in literals during rule matching to avoid false PN/F parse failures.
+- Use normalized match strings for token extraction (including collapsing multiple spaces) so PN/F parsing stays stable under whitespace variations.
+- Assign getNumberFromCache results to a temp variable before setResult to avoid numeric-return errors in some macro parsers.
+- Assign calcRatio results to a temp variable before setResult to avoid numeric-return errors in some macro parsers.
+- Skip setResult for empty values in Results output to avoid NaN placeholders.
+- If time parsing yields an empty token, fall back to extracting the first number from the folder/file name to preserve time grouping.
+- When parsing time from folder names in deep trees, use the immediate parent folder name rather than the full relative path to avoid false failures.
+- When a Results cell should be blank, explicitly write an empty string; leaving it unset can default to 0 in some environments.
+- In ROI-only mode, if fluorescence filtering yields zero normal images, re-collect without the fluorescence filter before throwing E008.
+- When recursively scanning folders, prefer the directory marker from getFileList (trailing "/") over File.isDirectory to avoid missing subfolders on some paths.
+- For OneDrive or other virtual folders, use a fallback directory check by probing getFileList on the entry path.
+- Use a trailing slash when probing getFileList for directory detection to avoid false negatives on Windows paths.
+- ImageJ macro array mutations from recursive helpers can be unreliable; prefer building lists in the main flow or return flat arrays instead of relying on side effects.
+- For filename presets, keep the UI choice separate from the internal pattern string and try explicit patterns per preset to avoid silent PN/F parse failures.
+- When parsing time from folder names like "2.5hr", try a pattern that preserves decimals before falling back to digit-only extraction.
+- In ROI-only mode with multi-level folders, build imgEntries via recursive traversal before applying E008, rather than checking only the top folder.
+- When a recursive helper appends to a shared array, pass the array as a parameter to avoid undefined-identifier errors in some macro parsers.
+- If a recursive helper writes into multiple shared arrays, pass each array explicitly to avoid scope/identifier issues.
+- For recursive collectors, return a tagged flat array and split it in the caller instead of relying on in-function array mutation.
+- Clamp ROI bounds to image extents before using x/y to compute linear indices; out-of-bounds ROI can produce negative idx.
+- When validating parameter-spec strings, check key presence separately from value so empty values do not bypass missing/duplicate checks.
+- When refactoring repeated loops into helpers, avoid self-recursive calls and rebuild the intended arrays explicitly.
+- When providing error-bar columns, use SEM (or clearly labeled SD) and keep token names aligned with the statistic to prevent misuse.
+- Initialize cross-function parameters at top level so ImageJ macro treats them as global; assigning inside a function does not create a global if it was never defined.
+- Initialize temporary outputs used across phases (for example, parsed rule arrays) at top level to avoid "Undefined variable" errors.
+- Arrays assigned inside a helper but read later in the main flow must be initialized at top level so they are treated as globals.
+- If a global array is populated in a helper and read later, avoid reassigning it inside the helper; allocate it in the main flow and only mutate elements to keep scope global.
+- When array writes inside a helper are treated as local, return a packed flat result and unpack in the main flow to update global arrays safely.
+- If exclusion min/max values are normalized in a helper but referenced later (logging or batch analysis), initialize those globals at top level before normalization.
+- Initialize arrays used by refresh helpers (for example `roiPaths`) in the main flow before calling them to avoid "Undefined identifier" errors.
+- For text output windows, prefer `WindowManager.getWindow` + `TextWindow.append` so tuning logs are not lost in the Log window.
+- Debug-mode randomness can be deterministic across runs; stir the RNG with time for meaningful tuning variability.
+- Avoid using `var` as a variable name in ImageJ macros; some parsers treat it as a reserved keyword and report syntax errors.
+- When log placeholders overlap (for example `%t` and `%tol`), replace longer tokens first to avoid partial substitutions.
 
 ## Explanations
 - When asked to explain the script, provide structured summaries (overview -> phases -> key functions).

@@ -4,7 +4,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // 目的: ROI標注、対象物検出、統計集計、結果出力を一連の対話フローで実行する
     // 想定: Fiji上での実行とユーザー操作を含む（ImageJ単体では動作しない）
     // 署名: 西方研究室（nishikata lab） / wangsychn@outlook.com
-    // 版数: 3.0.0 / ライセンス: CC0 1.0（本スクリプト）
+    // 版数: 3.0.1 / ライセンス: CC0 1.0（本スクリプト）
     // 注意: 同梱のFiji/フォント等は各ライセンスに従う（THIRD_PARTY_NOTICES.md参照）。
     // =============================================================================
 
@@ -20,6 +20,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     LOG_VERBOSE = 1;
     SUBSTRING_INCLUSIVE = 0;
     DATA_OPT_UI = 1;
+    fluoSamplePaths = newArray();
+    imgEntries = newArray();
 
     // -----------------------------------------------------------------------------
     // 関数: log
@@ -146,14 +148,388 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // 戻り値: string
     // -----------------------------------------------------------------------------
     function trim2(s) {
+        s = "" + s;
         if (s == "") return s;
         i = 0;
         n = lengthOf(s);
-        while (i < n && (substring(s, i, i + 1) == " " || substring(s, i, i + 1) == "\t")) i = i + 1;
+        while (i < n) {
+            ch = charAtCompat(s, i);
+            if (ch != " " && ch != "\t") break;
+            i = i + 1;
+        }
         j = n - 1;
-        while (j >= i && (substring(s, j, j + 1) == " " || substring(s, j, j + 1) == "\t")) j = j - 1;
+        while (j >= i) {
+            ch2 = charAtCompat(s, j);
+            if (ch2 != " " && ch2 != "\t") break;
+            j = j - 1;
+        }
         if (j < i) return "";
+        if (SUBSTRING_INCLUSIVE == 1) return substring(s, i, j);
         return substring(s, i, j + 1);
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: getFileNameFromPath
+    // 概要: パス文字列からファイル名部分を返す。
+    // 引数: path (string)
+    // 戻り値: string
+    // -----------------------------------------------------------------------------
+    function getFileNameFromPath(path) {
+        idx = lastIndexOf(path, "/");
+        idx2 = lastIndexOf(path, "\\");
+        if (idx2 > idx) idx = idx2;
+        if (idx >= 0 && idx + 1 < lengthOf(path)) return substring(path, idx + 1);
+        return path;
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: rgbToString
+    // 概要: RGB値を「R,G,B」形式の文字列に整形する。
+    // 引数: r (number), g (number), b (number)
+    // 戻り値: string
+    // -----------------------------------------------------------------------------
+    function rgbToString(r, g, b) {
+        rr = roundInt(clamp(r, 0, 255));
+        gg = roundInt(clamp(g, 0, 255));
+        bb = roundInt(clamp(b, 0, 255));
+        return "" + rr + "," + gg + "," + bb;
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: rgbListToString
+    // 概要: RGBフラット配列を「R,G,B/R,G,B」形式に変換する。
+    // 引数: arr (array)
+    // 戻り値: string
+    // -----------------------------------------------------------------------------
+    function rgbListToString(arr) {
+        if (arr.length == 0) return "";
+        s = "";
+        i = 0;
+        while (i + 2 < arr.length) {
+            if (i > 0) s = s + "/";
+            s = s + rgbToString(arr[i], arr[i + 1], arr[i + 2]);
+            i = i + 3;
+        }
+        return s;
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: parseRgbTriple
+    // 概要: 「R,G,B」文字列をRGB配列に変換し、妥当性を検証する。
+    // 引数: s (string), label (string), stage (string)
+    // 戻り値: array[okFlag, r, g, b]
+    // -----------------------------------------------------------------------------
+    function parseRgbTriple(s, label, stage) {
+        s = trim2(s);
+        parts = splitByChar(s, ",");
+        if (parts.length != 3) {
+            msg = replaceSafe(T_err_fluo_rgb_format, "%s", label);
+            msg = replaceSafe(msg, "%v", s);
+            msg = replaceSafe(msg, "%stage", stage);
+            logErrorMessage(msg);
+            showMessage(T_err_fluo_rgb_title, msg);
+            return newArray(0, 0, 0, 0);
+        }
+        rStr = trim2(parts[0]);
+        gStr = trim2(parts[1]);
+        bStr = trim2(parts[2]);
+        r = 0 + rStr;
+        g = 0 + gStr;
+        b = 0 + bStr;
+        if (isValidNumber(r) == 0 || isValidNumber(g) == 0 || isValidNumber(b) == 0) {
+            msg = replaceSafe(T_err_fluo_rgb_format, "%s", label);
+            msg = replaceSafe(msg, "%v", s);
+            msg = replaceSafe(msg, "%stage", stage);
+            logErrorMessage(msg);
+            showMessage(T_err_fluo_rgb_title, msg);
+            return newArray(0, 0, 0, 0);
+        }
+        if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) {
+            msg = replaceSafe(T_err_fluo_rgb_range, "%s", label);
+            msg = replaceSafe(msg, "%v", s);
+            msg = replaceSafe(msg, "%stage", stage);
+            logErrorMessage(msg);
+            showMessage(T_err_fluo_rgb_title, msg);
+            return newArray(0, 0, 0, 0);
+        }
+        return newArray(1, r, g, b);
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: parseRgbList
+    // 概要: 「R,G,B/R,G,B」形式をRGBフラット配列に変換する。
+    // 引数: s (string), label (string), stage (string)
+    // 戻り値: array[okFlag, count, r1, g1, b1, ...]
+    // -----------------------------------------------------------------------------
+    function parseRgbList(s, label, stage) {
+        s = trim2(s);
+        if (s == "") return newArray(1, 0);
+        parts = splitByChar(s, "/");
+        out = newArray();
+        i = 0;
+        while (i < parts.length) {
+            part = trim2(parts[i]);
+            if (part == "") {
+                i = i + 1;
+                continue;
+            }
+            rgb = parseRgbTriple(part, label, stage);
+            if (rgb[0] == 0) return newArray(0, 0);
+            out[out.length] = rgb[1];
+            out[out.length] = rgb[2];
+            out[out.length] = rgb[3];
+            i = i + 1;
+        }
+        if (out.length == 0 && s != "") {
+            msg = replaceSafe(T_err_fluo_rgb_format, "%s", label);
+            msg = replaceSafe(msg, "%v", s);
+            msg = replaceSafe(msg, "%stage", stage);
+            logErrorMessage(msg);
+            showMessage(T_err_fluo_rgb_title, msg);
+            return newArray(0, 0);
+        }
+        res = newArray(out.length + 2);
+        res[0] = 1;
+        res[1] = out.length / 3;
+        i = 0;
+        while (i < out.length) {
+            res[i + 2] = out[i];
+            i = i + 1;
+        }
+        return res;
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: colorDistSq
+    // 概要: RGB間の距離（二乗）を計算する。
+    // 引数: r1, g1, b1, r2, g2, b2 (number)
+    // 戻り値: number
+    // -----------------------------------------------------------------------------
+    function colorDistSq(r1, g1, b1, r2, g2, b2) {
+        dr = r1 - r2;
+        dg = g1 - g2;
+        db = b1 - b2;
+        return dr * dr + dg * dg + db * db;
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: colorLabelByKey
+    // 概要: 色キーから言語別の色名を返す。
+    // 引数: lang (string), key (string)
+    // 戻り値: string
+    // -----------------------------------------------------------------------------
+    function colorLabelByKey(lang, key) {
+        if (lang == "中文") {
+            if (key == "black") return "黑色";
+            if (key == "white") return "白色";
+            if (key == "gray") return "灰色";
+            if (key == "yellow") return "黄色";
+            if (key == "magenta") return "洋红";
+            if (key == "cyan") return "青色";
+            if (key == "orange") return "橙色";
+            if (key == "red") return "红色";
+            if (key == "green") return "绿色";
+            if (key == "blue") return "蓝色";
+            return "混合色";
+        } else if (lang == "日本語") {
+            if (key == "black") return "黒";
+            if (key == "white") return "白";
+            if (key == "gray") return "灰色";
+            if (key == "yellow") return "黄色";
+            if (key == "magenta") return "マゼンタ";
+            if (key == "cyan") return "シアン";
+            if (key == "orange") return "オレンジ";
+            if (key == "red") return "赤";
+            if (key == "green") return "緑";
+            if (key == "blue") return "青";
+            return "混合色";
+        } else {
+            if (key == "black") return "Black";
+            if (key == "white") return "White";
+            if (key == "gray") return "Gray";
+            if (key == "yellow") return "Yellow";
+            if (key == "magenta") return "Magenta";
+            if (key == "cyan") return "Cyan";
+            if (key == "orange") return "Orange";
+            if (key == "red") return "Red";
+            if (key == "green") return "Green";
+            if (key == "blue") return "Blue";
+            return "Mixed color";
+        }
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: colorNameFromRgb
+    // 概要: RGB値から近い色名を返す。
+    // 引数: r (number), g (number), b (number)
+    // 戻り値: string
+    // -----------------------------------------------------------------------------
+    function colorNameFromRgb(r, g, b) {
+        rr = roundInt(clamp(r, 0, 255));
+        gg = roundInt(clamp(g, 0, 255));
+        bb = roundInt(clamp(b, 0, 255));
+
+        maxv = max2(max2(rr, gg), bb);
+        minv = min2(min2(rr, gg), bb);
+        span = maxv - minv;
+
+        key = "mix";
+        if (maxv < 30) key = "black";
+        else if (maxv > 230 && minv > 210) key = "white";
+        else if (span < 20) key = "gray";
+        else if (rr > 200 && gg > 200 && bb < 80) key = "yellow";
+        else if (rr > 200 && bb > 200 && gg < 80) key = "magenta";
+        else if (gg > 200 && bb > 200 && rr < 80) key = "cyan";
+        else if (rr > 200 && gg > 120 && bb < 60) key = "orange";
+        else if (maxv == rr) key = "red";
+        else if (maxv == gg) key = "green";
+        else if (maxv == bb) key = "blue";
+
+        if (key != "mix") {
+            nameTmp = colorLabelByKey(lang, key);
+            return nameTmp;
+        }
+
+        keys = newArray("black","white","gray","yellow","magenta","cyan","orange","red","green","blue");
+        colors = newArray(
+            0,0,0,
+            255,255,255,
+            128,128,128,
+            255,255,0,
+            255,0,255,
+            0,255,255,
+            255,165,0,
+            255,0,0,
+            0,255,0,
+            0,0,255
+        );
+
+        bestKey = "";
+        secondKey = "";
+        bestD = 1e30;
+        secondD = 1e30;
+        i = 0;
+        while (i < keys.length) {
+            idx = i * 3;
+            d = colorDistSq(rr, gg, bb, colors[idx], colors[idx + 1], colors[idx + 2]);
+            if (d < bestD) {
+                secondD = bestD;
+                secondKey = bestKey;
+                bestD = d;
+                bestKey = keys[i];
+            } else if (d < secondD) {
+                secondD = d;
+                secondKey = keys[i];
+            }
+            i = i + 1;
+        }
+
+        name1 = colorLabelByKey(lang, bestKey);
+        name2 = colorLabelByKey(lang, secondKey);
+        if (name1 == "" || name2 == "" || secondKey == "") {
+            nameTmp = colorLabelByKey(lang, "mix");
+            return nameTmp;
+        }
+
+        if (lang == "中文") {
+            nameTmp = name1 + "，" + name1 + "和" + name2 + "之间的颜色";
+        } else if (lang == "日本語") {
+            nameTmp = name1 + "色、" + name1 + "と" + name2 + "の中間色";
+        } else {
+            nameTmp = name1 + " color, between " + name1 + " and " + name2;
+        }
+        return nameTmp;
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: buildColorNameList
+    // 概要: RGBフラット配列から色名リストを作成する（重複除去）。
+    // 引数: colors (array)
+    // 戻り値: string
+    // -----------------------------------------------------------------------------
+    function buildColorNameList(colors) {
+        names = newArray();
+        out = "";
+        i = 0;
+        while (i + 2 < colors.length) {
+            nameTmp = colorNameFromRgb(colors[i], colors[i + 1], colors[i + 2]);
+            seen = 0;
+            j = 0;
+            while (j < names.length) {
+                if (names[j] == nameTmp) {
+                    seen = 1;
+                    break;
+                }
+                j = j + 1;
+            }
+            if (seen == 0) {
+                names[names.length] = nameTmp;
+                if (out != "") out = out + " / ";
+                out = out + nameTmp;
+            }
+            i = i + 3;
+        }
+        return out;
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: getPixelRgb
+    // 概要: RGB画像のピクセル値を配列に格納する。
+    // 引数: x (number), y (number), rgb (array[3])
+    // 戻り値: number (0)
+    // -----------------------------------------------------------------------------
+    function getPixelRgb(x, y, rgb) {
+        v = getPixel(x, y);
+        v = v & 16777215;
+        rgb[0] = (v >> 16) & 255;
+        rgb[1] = (v >> 8) & 255;
+        rgb[2] = v & 255;
+        return 0;
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: measureSelectionRgbMean
+    // 概要: 現在選択ROI内の平均RGBを計算する。
+    // 引数: w (number), h (number)
+    // 戻り値: array[rMean, gMean, bMean, count]
+    // -----------------------------------------------------------------------------
+    function measureSelectionRgbMean(w, h) {
+        getSelectionBounds(bx, by, bw, bh);
+        if (bw <= 0 || bh <= 0) return newArray(0, 0, 0, 0);
+
+        imgBitDepth = bitDepth();
+        rgb = newArray(3);
+
+        sumR = 0;
+        sumG = 0;
+        sumB = 0;
+        cnt = 0;
+
+        y = by;
+        while (y < by + bh) {
+            x = bx;
+            while (x < bx + bw) {
+                if (selectionContains(x, y)) {
+                    if (imgBitDepth == 24) {
+                        getPixelRgb(x, y, rgb);
+                    } else {
+                        v = getPixel(x, y);
+                        rgb[0] = v;
+                        rgb[1] = v;
+                        rgb[2] = v;
+                    }
+                    sumR = sumR + rgb[0];
+                    sumG = sumG + rgb[1];
+                    sumB = sumB + rgb[2];
+                    cnt = cnt + 1;
+                }
+                x = x + 1;
+            }
+            y = y + 1;
+        }
+
+        if (cnt <= 0) return newArray(0, 0, 0, 0);
+        return newArray(sumR / cnt, sumG / cnt, sumB / cnt, cnt);
     }
 
     // -----------------------------------------------------------------------------
@@ -164,8 +540,124 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // -----------------------------------------------------------------------------
     function ensureTrailingSlash(p) {
         if (p == "") return p;
-        if (endsWith(p, "/")) return p;
+        if (endsWith(p, "/") || endsWith(p, "\\")) return p;
         return p + "/";
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: isDirectoryCompat
+    // 概要: フォルダー判定を互換的に行う。
+    // 引数: folderPath (string), entry (string)
+    // 戻り値: number (1=dir, 0=not dir)
+    // -----------------------------------------------------------------------------
+    function isDirectoryCompat(folderPath, entry) {
+        if (endsWith(entry, "/") || endsWith(entry, "\\")) return 1;
+        fullPath = folderPath + entry;
+        if (File.isDirectory(fullPath)) return 1;
+        list = getFileList(ensureTrailingSlash(fullPath));
+        if (list.length > 0) return 1;
+        return 0;
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: collectImageEntriesRecursive
+    // 概要: ルート配下の画像を再帰的に収集し、imgEntries に追加する。
+    // 引数: rootDir (string), relPath (string), hasFluo (number), fluoPrefix (string)
+    // 戻り値: なし
+    // -----------------------------------------------------------------------------
+    function collectImageEntriesRecursive(rootDir, relPath, hasFluo, fluoPrefix) {
+        folderPath = ensureTrailingSlash(rootDir + relPath);
+        list = getFileList(folderPath);
+        normals = newArray();
+        fluoFiles = newArray();
+        fluoBases = newArray();
+        dirs = newArray();
+
+        i = 0;
+        while (i < list.length) {
+            entry = list[i];
+            if (!startsWith(entry, ".") && toLowerCase(entry) != "thumbs.db") {
+                fullPath = folderPath + entry;
+                if (isDirectoryCompat(folderPath, entry) == 1) {
+                    dirName = entry;
+                    if (endsWith(dirName, "/") || endsWith(dirName, "\\")) {
+                        dirName = substring(dirName, 0, lengthOf(dirName) - 1);
+                    }
+                    dirs[dirs.length] = dirName;
+                } else {
+                    if (!endsWith(toLowerCase(entry), ".zip")) {
+                        if (isImageFile(entry)) {
+                            if (hasFluo == 1 && startsWith(entry, fluoPrefix)) {
+                                fluoFiles[fluoFiles.length] = entry;
+                                fluoBases[fluoBases.length] = substring(entry, lengthOf(fluoPrefix));
+                                fluoSamplePaths[fluoSamplePaths.length] = folderPath + entry;
+                            } else {
+                                normals[normals.length] = entry;
+                            }
+                        }
+                    }
+                }
+            }
+            i = i + 1;
+        }
+
+        if (hasFluo == 1) {
+            i = 0;
+            while (i < fluoBases.length) {
+                baseName = fluoBases[i];
+                found = 0;
+                j = 0;
+                while (j < normals.length) {
+                    if (normals[j] == baseName) {
+                        found = 1;
+                        break;
+                    }
+                    j = j + 1;
+                }
+                if (found == 0) fluoOrphanCount = fluoOrphanCount + 1;
+                i = i + 1;
+            }
+        }
+
+        i = 0;
+        while (i < normals.length) {
+            imgName = normals[i];
+            base = getBaseName(imgName);
+            key = relPath + imgName;
+            subClean = relPath;
+            if (endsWith(subClean, "/")) subClean = substring(subClean, 0, lengthOf(subClean) - 1);
+            parseBase = base;
+            fluoFile = "";
+            if (hasFluo == 1) {
+                j = 0;
+                while (j < fluoBases.length) {
+                    if (fluoBases[j] == imgName) {
+                        fluoFile = fluoFiles[j];
+                        break;
+                    }
+                    j = j + 1;
+                }
+                if (fluoFile == "") fluoMissingCount = fluoMissingCount + 1;
+            }
+            entry = key + "\t" + folderPath + "\t" + imgName + "\t" + base + "\t" + subClean + "\t" + parseBase + "\t" + fluoFile;
+            imgEntries[imgEntries.length] = entry;
+            i = i + 1;
+        }
+
+        i = 0;
+        while (i < dirs.length) {
+            collectImageEntriesRecursive(rootDir, relPath + dirs[i] + "/", hasFluo, fluoPrefix);
+            i = i + 1;
+        }
+
+        if (LOG_VERBOSE) {
+            line = T_log_scan_folder;
+            line = replaceSafe(line, "%p", folderPath);
+            line = replaceSafe(line, "%d", "" + dirs.length);
+            line = replaceSafe(line, "%n", "" + normals.length);
+            line = replaceSafe(line, "%f", "" + fluoFiles.length);
+            log(line);
+        }
     }
 
     // -----------------------------------------------------------------------------
@@ -180,7 +672,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         i = 0;
         n = lengthOf(s);
         while (i < n) {
-            c = substring(s, i, i + 1);
+            c = charAtCompat(s, i);
             if (c == ch) {
                 arr[arr.length] = buf;
                 buf = "";
@@ -416,7 +908,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         n = lengthOf(s);
         inQuote = 0;
         while (i < n) {
-            c = substring(s, i, i + 1);
+            c = charAtCompat(s, i);
             if (c == "\"") {
                 inQuote = 1 - inQuote;
                 buf = buf + c;
@@ -454,6 +946,25 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         if (idx < 0 || idx >= n) return "";
         if (SUBSTRING_INCLUSIVE == 1) return substring(s, idx, idx);
         return substring(s, idx, idx + 1);
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: startsWithAt
+    // 概要: 指定位置からパターンが一致するか判定する。
+    // 引数: s (string), idx (number), pat (string)
+    // 戻り値: number (1/0)
+    // -----------------------------------------------------------------------------
+    function startsWithAt(s, idx, pat) {
+        n = lengthOf(pat);
+        if (idx < 0) return 0;
+        if (idx + n > lengthOf(s)) return 0;
+        if (SUBSTRING_INCLUSIVE == 1) {
+            seg = substring(s, idx, idx + n - 1);
+        } else {
+            seg = substring(s, idx, idx + n);
+        }
+        if (seg == pat) return 1;
+        return 0;
     }
 
     // -----------------------------------------------------------------------------
@@ -498,36 +1009,113 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     }
 
     // -----------------------------------------------------------------------------
+    // 関数: normalizeRuleMatchString
+    // 概要: ルール照合用に全角記号やタブを正規化する。
+    // 引数: s (string)
+    // 戻り値: string
+    // -----------------------------------------------------------------------------
+    function normalizeRuleMatchString(s) {
+        s = "" + s;
+        if (s == "") return s;
+        out = "";
+        i = 0;
+        n = lengthOf(s);
+        while (i < n) {
+            ch = charAtCompat(s, i);
+            if (ch == "　") ch = " ";
+            else if (ch == "（") ch = "(";
+            else if (ch == "）") ch = ")";
+            else if (ch == "\t") ch = " ";
+            if (ch == " ") {
+                if (lengthOf(out) > 0 && endsWith(out, " ")) {
+                    i = i + 1;
+                    continue;
+                }
+            }
+            out = out + ch;
+            i = i + 1;
+        }
+        return out;
+    }
+
+    // -----------------------------------------------------------------------------
     // 関数: parsePatternParts
     // 概要: パターンを "/" 区切りで分解し、トークン/リテラル配列を作る。
     // 引数: pattern (string), types (array), texts (array)
     // 戻り値: string (空ならOK、それ以外はエラーメッセージ)
     // -----------------------------------------------------------------------------
     function parsePatternParts(pattern, types, texts) {
+        errOut = "";
         parts = splitByChar(trim2(pattern), "/");
-        if (parts.length == 0) return T_err_df_rule_empty;
         i = 0;
         while (i < parts.length) {
-            raw = trim2(parts[i]);
-            if (raw == "") return T_err_df_rule_parts;
-            if (startsWith(raw, "\"") && endsWith(raw, "\"") && lengthOf(raw) >= 2) {
-                lit = substring(raw, 1, lengthOf(raw) - 1);
-                if (lengthOf(lit) == 0) return T_err_df_rule_parts;
+            rawOrg = parts[i];
+            raw = trim2(rawOrg);
+            if (raw == "") {
+                if (lengthOf(rawOrg) == 0) {
+                    i = i + 1;
+                    continue;
+                }
+                lit = "";
+                k = 0;
+                while (k < lengthOf(rawOrg)) {
+                    ch = charAtCompat(rawOrg, k);
+                    if (ch == "\t") lit = lit + " ";
+                    else lit = lit + ch;
+                    k = k + 1;
+                }
                 types[types.length] = "L";
                 texts[texts.length] = lit;
-            } else {
-                token = normalizeRuleToken(raw);
+                i = i + 1;
+                continue;
+            }
+            if (startsWith(raw, "\"") && endsWith(raw, "\"") && lengthOf(raw) >= 2)
+                raw = substring(raw, 1, lengthOf(raw) - 1);
+            buf = "";
+            sLower = toLowerCase(raw);
+            nRaw = lengthOf(raw);
+            k = 0;
+            while (k < nRaw) {
+                ch = charAtCompat(sLower, k);
+                token = "";
+                tokenLen = 0;
+                if (ch == "<") {
+                    if (startsWithAt(sLower, k, "<pn>") == 1) {
+                        token = "p";
+                        tokenLen = 4;
+                    } else if (startsWithAt(sLower, k, "<f1>") == 1) {
+                        token = "f";
+                        tokenLen = 4;
+                    } else if (startsWithAt(sLower, k, "<p>") == 1) {
+                        token = "p";
+                        tokenLen = 3;
+                    } else if (startsWithAt(sLower, k, "<f>") == 1) {
+                        token = "f";
+                        tokenLen = 3;
+                    }
+                }
+
                 if (token != "") {
+                    if (buf != "") {
+                        types[types.length] = "L";
+                        texts[texts.length] = buf;
+                        buf = "";
+                    }
                     types[types.length] = token;
                     texts[texts.length] = "";
+                    k = k + tokenLen;
                 } else {
-                    types[types.length] = "L";
-                    texts[texts.length] = raw;
+                    buf = buf + charAtCompat(raw, k);
+                    k = k + 1;
                 }
+            }
+            if (buf != "") {
+                types[types.length] = "L";
+                texts[texts.length] = buf;
             }
             i = i + 1;
         }
-        return "";
+        return errOut;
     }
 
     // -----------------------------------------------------------------------------
@@ -540,10 +1128,12 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         pn = "";
         fStr = "";
         fNum = 0;
+        baseNorm = normalizeRuleMatchString(base);
         types = newArray();
         texts = newArray();
         err = parsePatternParts(pattern, types, texts);
         if (err != "") return newArray(pn, fStr, fNum);
+        if (types.length == 0) return newArray(pn, fStr, fNum);
 
         tokenCount = 0;
         literalCount = 0;
@@ -591,8 +1181,17 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 t = types[seg];
                 if (t == "L") {
                     lit = texts[seg];
-                    if (!startsWith(substring(base, i), lit)) return newArray("", "", 0);
-                    i = i + lengthOf(lit);
+                    litNorm = normalizeRuleMatchString(lit);
+                    if (!startsWith(substring(baseNorm, i), litNorm)) {
+                        litTrim = trim2(litNorm);
+                        if (litTrim != "" && litTrim != litNorm && startsWith(substring(baseNorm, i), litTrim)) {
+                            i = i + lengthOf(litTrim);
+                        } else {
+                            return newArray("", "", 0);
+                        }
+                    } else {
+                        i = i + lengthOf(litNorm);
+                    }
                 } else {
                     nextLit = "";
                     nextIdx = seg + 1;
@@ -600,12 +1199,19 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                     if (nextIdx < types.length) nextLit = texts[nextIdx];
 
                     if (nextLit == "") {
-                        tokenStr = substring(base, i);
-                        i = lengthOf(base);
+                        tokenStr = substring(baseNorm, i);
+                        i = lengthOf(baseNorm);
                     } else {
-                        idx = indexOf(substring(base, i), nextLit);
+                        nextLitNorm = normalizeRuleMatchString(nextLit);
+                        idx = indexOf(substring(baseNorm, i), nextLitNorm);
+                        if (idx < 0) {
+                            nextLitTrim = trim2(nextLitNorm);
+                            if (nextLitTrim != "" && nextLitTrim != nextLitNorm) {
+                                idx = indexOf(substring(baseNorm, i), nextLitTrim);
+                            }
+                        }
                         if (idx < 0) return newArray("", "", 0);
-                        tokenStr = substring(base, i, i + idx);
+                        tokenStr = substring(baseNorm, i, i + idx);
                         i = i + idx;
                     }
 
@@ -614,8 +1220,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 }
                 seg = seg + 1;
             }
-            if (types.length > 0 && types[types.length - 1] == "L" && i != lengthOf(base))
-                return newArray("", "", 0);
+            if (types.length > 0) {
+                if (types[types.length - 1] == "L" && i != lengthOf(baseNorm))
+                    return newArray("", "", 0);
+            }
         }
 
         if (hasP == 1) {
@@ -628,6 +1236,258 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     }
 
     // -----------------------------------------------------------------------------
+    // 関数: buildPresetRuleLabel
+    // 概要: プリセット種別からログ表示用ラベルを作成する。
+    // 引数: presetChoice (string), keepMode (number)
+    // 戻り値: string
+    // -----------------------------------------------------------------------------
+    function buildPresetRuleLabel(presetChoice, keepMode) {
+        label = presetChoice;
+        if (keepMode == 1) label = label + " + T=folder";
+        return label;
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: extractTrailingNumberStr
+    // 概要: 文字列末尾の連続数字を返す。
+    // 引数: s (string)
+    // 戻り値: string
+    // -----------------------------------------------------------------------------
+    function extractTrailingNumberStr(s) {
+        n = lengthOf(s);
+        if (n == 0) return "";
+        i = n - 1;
+        while (i >= 0 && isDigitAt(s, i)) i = i - 1;
+        if (i == n - 1) return "";
+        start = i + 1;
+        if (SUBSTRING_INCLUSIVE == 1) return substring(s, start, n - 1);
+        return substring(s, start, n);
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: parsePresetWindowsName
+    // 概要: Windows形式（name (1)）からPN/Fを抽出する。
+    // 引数: base (string)
+    // 戻り値: array [pn, fStr, fNum, detail]
+    // -----------------------------------------------------------------------------
+    function parsePresetWindowsName(base) {
+        pn = "";
+        fStr = "";
+        fNum = 0;
+        parseDetail = "preset=Windows";
+        s = normalizeRuleMatchString(base);
+        s = trim2(s);
+        parseDetail = parseDetail + " | s=" + s;
+        if (s == "") {
+            parseDetail = parseDetail + " | ok=0 | reason=empty";
+            return newArray(pn, fStr, fNum, parseDetail);
+        }
+        if (!endsWith(s, ")")) {
+            parseDetail = parseDetail + " | ok=0 | reason=not_end_rparen";
+            return newArray(pn, fStr, fNum, parseDetail);
+        }
+        idxR = lastIndexOf(s, ")");
+        idxL = lastIndexOf(s, "(");
+        parseDetail = parseDetail + " | idxL=" + idxL + " idxR=" + idxR;
+        if (idxL < 1 || idxL >= idxR) {
+            parseDetail = parseDetail + " | ok=0 | reason=paren_pos";
+            return newArray(pn, fStr, fNum, parseDetail);
+        }
+        chBefore = charAtCompat(s, idxL - 1);
+        parseDetail = parseDetail + " | pre=" + chBefore;
+        if (chBefore != " ") {
+            parseDetail = parseDetail + " | ok=0 | reason=pre_not_space";
+            return newArray(pn, fStr, fNum, parseDetail);
+        }
+        if (SUBSTRING_INCLUSIVE == 1) inner = substring(s, idxL + 1, idxR - 1);
+        else inner = substring(s, idxL + 1, idxR);
+        inner = trim2(inner);
+        parseDetail = parseDetail + " | inner=" + inner;
+        if (inner == "") {
+            parseDetail = parseDetail + " | ok=0 | reason=inner_empty";
+            return newArray(pn, fStr, fNum, parseDetail);
+        }
+        i = 0;
+        while (i < lengthOf(inner)) {
+            if (!isDigitAt(inner, i)) {
+                parseDetail = parseDetail + " | ok=0 | reason=inner_not_digit";
+                return newArray(pn, fStr, fNum, parseDetail);
+            }
+            i = i + 1;
+        }
+        fStr = inner;
+        fNum = 0 + fStr;
+        if (idxL > 0) {
+            if (SUBSTRING_INCLUSIVE == 1) pn = substring(s, 0, idxL - 1);
+            else pn = substring(s, 0, idxL);
+            pn = trim2(pn);
+        }
+        parseDetail = parseDetail + " | pn=" + pn + " | f=" + fStr + " | ok=1";
+        return newArray(pn, fStr, fNum, parseDetail);
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: parsePresetDolphinName
+    // 概要: Dolphin形式（name1）からPN/Fを抽出する。
+    // 引数: base (string)
+    // 戻り値: array [pn, fStr, fNum, detail]
+    // -----------------------------------------------------------------------------
+    function parsePresetDolphinName(base) {
+        pn = "";
+        fStr = "";
+        fNum = 0;
+        parseDetail = "preset=Dolphin";
+        s = normalizeRuleMatchString(base);
+        s = trim2(s);
+        parseDetail = parseDetail + " | s=" + s;
+        if (s == "") {
+            parseDetail = parseDetail + " | ok=0 | reason=empty";
+            return newArray(pn, fStr, fNum, parseDetail);
+        }
+        numStr = extractTrailingNumberStr(s);
+        parseDetail = parseDetail + " | num=" + numStr;
+        if (numStr == "") {
+            parseDetail = parseDetail + " | ok=0 | reason=no_trailing_num";
+            return newArray(pn, fStr, fNum, parseDetail);
+        }
+        start = lengthOf(s) - lengthOf(numStr);
+        parseDetail = parseDetail + " | start=" + start;
+        if (start <= 0) {
+            parseDetail = parseDetail + " | ok=0 | reason=pos";
+            return newArray(pn, fStr, fNum, parseDetail);
+        }
+        prev = charAtCompat(s, start - 1);
+        parseDetail = parseDetail + " | pre=" + prev;
+        if (prev == " " || prev == "_" || prev == "-" || prev == "(" || prev == ")") {
+            parseDetail = parseDetail + " | ok=0 | reason=has_sep";
+            return newArray(pn, fStr, fNum, parseDetail);
+        }
+        if (SUBSTRING_INCLUSIVE == 1) pn = substring(s, 0, start - 1);
+        else pn = substring(s, 0, start);
+        pn = trim2(pn);
+        fStr = numStr;
+        fNum = 0 + fStr;
+        parseDetail = parseDetail + " | pn=" + pn + " | f=" + fStr + " | ok=1";
+        return newArray(pn, fStr, fNum, parseDetail);
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: parsePresetMacName
+    // 概要: macOS形式（name 1）からPN/Fを抽出する。
+    // 引数: base (string)
+    // 戻り値: array [pn, fStr, fNum, detail]
+    // -----------------------------------------------------------------------------
+    function parsePresetMacName(base) {
+        pn = "";
+        fStr = "";
+        fNum = 0;
+        parseDetail = "preset=macOS";
+        s = normalizeRuleMatchString(base);
+        s = trim2(s);
+        parseDetail = parseDetail + " | s=" + s;
+        if (s == "") {
+            parseDetail = parseDetail + " | ok=0 | reason=empty";
+            return newArray(pn, fStr, fNum, parseDetail);
+        }
+        numStr = extractTrailingNumberStr(s);
+        parseDetail = parseDetail + " | num=" + numStr;
+        if (numStr == "") {
+            parseDetail = parseDetail + " | ok=0 | reason=no_trailing_num";
+            return newArray(pn, fStr, fNum, parseDetail);
+        }
+        start = lengthOf(s) - lengthOf(numStr);
+        parseDetail = parseDetail + " | start=" + start;
+        if (start <= 0) {
+            parseDetail = parseDetail + " | ok=0 | reason=pos";
+            return newArray(pn, fStr, fNum, parseDetail);
+        }
+        chSep = charAtCompat(s, start - 1);
+        parseDetail = parseDetail + " | pre=" + chSep;
+        if (chSep != " ") {
+            parseDetail = parseDetail + " | ok=0 | reason=pre_not_space";
+            return newArray(pn, fStr, fNum, parseDetail);
+        }
+        if (SUBSTRING_INCLUSIVE == 1) pn = substring(s, 0, start - 1);
+        else pn = substring(s, 0, start);
+        pn = trim2(pn);
+        fStr = numStr;
+        fNum = 0 + fStr;
+        parseDetail = parseDetail + " | pn=" + pn + " | f=" + fStr + " | ok=1";
+        return newArray(pn, fStr, fNum, parseDetail);
+    }
+
+    // -----------------------------------------------------------------------------
+    // 関数: parseByPreset
+    // 概要: プリセットに従ってベース名からPN/Fを抽出する。
+    // 引数: base (string), presetChoice (string)
+    // 戻り値: array [pn, fStr, fNum, detail]
+    // -----------------------------------------------------------------------------
+    function parseByPreset(base, presetChoice) {
+        parseDetail = "preset=unknown";
+        if (presetChoice == T_rule_preset_windows) {
+            out = parsePresetWindowsName(base);
+            return out;
+        }
+        if (presetChoice == T_rule_preset_dolphin) {
+            out = parsePresetDolphinName(base);
+            return out;
+        }
+        if (presetChoice == T_rule_preset_mac) {
+            out = parsePresetMacName(base);
+            return out;
+        }
+        parseDetail = "preset=unknown | ok=0";
+        return newArray("", "", 0, parseDetail);
+    }
+
+    // -----------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------
+    // 関数: validateRuleSpec
+    // 概要: ルール指定のパラメータ部分を検証する。
+    // 引数: spec (string)
+    // 戻り値: string (空ならOK、それ以外はエラーメッセージ)
+    // -----------------------------------------------------------------------------
+    function validateRuleSpec(spec) {
+        errOut = "";
+        parts = splitCSV(spec);
+        seenF = 0;
+        i = 1;
+        while (i < parts.length) {
+            kv = trim2(parts[i]);
+            if (kv != "") {
+                eq = indexOf(kv, "=");
+                if (eq <= 0) {
+                    errOut = T_err_df_rule_param_kv;
+                    return errOut;
+                }
+                key = toLowerCase(trim2(substring(kv, 0, eq)));
+                val = trim2(substring(kv, eq + 1));
+                if (!(startsWith(val, "\"") && endsWith(val, "\"") && lengthOf(val) >= 2)) {
+                    errOut = T_err_df_rule_param_quote;
+                    return errOut;
+                }
+                val = substring(val, 1, lengthOf(val) - 1);
+                if (key != "f") {
+                    errOut = T_err_df_rule_param_unknown_prefix + key;
+                    return errOut;
+                }
+                if (seenF == 1) {
+                    errOut = T_err_df_rule_param_duplicate;
+                    return errOut;
+                }
+                valU = toUpperCase(trim2(val));
+                if (valU != "F" && valU != "T") {
+                    errOut = T_err_df_rule_param_f_value;
+                    return errOut;
+                }
+                seenF = 1;
+            }
+            i = i + 1;
+        }
+        return errOut;
+    }
+
+    // -----------------------------------------------------------------------------
     // 関数: parseRuleSpec
     // 概要: ルール指定文字列からパターンとF/T割当を抽出する。
     // 引数: spec (string), defaultTarget (string)
@@ -637,7 +1497,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         parts = splitCSV(spec);
         pattern = trim2(parts[0]);
         fTarget = defaultTarget;
-        err = "";
         seenF = 0;
 
         i = 1;
@@ -645,36 +1504,22 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             kv = trim2(parts[i]);
             if (kv != "") {
                 eq = indexOf(kv, "=");
-                if (eq <= 0) {
-                    err = T_err_df_rule_param_kv;
-                    break;
+                if (eq > 0) {
+                    key = toLowerCase(trim2(substring(kv, 0, eq)));
+                    val = trim2(substring(kv, eq + 1));
+                    if (key == "f" && startsWith(val, "\"") && endsWith(val, "\"") && lengthOf(val) >= 2) {
+                        val = substring(val, 1, lengthOf(val) - 1);
+                        valU = toUpperCase(trim2(val));
+                        if ((valU == "F" || valU == "T") && seenF == 0) {
+                            seenF = 1;
+                            fTarget = valU;
+                        }
+                    }
                 }
-                key = toLowerCase(trim2(substring(kv, 0, eq)));
-                val = trim2(substring(kv, eq + 1));
-                if (!(startsWith(val, "\"") && endsWith(val, "\"") && lengthOf(val) >= 2)) {
-                    err = T_err_df_rule_param_quote;
-                    break;
-                }
-                val = substring(val, 1, lengthOf(val) - 1);
-                if (key != "f") {
-                    err = T_err_df_rule_param_unknown_prefix + key;
-                    break;
-                }
-                if (seenF == 1) {
-                    err = T_err_df_rule_param_duplicate;
-                    break;
-                }
-                valU = toUpperCase(trim2(val));
-                if (valU != "F" && valU != "T") {
-                    err = T_err_df_rule_param_f_value;
-                    break;
-                }
-                seenF = 1;
-                fTarget = valU;
             }
             i = i + 1;
         }
-        return newArray(pattern, fTarget, err);
+        return newArray(pattern, fTarget, "");
     }
 
     // -----------------------------------------------------------------------------
@@ -755,86 +1600,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // 戻り値: string (空ならOK、それ以外はエラーメッセージ)
     // -----------------------------------------------------------------------------
     function validateDataFormatRule(rule) {
-        r = trim2(rule);
-        if (lengthOf(r) == 0) return T_err_df_rule_empty;
-
-        folderSpec = "";
-        fileSpec = r;
-        idx = indexOf(r, "//");
-        if (SUBFOLDER_KEEP_MODE == 1) {
-            if (idx < 0) return T_err_df_rule_need_subfolder;
-            if (indexOf(r, "//", idx + 2) >= 0) return T_err_df_rule_double_slash;
-            folderSpec = trim2(substring(r, 0, idx));
-            fileSpec = trim2(substring(r, idx + 2));
-            if (folderSpec == "" || fileSpec == "") return T_err_df_rule_parts;
-        } else {
-            if (idx >= 0) return T_err_df_rule_no_subfolder;
-        }
-
-        spec = parseRuleSpec(fileSpec, "F");
-        if (spec[2] != "") return spec[2];
-        pattern = spec[0];
-        if (pattern == "") return T_err_df_rule_empty;
-        parts = splitByChar(pattern, "/");
-        if (parts.length < 2) return T_err_df_rule_slash;
-        pTypes = newArray();
-        pTexts = newArray();
-        err = parsePatternParts(pattern, pTypes, pTexts);
-        if (err != "") return err;
-
-        hasP = 0;
-        hasF = 0;
-        tokenCount = 0;
-        literalCount = 0;
-        adjacentToken = 0;
-        i = 0;
-        while (i < pTypes.length) {
-            if (pTypes[i] == "L") literalCount = literalCount + 1;
-            else {
-                tokenCount = tokenCount + 1;
-                if (pTypes[i] == "p") hasP = 1;
-                if (pTypes[i] == "f") hasF = 1;
-                if (i > 0 && pTypes[i - 1] != "L") adjacentToken = 1;
-            }
-            i = i + 1;
-        }
-        if (hasP == 0 && hasF == 0) return T_err_df_rule_tokens;
-        if (hasP == 0 || hasF == 0) return T_err_df_rule_need_both;
-        if (adjacentToken == 1 && !(literalCount == 0 && pTypes.length == 2))
-            return T_err_df_rule_tokens;
-
-        if (folderSpec != "") {
-            spec2 = parseRuleSpec(folderSpec, "T");
-            if (spec2[2] != "") return spec2[2];
-            pattern2 = spec2[0];
-            if (pattern2 == "") return T_err_df_rule_empty;
-            parts2 = splitByChar(pattern2, "/");
-            if (parts2.length < 2) return T_err_df_rule_slash;
-            fTypes = newArray();
-            fTexts = newArray();
-            err2 = parsePatternParts(pattern2, fTypes, fTexts);
-            if (err2 != "") return err2;
-
-            hasP2 = 0;
-            hasF2 = 0;
-            tokenCount2 = 0;
-            literalCount2 = 0;
-            adjacentToken2 = 0;
-            j = 0;
-            while (j < fTypes.length) {
-                if (fTypes[j] == "L") literalCount2 = literalCount2 + 1;
-                else {
-                    tokenCount2 = tokenCount2 + 1;
-                    if (fTypes[j] == "p") hasP2 = 1;
-                    if (fTypes[j] == "f") hasF2 = 1;
-                    if (j > 0 && fTypes[j - 1] != "L") adjacentToken2 = 1;
-                }
-                j = j + 1;
-            }
-            if (hasP2 == 0 && hasF2 == 0) return T_err_df_rule_tokens;
-            if (adjacentToken2 == 1 && !(literalCount2 == 0 && fTypes.length == 2))
-                return T_err_df_rule_tokens;
-        }
         return "";
     }
 
@@ -845,25 +1610,41 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // 戻り値: string (空ならOK、それ以外はエラーメッセージ)
     // -----------------------------------------------------------------------------
     function validateDataFormatCols(cols) {
+        errOut = "";
         s = trim2(cols);
-        if (lengthOf(s) == 0) return T_err_df_cols_empty;
+        if (lengthOf(s) == 0) {
+            errOut = T_err_df_cols_empty;
+            return errOut;
+        }
         fmt = splitByChar(s, "/");
         singleCustomCount = 0;
         i = 0;
         while (i < fmt.length) {
             raw = trim2(fmt[i]);
-            if (raw == "") return T_err_df_cols_empty_item;
+            if (raw == "") {
+                errOut = T_err_df_cols_empty_item;
+                return errOut;
+            }
             parts = splitCSV(raw);
             tokenRaw = trim2(parts[0]);
-            if (tokenRaw == "") return T_err_df_cols_empty_token;
-            if (indexOf(tokenRaw, "=") >= 0) return T_err_df_cols_params_comma;
+            if (tokenRaw == "") {
+                errOut = T_err_df_cols_empty_token;
+                return errOut;
+            }
+            if (indexOf(tokenRaw, "=") >= 0) {
+                errOut = T_err_df_cols_params_comma;
+                return errOut;
+            }
             single = 0;
             if (startsWith(tokenRaw, "$")) {
                 single = 1;
                 tokenRaw = substring(tokenRaw, 1);
             }
             tokenRaw = trim2(tokenRaw);
-            if (tokenRaw == "") return T_err_df_cols_dollar_missing;
+            if (tokenRaw == "") {
+                errOut = T_err_df_cols_dollar_missing;
+                return errOut;
+            }
             tokenKey = toLowerCase(tokenRaw);
             if (tokenKey == "-f") tokenKey = "f";
             builtin = isBuiltinToken(tokenKey);
@@ -871,7 +1652,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 return T_err_df_cols_dollar_builtin;
             if (builtin == 0 && single == 1) {
                 singleCustomCount = singleCustomCount + 1;
-                if (singleCustomCount > 1) return T_err_df_cols_dollar_duplicate;
+                if (singleCustomCount > 1) {
+                    errOut = T_err_df_cols_dollar_duplicate;
+                    return errOut;
+                }
             }
 
             j = 1;
@@ -883,29 +1667,44 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 if (kv != "") {
                     paramCount = paramCount + 1;
                     eq = indexOf(kv, "=");
-                    if (eq <= 0) return T_err_df_cols_param_kv;
+                    if (eq <= 0) {
+                        errOut = T_err_df_cols_param_kv;
+                        return errOut;
+                    }
                     key = toLowerCase(trim2(substring(kv, 0, eq)));
                     val = trim2(substring(kv, eq + 1));
-                    if (key != "name" && key != "value") return T_err_df_cols_param_unknown_prefix + key;
+                    if (key != "name" && key != "value") {
+                        errOut = T_err_df_cols_param_unknown_prefix + key;
+                        return errOut;
+                    }
                     if (!(startsWith(val, "\"") && endsWith(val, "\"") && lengthOf(val) >= 2))
                         return T_err_df_cols_param_quote;
                     val = substring(val, 1, lengthOf(val) - 1);
                     if (key == "name") {
                         if (seenName == 1) return T_err_df_cols_param_duplicate + key;
                         seenName = 1;
-                        if (lengthOf(val) == 0) return T_err_df_cols_param_empty_name;
+                        if (lengthOf(val) == 0) {
+                            errOut = T_err_df_cols_param_empty_name;
+                            return errOut;
+                        }
                     } else if (key == "value") {
                         if (seenValue == 1) return T_err_df_cols_param_duplicate + key;
                         seenValue = 1;
-                        if (lengthOf(val) == 0) return T_err_df_cols_param_empty_value;
+                        if (lengthOf(val) == 0) {
+                            errOut = T_err_df_cols_param_empty_value;
+                            return errOut;
+                        }
                     }
                 }
                 j = j + 1;
             }
-            if (builtin == 0 && paramCount == 0) return T_err_df_cols_custom_need_param;
+            if (builtin == 0 && paramCount == 0) {
+                errOut = T_err_df_cols_custom_need_param;
+                return errOut;
+            }
             i = i + 1;
         }
-        return "";
+        return errOut;
     }
 
     // -----------------------------------------------------------------------------
@@ -1198,6 +1997,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         if (code == "112") return T_err_df_fix_112;
         if (code == "113") return T_err_df_fix_113;
         if (code == "114") return T_err_df_fix_114;
+        if (code == "115") return T_err_df_fix_115;
         if (code == "121") return T_err_df_fix_121;
         if (code == "122") return T_err_df_fix_122;
         if (code == "123") return T_err_df_fix_123;
@@ -2931,10 +3731,137 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         return newArray(nBeadsAll, nBeadsInCells, nCellsWithBead, nCellsWithBeadAdj, minPhagoThr, cellBeadStr);
     }
 
+    // -----------------------------------------------------------------------------
+    // 関数: countFluoPixels
+    // 概要: 蛍光画像の色抽出に基づき、全体/細胞内ピクセル数を集計する。
+    // 引数: fluoTitle, nCellsAll, imgParams, fluoParams, exclColors, fileName, needPerCellStats
+    // 戻り値: array[totalPixels, incellPixels, cellPixStr]
+    // 補足: fluoParams は [targetR, targetG, targetB, tol, useExcl, exclTol] を想定する。
+    // -----------------------------------------------------------------------------
+    function countFluoPixels(
+        fluoTitle, nCellsAll, imgParams, fluoParams,
+        exclColors, fileName, needPerCellStats
+    ) {
+
+        w = imgParams[0];
+        h = imgParams[1];
+
+        targetR = fluoParams[0];
+        targetG = fluoParams[1];
+        targetB = fluoParams[2];
+        tol = fluoParams[3];
+        useExcl = fluoParams[4];
+        exclTol = fluoParams[5];
+
+        tolSq = tol * tol;
+        exclTolSq = exclTol * exclTol;
+        useExclOn = (useExcl == 1 && exclColors.length > 0);
+
+        totalPixels = 0;
+        incellPixels = 0;
+        useCellCounts = (needPerCellStats == 1);
+
+        cellCounts = newArray(nCellsAll);
+        c = 0;
+        while (c < nCellsAll) {
+            cellCounts[c] = 0;
+            c = c + 1;
+        }
+
+        requireWindow(fluoTitle, "fluo/select", fileName);
+        imgBitDepth = bitDepth();
+        rgb = newArray(3);
+
+        y = 0;
+        while (y < h) {
+            x = 0;
+            while (x < w) {
+                if (imgBitDepth == 24) {
+                    getPixelRgb(x, y, rgb);
+                } else {
+                    v = getPixel(x, y);
+                    rgb[0] = v;
+                    rgb[1] = v;
+                    rgb[2] = v;
+                }
+
+                d = colorDistSq(rgb[0], rgb[1], rgb[2], targetR, targetG, targetB);
+                if (d <= tolSq) {
+                    keep = 1;
+                    if (useExclOn) {
+                        e = 0;
+                        while (e + 2 < exclColors.length) {
+                            d2 = colorDistSq(rgb[0], rgb[1], rgb[2], exclColors[e], exclColors[e + 1], exclColors[e + 2]);
+                            if (d2 <= exclTolSq) {
+                                keep = 0;
+                                break;
+                            }
+                            e = e + 3;
+                        }
+                    }
+                    if (keep == 1) totalPixels = totalPixels + 1;
+                }
+                x = x + 1;
+            }
+            y = y + 1;
+        }
+
+        c = 0;
+        while (c < nCellsAll) {
+            roiManager("select", c);
+            getSelectionBounds(bx, by, bw, bh);
+            if (bw > 0 && bh > 0) {
+                y = by;
+                while (y < by + bh) {
+                    x = bx;
+                    while (x < bx + bw) {
+                        if (selectionContains(x, y)) {
+                        if (imgBitDepth == 24) {
+                                getPixelRgb(x, y, rgb);
+                            } else {
+                                v = getPixel(x, y);
+                                rgb[0] = v;
+                                rgb[1] = v;
+                                rgb[2] = v;
+                            }
+
+                            d = colorDistSq(rgb[0], rgb[1], rgb[2], targetR, targetG, targetB);
+                            if (d <= tolSq) {
+                                keep = 1;
+                                if (useExclOn) {
+                                    e = 0;
+                                    while (e + 2 < exclColors.length) {
+                                        d2 = colorDistSq(rgb[0], rgb[1], rgb[2], exclColors[e], exclColors[e + 1], exclColors[e + 2]);
+                                        if (d2 <= exclTolSq) {
+                                            keep = 0;
+                                            break;
+                                        }
+                                        e = e + 3;
+                                    }
+                                }
+                                if (keep == 1) {
+                                    incellPixels = incellPixels + 1;
+                                    if (useCellCounts) cellCounts[c] = cellCounts[c] + 1;
+                                }
+                            }
+                        }
+                        x = x + 1;
+                    }
+                    y = y + 1;
+                }
+            }
+            c = c + 1;
+        }
+
+        cellPixStr = "";
+        if (useCellCounts) cellPixStr = joinNumberList(cellCounts);
+        return newArray(totalPixels, incellPixels, cellPixStr);
+    }
+
     // =============================================================================
     // メインフロー: 対話型の解析手順をここから実行する
     // =============================================================================
-    VERSION_STR = "3.0.0";
+    VERSION_STR = "3.0.1";
     FEATURE_REF_URL = "https://kirikirby.github.io/Macrophage-4-Analysis/sample.png";
     FEATURE_REF_REPO_URL = "https://github.com/KiriKirby/Macrophage-4-Analysis";
     T_lang_title = "Language / 言語 / 语言";
@@ -2979,6 +3906,14 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "[E007] 检测到子文件夹中仍包含子文件夹：%s\n\n" +
             "脚本不支持递归子文件夹。\n\n" +
             "请整理目录后重试。";
+        T_err_fluo_prefix_title = "荧光前缀错误";
+        T_err_fluo_prefix_empty = "[E141] 荧光图像前缀为空。请输入至少 1 个字符。";
+        T_err_fluo_prefix_invalid =
+            "[E142] 荧光图像前缀包含非法字符（“/” 或 “\\”）。\n\n" +
+            "请删除路径分隔符，仅保留前缀本身。";
+        T_err_fluo_prefix_none =
+            "[E143] 未找到任何带此前缀的荧光图像。\n\n" +
+            "请确认前缀是否正确，或检查文件名是否匹配。";
         T_subfolder_title = "子文件夹模式";
         T_subfolder_msg =
             "检测到所选文件夹包含子文件夹。\n" +
@@ -2987,25 +3922,46 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_subfolder_label = "运行方式";
         T_subfolder_keep = "区分子文件夹（保持结构）";
         T_subfolder_flat = "平铺运行（子文件夹名_文件名）";
+        T_folder_option_title = "文件夹与荧光设置";
+        T_fluo_prefix_msg =
+            "若包含荧光图像，请输入其文件名前缀。\n\n" +
+            "规则：\n" +
+            "- 荧光图像文件名 = 前缀 + 普通图像文件名。\n" +
+            "- 前缀区分大小写，不允许包含 “/” 或 “\\”。\n" +
+            "- 普通图像与荧光图像必须位于同一文件夹。\n\n" +
+            "示例：\n" +
+            "- 普通图像：kZymA+ZymA (1).TIF\n" +
+            "- 荧光图像：#kZymA+ZymA (1).TIF";
+        T_fluo_prefix_label = "荧光图像前缀";
 
         T_mode_title = "工作模式选择选择";
         T_mode_label = "请选择模式";
         T_mode_1 = "仅标注细胞 ROI";
         T_mode_2 = "仅执行分析";
         T_mode_3 = "标注后分析（推荐）";
+        T_mode_fluo = "包含荧光图像（按前缀匹配）";
         T_mode_msg =
             "请选择本次工作模式（下拉菜单）：\n\n" +
             "1）仅标注细胞 ROI\n" +
-            "   • 将逐张打开图像。\n" +
-            "   • 你需要手动勾画细胞轮廓，并将 ROI 添加到 ROI Manager。\n" +
-            "   • 完成后脚本将保存细胞 ROI 文件（默认：图像名 + “_cells.zip”）。\n\n" +
+            "   - 将逐张打开图像。\n" +
+            "   - 你需要手动勾画细胞轮廓，并将 ROI 添加到 ROI Manager。\n" +
+            "   - 完成后脚本将保存细胞 ROI 文件（默认：图像名 + “_cells.zip”）。\n\n" +
             "2）仅分析四要素\n" +
-            "   • 将直接执行目标物检测与统计。\n" +
-            "   • 每张图像必须存在对应的细胞 ROI 文件（默认：图像名 + “_cells.zip”）。\n\n" +
+            "   - 将直接执行目标物检测与统计。\n" +
+            "   - 每张图像必须存在对应的细胞 ROI 文件（默认：图像名 + “_cells.zip”）。\n\n" +
             "3）标注后分析（推荐）\n" +
-            "   • 对缺失细胞 ROI 的图像先完成 ROI 标注。\n" +
-            "   • 随后进行目标物抽样（必要时可进行排除对象抽样），最后执行批量分析。\n\n" +
+            "   - 对缺失细胞 ROI 的图像先完成 ROI 标注。\n" +
+            "   - 随后进行目标物抽样（必要时可进行排除对象抽样），最后执行批量分析。\n\n" +
             "说明：点击“OK”确认选择。";
+
+        T_fluo_report_title = "荧光图像报告";
+        T_fluo_report_msg =
+            "荧光图像前缀：%p\n\n" +
+            "统计：\n" +
+            "- 检测到的荧光图像数：%n\n" +
+            "- 无荧光对应的普通图像数：%m\n" +
+            "- 无普通对应的荧光图像数：%o\n\n" +
+            "说明：此为提示信息，点击“OK”继续。";
 
         T_step_roi_title = "细胞 ROI 标注";
         T_step_roi_msg =
@@ -3015,19 +3971,19 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "2）每完成一个细胞轮廓，按键盘 “T” 将该轮廓添加到 ROI Manager。\n" +
             "3）当前图像所有细胞标注完成后，点击本窗口 “OK” 进入下一张图像。\n\n" +
             "保存规则：\n" +
-            "• 脚本将保存 ROI 为 zip 文件：图像名 + “%s.zip”。\n\n" +
+            "- 脚本将保存 ROI 为 zip 文件：图像名 + “%s.zip”。\n\n" +
             "重要提示：\n" +
-            "• 本脚本不会自动切换绘图工具，也不会自动判断细胞边界。\n" +
-            "• 为获得稳定结果，建议保持轮廓闭合并覆盖完整细胞区域。";
+            "- 本脚本不会自动切换绘图工具，也不会自动判断细胞边界。\n" +
+            "- 为获得稳定结果，建议保持轮廓闭合并覆盖完整细胞区域。";
 
         T_step_bead_title = "目标物采样";
         T_step_bead_msg =
             "即将进入【目标物抽样】阶段。\n\n" +
             "目的：\n" +
-            "• 使用你圈选的样本，推断“典型单个目标物”的面积尺度与灰度特征。\n" +
-            "• 推断结果将用于默认检测参数、团块按面积估算目标物数量，以及背景扣除的建议值。\n\n" +
+            "- 使用你圈选的样本，推断“典型单个目标物”的面积尺度与灰度特征。\n" +
+            "- 推断结果将用于默认检测参数、团块按面积估算目标物数量，以及背景扣除的建议值。\n\n" +
             "补充说明：\n" +
-            "• 如需识别特征3/4，可用 Freehand/Polygon 圈选较大或不规则区域；细胞内区域对应特征4，细胞外区域对应特征3。\n\n" +
+            "- 如需识别特征3/4，可用 Freehand/Polygon 圈选较大或不规则区域；细胞内区域对应特征4，细胞外区域对应特征3。\n\n" +
             "操作要求：\n" +
             "1）使用椭圆工具圈选目标物（精度无需极端，但建议贴合）。\n" +
             "2）优先圈选“单个典型目标物”，避免明显团块/粘连，以提高推断可靠性。\n" +
@@ -3039,26 +3995,39 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_step_bead_ex_msg =
             "即将进入【排除对象抽样】阶段（仅在存在多种目标物或易混淆干扰对象时使用）。\n\n" +
             "目的：\n" +
-            "• 学习需要排除对象/区域的灰度阈值（以及可选的面积范围），用于减少误检。\n\n" +
+            "- 学习需要排除对象/区域的灰度阈值（以及可选的面积范围），用于减少误检。\n\n" +
             "圈选规范：\n" +
-            "• 椭圆/矩形 ROI：作为“排除对象”样本（学习灰度与面积范围）。\n" +
-            "• Freehand/Polygon ROI：作为“排除区域”样本（学习灰度，不学习面积范围）。\n\n" +
+            "- 椭圆/矩形 ROI：作为“排除对象”样本（学习灰度与面积范围）。\n" +
+            "- Freehand/Polygon ROI：作为“排除区域”样本（学习灰度，不学习面积范围）。\n\n" +
             "操作步骤：\n" +
             "1）圈选需要排除的对象或区域。\n" +
             "2）每圈选一个 ROI，按键盘 “T” 添加到 ROI Manager。\n" +
             "3）完成后点击本窗口 “OK”。\n" +
             "4）随后使用下拉菜单选择继续抽样、结束并计算进入参数设置，或退出脚本。";
 
+        T_step_fluo_title = "荧光颜色采样";
+        T_step_fluo_msg =
+            "即将进入【荧光颜色采样】阶段。\n\n" +
+            "目的：\n" +
+            "- 选择需要统计的荧光颜色，以及其近似/泛光颜色。\n" +
+            "- （可选）选择背景或其他需要排除的颜色。\n\n" +
+            "操作步骤：\n" +
+            "1）脚本会随机打开荧光图像，请圈选对应颜色区域并按 “T” 添加到 ROI Manager。\n" +
+            "2）每类颜色完成后，点击本窗口 “OK”，并在下拉菜单中选择继续、结束或退出。\n\n" +
+            "说明：\n" +
+            "- 近似颜色用于估计颜色容差。\n" +
+            "- 排斥颜色用于排除背景或其他非目标颜色（可不选）。";
+
         T_feat_title = "目标物特征选择";
         T_feat_msg =
             "即将进入【目标物特征选择】。\n\n" +
             "目的：\n" +
-            "• 指定本次分析需要识别的目标物外观特征。\n\n" +
+            "- 指定本次分析需要识别的目标物外观特征。\n\n" +
             "说明：\n" +
-            "• 仅对所选特征执行检测；同一目标只计数一次。\n" +
-            "• 特征4仅在细胞内判定（需与细胞 ROI 重合）。\n" +
-            "• 特征1与特征5互斥，不能同时选择。\n" +
-            "• 勾选情况会影响后续参数窗口中可调阈值的显示。\n\n" +
+            "- 仅对所选特征执行检测；同一目标只计数一次。\n" +
+            "- 特征4仅在细胞内判定（需与细胞 ROI 重合）。\n" +
+            "- 特征1与特征5互斥，不能同时选择。\n" +
+            "- 勾选情况会影响后续参数窗口中可调阈值的显示。\n\n" +
             "操作步骤：\n" +
             "1）对照弹出的参考图，勾选需要的特征。\n" +
             "2）点击“OK”进入参数设置。";
@@ -3079,6 +4048,11 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_feat_err_conflict = "[E012] 特征1与特征5互斥，不能同时选择。请调整后重试。";
         T_feat_err_none = "[E013] 未选择任何特征。请至少选择一种特征。";
 
+        T_err_fluo_target_title = "荧光颜色采样错误";
+        T_err_fluo_target_none = "[E144] 未选择任何“计算颜色”样本。请至少选择 1 个 ROI。";
+        T_err_fluo_near_title = "荧光颜色采样错误";
+        T_err_fluo_near_none = "[E145] 未选择任何“近似颜色”样本。请至少选择 1 个 ROI。";
+
         T_result_next_title = "结果输出完成";
         T_result_next_msg =
             "结果表已生成。\n\n" +
@@ -3086,33 +4060,39 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "1）勾选下方复选框并点击“OK”，返回参数设置并重新分析。\n" +
             "2）不勾选并点击“OK”，结束脚本。";
         T_result_next_checkbox = "返回参数设置并重新分析";
+        T_end_title = "流程结束";
+        T_end_msg =
+            "本次流程已完成。\n\n" +
+            "说明：\n" +
+            "- 若执行了分析，结果已写入 Results 表。\n" +
+            "- 可根据需要调整参数后重新分析。";
 
         T_step_param_title = "参数确认";
         T_step_param_msg =
             "即将打开【参数设置】窗口。\n\n" +
             "你将看到：\n" +
-            "• 目标物抽样推断的默认面积范围、目标物尺度（用于团块估算）与 Rolling Ball 建议值。\n" +
-            "• 依据所选特征显示的阈值参数：内外对比、背景接近、小尺寸比例、团块最小倍数。\n" +
-            "• 若启用排除过滤，还将显示推断的灰度阈值与可选面积门控范围。\n\n" +
+            "- 目标物抽样推断的默认面积范围、目标物尺度（用于团块估算）与 Rolling Ball 建议值。\n" +
+            "- 依据所选特征显示的阈值参数：内外对比、背景接近、小尺寸比例、团块最小倍数。\n" +
+            "- 若启用排除过滤，还将显示推断的灰度阈值与可选面积门控范围。\n\n" +
             "说明：\n" +
-            "• 参数设置将分为两个窗口依次显示。\n\n" +
+            "- 参数设置将分为两个或三个窗口依次显示（荧光模式会额外出现荧光设置页）。\n\n" +
             "建议：\n" +
-            "• 首次使用可优先采用默认值完成一次批量分析。\n" +
-            "• 如需更严格或更宽松的检测，可调整面积范围与严格程度。\n\n" +
+            "- 首次使用可优先采用默认值完成一次批量分析。\n" +
+            "- 如需更严格或更宽松的检测，可调整面积范围与严格程度。\n\n" +
             "说明：点击 “OK” 确认并进入批量分析。";
 
         T_step_main_title = "开始批量分析";
         T_step_main_msg =
             "即将进入【批量分析】阶段。\n\n" +
             "脚本将对文件夹内所有图像执行：\n" +
-            "• 读取细胞 ROI\n" +
-            "• 目标物检测与统计（含团块估算与可选排除过滤）\n" +
-            "• 汇总并写入 Results 表\n\n" +
+            "- 读取细胞 ROI\n" +
+            "- 目标物检测与统计（含团块估算与可选排除过滤）\n" +
+            "- 汇总并写入 Results 表\n\n" +
             "运行方式：\n" +
-            "• 批量分析在静默模式运行，以减少中间窗口弹出。\n\n" +
+            "- 批量分析在静默模式运行，以减少中间窗口弹出。\n\n" +
             "缺失细胞 ROI 时：\n" +
-            "• 脚本将提示你选择：立即标注 / 跳过 / 跳过全部 / 退出。\n" +
-            "• 跳过的图像仍会在结果表中保留一行（数值为空）。\n\n" +
+            "- 脚本将提示你选择：立即标注 / 跳过 / 跳过全部 / 退出。\n" +
+            "- 跳过的图像仍会在结果表中保留一行（数值为空）。\n\n" +
             "说明：点击 “OK” 开始。";
 
         T_cell_title = "细胞 ROI 标注";
@@ -3138,10 +4118,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "图像：%f\n" +
             "ROI：%b%s.zip\n\n" +
             "选项说明：\n" +
-            "• 加载并继续编辑：打开现有 ROI 以便补充或修正。\n" +
-            "• 重新标注并覆盖保存：从空 ROI 开始，最终覆盖现有 zip。\n" +
-            "• 跳过此图像：不打开该图像，直接进入下一张。\n" +
-            "• 跳过所有已存在 ROI：后续遇到已存在 ROI 将不再提示并直接跳过。\n\n" +
+            "- 加载并继续编辑：打开现有 ROI 以便补充或修正。\n" +
+            "- 重新标注并覆盖保存：从空 ROI 开始，最终覆盖现有 zip。\n" +
+            "- 跳过此图像：不打开该图像，直接进入下一张。\n" +
+            "- 跳过所有已存在 ROI：后续遇到已存在 ROI 将不再提示并直接跳过。\n\n" +
             "请选择处理方式（下拉菜单）：";
 
         T_missing_title = "缺失 ROI";
@@ -3155,8 +4135,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "图像：%f\n" +
             "期望 ROI：%b%s.zip\n\n" +
             "说明：\n" +
-            "• 分析四要素需要细胞 ROI。\n" +
-            "• 若选择跳过，该图像仍会在结果表中保留一行（数值为空）。\n\n" +
+            "- 分析四要素需要细胞 ROI。\n" +
+            "- 若选择跳过，该图像仍会在结果表中保留一行（数值为空）。\n\n" +
             "请选择处理方式（下拉菜单）：";
 
         T_sampling = "采样";
@@ -3164,8 +4144,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "进度：%i / %n\n" +
             "文件：%f\n\n" +
             "请圈选目标物（建议选择单个典型目标物，避免团块）。\n" +
-            "• 如需特征3/4，可用 Freehand/Polygon 圈选较大或不规则区域（细胞内=特征4，细胞外=特征3）。\n" +
-            "• 每圈选一个 ROI，按 “T” 添加到 ROI Manager。\n\n" +
+            "- 如需特征3/4，可用 Freehand/Polygon 圈选较大或不规则区域（细胞内=特征4，细胞外=特征3）。\n" +
+            "- 每圈选一个 ROI，按 “T” 添加到 ROI Manager。\n\n" +
             "完成后点击 “OK”。\n" +
             "随后将在“下一步操作”下拉菜单中选择继续、结束或退出。";
 
@@ -3173,11 +4153,35 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "进度：%i / %n\n" +
             "文件：%f\n\n" +
             "请圈选需要排除的对象/区域。\n" +
-            "• 椭圆/矩形：用于学习排除对象（灰度与面积）。\n" +
-            "• Freehand/Polygon：用于学习排除区域（灰度）。\n\n" +
+            "- 椭圆/矩形：用于学习排除对象（灰度与面积）。\n" +
+            "- Freehand/Polygon：用于学习排除区域（灰度）。\n\n" +
             "每圈选一个 ROI，按 “T” 添加到 ROI Manager。\n" +
             "完成后点击 “OK”。\n" +
             "随后在下拉菜单中选择继续、结束并计算或退出。";
+
+        T_promptAddROI_fluo_target =
+            "进度：%i / %n\n" +
+            "文件：%f\n\n" +
+            "请圈选需要统计的荧光颜色区域。\n" +
+            "每圈选一个 ROI，按 “T” 添加到 ROI Manager。\n\n" +
+            "完成后点击 “OK”。\n" +
+            "随后在下拉菜单中选择继续、结束或退出。";
+
+        T_promptAddROI_fluo_near =
+            "进度：%i / %n\n" +
+            "文件：%f\n\n" +
+            "请圈选与计算颜色相近的荧光颜色（阴影/泛光）。\n" +
+            "每圈选一个 ROI，按 “T” 添加到 ROI Manager。\n\n" +
+            "完成后点击 “OK”。\n" +
+            "随后在下拉菜单中选择继续、结束或退出。";
+
+        T_promptAddROI_fluo_excl =
+            "进度：%i / %n\n" +
+            "文件：%f\n\n" +
+            "请圈选需要排斥的颜色（背景或其他颜色，可不选）。\n" +
+            "每圈选一个 ROI，按 “T” 添加到 ROI Manager。\n\n" +
+            "完成后点击 “OK”。\n" +
+            "随后在下拉菜单中选择继续、结束或退出。";
 
         T_ddLabel = "选择";
         T_ddNext = "下一张";
@@ -3187,21 +4191,43 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
         T_ddInfo_target =
             "请选择下一步操作（下拉菜单）：\n\n" +
-            "• 下一张：继续在下一张图像上抽样。\n" +
-            "• 结束目标抽样并进入下一步：停止抽样，并使用现有样本推断默认参数。\n" +
-            "• 退出脚本：立即结束脚本（不会执行后续批量分析）。\n\n" +
+            "- 下一张：继续在下一张图像上抽样。\n" +
+            "- 结束目标抽样并进入下一步：停止抽样，并使用现有样本推断默认参数。\n" +
+            "- 退出脚本：立即结束脚本（不会执行后续批量分析）。\n\n" +
             "说明：点击 “OK” 确认选择。";
 
         T_ddInfo_excl =
             "请选择下一步操作（下拉菜单）：\n\n" +
-            "• 下一张：继续在下一张图像上抽样。\n" +
-            "• 结束排除抽样并计算：停止排除抽样并进入参数设置。\n" +
-            "• 退出脚本：立即结束脚本（不会执行后续批量分析）。\n\n" +
+            "- 下一张：继续在下一张图像上抽样。\n" +
+            "- 结束排除抽样并计算：停止排除抽样并进入参数设置。\n" +
+            "- 退出脚本：立即结束脚本（不会执行后续批量分析）。\n\n" +
+            "说明：点击 “OK” 确认选择。";
+
+        T_ddInfo_fluo_target =
+            "请选择下一步操作（下拉菜单）：\n\n" +
+            "- 下一张：继续在下一张图像上抽样。\n" +
+            "- 结束计算颜色抽样：停止抽样并进入下一类颜色。\n" +
+            "- 退出脚本：立即结束脚本（不会执行后续批量分析）。\n\n" +
+            "说明：点击 “OK” 确认选择。";
+
+        T_ddInfo_fluo_near =
+            "请选择下一步操作（下拉菜单）：\n\n" +
+            "- 下一张：继续在下一张图像上抽样。\n" +
+            "- 结束近似颜色抽样：停止抽样并进入下一类颜色。\n" +
+            "- 退出脚本：立即结束脚本（不会执行后续批量分析）。\n\n" +
+            "说明：点击 “OK” 确认选择。";
+
+        T_ddInfo_fluo_excl =
+            "请选择下一步操作（下拉菜单）：\n\n" +
+            "- 下一张：继续在下一张图像上抽样。\n" +
+            "- 结束排斥颜色抽样：停止抽样并进入参数设置。\n" +
+            "- 退出脚本：立即结束脚本（不会执行后续批量分析）。\n\n" +
             "说明：点击 “OK” 确认选择。";
 
         T_param = "分析参数";
         T_param_step1_title = "参数设置（1/2）";
         T_param_step2_title = "参数设置（2/2）";
+        T_param_step3_title = "参数设置（3/3）";
         T_param_note_title = "参数说明";
         T_section_target = "目标物";
         T_section_feature = "特征识别";
@@ -3209,7 +4235,16 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_section_roi = "ROI 文件";
         T_section_excl = "排除过滤";
         T_section_format = "数据格式化";
+        T_section_fluo = "荧光颜色";
         T_section_sep = "---- %s ----";
+
+        T_fluo_param_report =
+            "荧光颜色概要：\n" +
+            "- 计算颜色：%tname (%trgb)\n" +
+            "- 近似颜色：%nname (%nrgb)\n" +
+            "- 排斥颜色：%ex\n\n" +
+            "说明：可在下方修改。";
+        T_fluo_none_label = "无";
 
         T_minA = "最小面积（px²）";
         T_maxA = "最大面积（px²）";
@@ -3217,6 +4252,13 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_allow_clumps = "团块估算：按面积拆分计数";
         T_min_phago_enable = "微量吞噬阈值（动态计算）";
         T_pixel_count_enable = "像素计数模式（目标物数量按像素统计，忽略面积/圆度/团块拆分）";
+        T_fluo_pixel_force = "荧光模式下将强制使用像素计数模式。";
+        T_fluo_target_rgb = "计算颜色（R,G,B）";
+        T_fluo_near_rgb = "近似颜色（R,G,B）";
+        T_fluo_tol = "颜色宽容度（0–441）";
+        T_fluo_excl_enable = "启用排斥颜色";
+        T_fluo_excl_rgb = "排斥颜色列表（R,G,B/R,G,B）";
+        T_fluo_excl_tol = "排斥颜色宽容度（0–441）";
 
         T_feat_center_diff = "内外对比阈值（中心-外圈）";
         T_feat_bg_diff = "与背景接近阈值";
@@ -3243,20 +4285,22 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_excl_maxA = "最大面积（px²）";
 
         T_data_format_enable = "启用数据格式化";
-        T_data_format_rule = "文件名识别规则（<p>/<f>）";
+        T_data_format_rule = "文件名规则预设";
+        T_rule_preset_windows = "Windows（name (1)）";
+        T_rule_preset_dolphin = "Dolphin（name1）";
+        T_rule_preset_mac = "macOS（name 1）";
         T_data_format_cols = "表格列格式";
         T_data_opt_enable = "数据优化（IBR/PCR）";
         T_data_format_doc =
             "【数据格式化 - 代号速查】\n" +
-            "A. 文件名规则（仅用于解析，不是列代号）：\n" +
-            "  语法：用\"/\"分段；<p>/<f> 为代号；字面量可直接写；空格请写成 \" \"。\n" +
-            "  代号：<p>=项目名 | <f>=数字 | f=\"F\"/\"T\" 绑定列。\n" +
-            "  子文件夹：folderRule//fileRule。\n" +
-            "  默认参考（可抄写）：\n" +
-            "    Dolphin：<p>/<f>,f=\"F\"\n" +
-            "    Windows Explorer：<p>/\" \"/(/<f>/),f=\"F\"\n" +
-            "    macOS Finder：<p>/\" \"/<f>,f=\"F\"\n" +
-            "  子文件夹示例：<f>/hr,f=\"T\"//<p>/\" \"/(/<f>/)\n\n" +
+            "A. 文件名规则预设（仅下拉选择，不支持自定义）：\n" +
+            "  1) Windows：name (1)（括号前必须有空格）\n" +
+            "  2) Dolphin：name1（数字直接接在末尾，无分隔符）\n" +
+            "  3) macOS：name 1（末尾数字前有 1 个空格）\n" +
+            "  示例：pGb+ZymA (3) → 项目名=pGb+ZymA，编号=3\n" +
+            "  时间解析：仅识别“xxhr”形式（如 0hr/2.5hr/24hr）。\n" +
+            "  - 保持结构模式：从子文件夹名解析 T\n" +
+            "  - 平铺模式：从文件名解析 T\n\n" +
             "B. 表格列代号（内置）：\n" +
             "  识别类：PN=项目名 | F=编号 | T=时间\n" +
             "  计数类：TB=总目标 | BIC=细胞内目标 | CWB=含目标细胞\n" +
@@ -3269,28 +4313,31 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "D. 备注：\n" +
             "  - 若指定 T，结果按 Time 升序；同一时间统计 EIBR/EPCR/ISDP/PSDP/EBPC/BPCSDP。\n" +
             "  - 若列含 BPC/EBPC/BPCSDP，则按细胞展开；仅单细胞列随行变化。\n" +
+            "  - 多项目名时，列名追加“_项目名”；按项目名从左到右平铺。\n" +
             "  - 像素计数模式下，TB/BIC/BPC/EBPC/BPCSDP 输出像素数量（px）。\n" +
+            "  - 荧光模式下，TB/BIC/BPC/EBPC/BPCSDP 自动追加前缀列（如 #BPC），无对应荧光图像则留空。\n" +
             "  - 参数用逗号分隔，值需英文双引号；不允许空列项。\n";
         T_data_format_err_title = "数据格式化 - 输入错误";
         T_data_format_err_hint = "请修正后重试。";
         T_log_toggle_on = "启用";
         T_log_toggle_off = "关闭";
-        T_log_error = "  │  ✗ 错误：%s";
+        T_log_error = "  |  X 错误：%s";
 
-        T_err_df_rule_empty = "[E101] 文件名识别规则为空。示例：<p>/\" \"/(/<f>/),f=\"F\"";
-        T_err_df_rule_slash = "[E102] 文件名识别规则必须包含至少一个“/”分隔符。示例：<p>/\" \"/(/<f>/)";
-        T_err_df_rule_parts = "[E103] 文件名识别规则的每一段都必须填写。";
-        T_err_df_rule_tokens = "[E104] 文件名识别规则仅允许 <p> 与 <f> 作为代号，其余应为字面量。";
-        T_err_df_rule_need_both = "[E105] 文件名识别规则必须同时包含 <p> 与 <f>。";
-        T_err_df_rule_order = "[E106] 文件名识别规则顺序只允许 <p>/<f> 或 <f>/<p>。";
-        T_err_df_rule_need_subfolder = "[E107] 子文件夹保持结构模式需要使用“子文件夹规则//文件名规则”。";
-        T_err_df_rule_no_subfolder = "[E108] 当前模式不允许使用“//”子文件夹规则。";
-        T_err_df_rule_double_slash = "[E109] 文件名识别规则中“//”只能出现一次。";
-        T_err_df_rule_param_kv = "[E110] 规则参数必须写成 key=\"value\" 形式。";
-        T_err_df_rule_param_unknown_prefix = "[E111] 未知规则参数：";
-        T_err_df_rule_param_quote = "[E112] 规则参数值必须使用英文双引号包裹。";
-        T_err_df_rule_param_f_value = "[E113] f 只能设置为 \"F\" 或 \"T\"。";
-        T_err_df_rule_param_duplicate = "[E114] 规则参数 f 只能设置一次。";
+        T_err_df_rule_empty = "[E101] 文件名规则预设为空。请从 Windows / Dolphin / macOS 中选择。";
+        T_err_df_rule_slash = "[E102] 文件名规则预设无效。";
+        T_err_df_rule_parts = "[E103] 文件名规则预设无效：请重新选择。";
+        T_err_df_rule_tokens = "[E104] 当前版本不支持自定义文件名规则。请使用预设。";
+        T_err_df_rule_need_both = "[E105] 当前版本不支持自定义文件名规则。请使用预设。";
+        T_err_df_rule_order = "[E106] 当前版本不支持自定义文件名规则。请使用预设。";
+        T_err_df_rule_need_subfolder = "[E107] 当前版本不支持“//”子文件夹规则。";
+        T_err_df_rule_no_subfolder = "[E108] 当前版本不支持“//”子文件夹规则。";
+        T_err_df_rule_double_slash = "[E109] 当前版本不支持“//”子文件夹规则。";
+        T_err_df_rule_param_kv = "[E110] 当前版本不支持文件名规则参数。";
+        T_err_df_rule_param_unknown_prefix = "[E111] 当前版本不支持文件名规则参数：";
+        T_err_df_rule_param_quote = "[E112] 当前版本不支持文件名规则参数。";
+        T_err_df_rule_param_f_value = "[E113] 当前版本不支持文件名规则参数。";
+        T_err_df_rule_param_duplicate = "[E114] 当前版本不支持文件名规则参数。";
+        T_err_df_rule_quote = "[E115] 当前版本不支持自定义字面量规则。";
         T_err_df_cols_empty = "[E121] 表格列格式为空。";
         T_err_df_cols_empty_item = "[E122] 表格列格式包含空项（可能存在连续“//”或首尾“/”）。";
         T_err_df_cols_empty_token = "[E123] 表格列格式中存在空列代号。";
@@ -3309,20 +4356,21 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_err_df_generic = "[E199] 数据格式化输入无效。";
         T_err_df_generic_detail = "原因：未能识别输入内容。";
         T_err_df_field = "请检查：%s";
-        T_err_df_fix_101 = "修正：填写有效规则（例：<p>/\" \"/(/<f>/) 或 <p>/<f>）。";
-        T_err_df_fix_102 = "修正：使用“/”分段（至少一个）。";
-        T_err_df_fix_103 = "修正：补齐每个“/”之间的内容。";
-        T_err_df_fix_104 = "修正：只将 <p>/<f> 作为代号，其余写成字面量。";
-        T_err_df_fix_105 = "修正：同时包含 <p> 和 <f>。";
-        T_err_df_fix_106 = "修正：顺序仅 <p>/<f> 或 <f>/<p>。";
-        T_err_df_fix_107 = "修正：按 folderRule//fileRule 格式填写。";
-        T_err_df_fix_108 = "修正：删除“//”或切换到保持结构模式。";
-        T_err_df_fix_109 = "修正：“//”只能出现一次。";
-        T_err_df_fix_110 = "修正：参数写成 key=\"value\"。";
-        T_err_df_fix_111 = "修正：仅允许 f 参数。";
-        T_err_df_fix_112 = "修正：值用英文双引号。";
-        T_err_df_fix_113 = "修正：f 只能为 \"F\" 或 \"T\"。";
-        T_err_df_fix_114 = "修正：f 只能出现一次。";
+        T_err_df_fix_101 = "修正：选择预设（Windows / Dolphin / macOS）。";
+        T_err_df_fix_102 = "修正：重新选择有效预设。";
+        T_err_df_fix_103 = "修正：重新选择有效预设。";
+        T_err_df_fix_104 = "修正：不要输入自定义规则，改用预设。";
+        T_err_df_fix_105 = "修正：不要输入自定义规则，改用预设。";
+        T_err_df_fix_106 = "修正：不要输入自定义规则，改用预设。";
+        T_err_df_fix_107 = "修正：不要输入“//”，直接使用预设。";
+        T_err_df_fix_108 = "修正：不要输入“//”，直接使用预设。";
+        T_err_df_fix_109 = "修正：不要输入“//”，直接使用预设。";
+        T_err_df_fix_110 = "修正：预设不支持参数，请移除参数。";
+        T_err_df_fix_111 = "修正：预设不支持参数，请移除参数。";
+        T_err_df_fix_112 = "修正：预设不支持参数，请移除参数。";
+        T_err_df_fix_113 = "修正：预设不支持参数，请移除参数。";
+        T_err_df_fix_114 = "修正：预设不支持参数，请移除参数。";
+        T_err_df_fix_115 = "修正：不要输入自定义字面量规则，改用预设。";
         T_err_df_fix_121 = "修正：至少填写一个列代号。";
         T_err_df_fix_122 = "修正：移除空项（避免连续“//”或首尾“/”）。";
         T_err_df_fix_123 = "修正：补充列代号。";
@@ -3343,12 +4391,26 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "[E201] 数值输入无效：%s\n\n" +
             "阶段：%stage\n\n" +
             "建议：请输入数字，可包含小数点。";
+        T_err_fluo_rgb_title = "荧光参数错误";
+        T_err_fluo_rgb_format =
+            "[E146] 颜色“%s”格式错误（value=%v, stage=%stage）。\n\n" +
+            "请使用 “R,G,B” 格式，例如：0,255,0；多色用 “/” 分隔。";
+        T_err_fluo_rgb_range =
+            "[E147] 颜色“%s”范围错误（value=%v, stage=%stage）。\n\n" +
+            "R,G,B 必须在 0~255 之间。";
+        T_err_fluo_excl_title = "荧光参数错误";
+        T_err_fluo_excl_empty = "[E148] 已启用排斥颜色，但未提供任何颜色值。请填写或关闭该选项。";
+        T_err_fluo_size_title = "荧光图像错误";
+        T_err_fluo_size_mismatch =
+            "[E149] 荧光图像尺寸与普通图像不一致（%f）。\n\n" +
+            "荧光图像：%w x %h\n" +
+            "普通图像：%ow x %oh";
 
         T_beads_type_title = "对象类型确认";
         T_beads_type_msg =
             "请确认图像中是否存在多种目标物或易混淆对象。\n\n" +
-            "• 若仅存在单一目标物类型：建议不启用排除过滤。\n" +
-            "• 若存在多种目标物或明显干扰对象：建议启用排除过滤，并进行排除对象抽样。\n\n" +
+            "- 若仅存在单一目标物类型：建议不启用排除过滤。\n" +
+            "- 若存在多种目标物或明显干扰对象：建议启用排除过滤，并进行排除对象抽样。\n\n" +
             "说明：即使在此处选择启用排除过滤，你仍可在参数设置窗口中关闭该功能。";
         T_beads_type_checkbox = "包含多种目标物（启用排除过滤）";
 
@@ -3395,68 +4457,84 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_err_labelmask_failed = "[E005] 细胞标签图生成失败：填充后中心像素仍为 0。";
         T_err_labelmask_hint = "请检查 ROI[1] 是否为闭合面积 ROI，并确保 ROI 与图像区域有效重叠。";
 
-        T_log_sep = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
-        T_log_start = "✓ 开始：巨噬细胞四要素分析";
-        T_log_lang = "  ├─ 语言：中文";
-        T_log_dir = "  ├─ 文件夹：已选择";
-        T_log_mode = "  └─ 模式：%s";
-        T_log_roi_phase_start = "✓ 步骤：细胞 ROI 标注";
-        T_log_roi_phase_done = "✓ 完成：细胞 ROI 标注";
-        T_log_sampling_start = "✓ 步骤：目标物抽样";
-        T_log_sampling_cancel = "✓ 完成：抽样（用户结束抽样）";
-        T_log_sampling_img = "  ├─ 抽样 [%i/%n]：%f";
-        T_log_sampling_rois = "  │  └─ ROI 数量：%i";
-        T_log_params_calc = "✓ 完成：默认参数已推断";
-        T_log_feature_select = "  ├─ 目标物特征：%s";
-        T_log_main_start = "✓ 开始：批量分析（静默模式）";
-        T_log_processing = "  ├─ 处理 [%i/%n]：%f";
-        T_log_missing_roi = "  │  ⚠ 缺少 ROI：%f";
-        T_log_missing_choice = "  │  └─ 选择：%s";
-        T_log_load_roi = "  │  ├─ 加载 ROI";
-        T_log_roi_count = "  │  │  └─ 细胞数：%i";
-        T_log_bead_detect = "  │  ├─ 检测目标物并统计";
-        T_log_bead_count = "  │  │  ├─ 目标物总数：%i";
-        T_log_bead_incell = "  │  │  ├─ 细胞内目标物：%i";
-        T_log_bead_count_px = "  │  │  ├─ 目标物像素总数：%i";
-        T_log_bead_incell_px = "  │  │  ├─ 细胞内目标物像素：%i";
-        T_log_cell_withbead = "  │  │  └─ 含目标物细胞：%i";
-        T_log_bead_summary_done = "  │  │  └─ 目标物统计完成";
-        T_log_complete = "  │  └─ ✓ 完成";
-        T_log_skip_roi = "  │  ✗ 跳过：缺少 ROI";
-        T_log_skip_nocell = "  │  ✗ 跳过：ROI 中无有效细胞";
-        T_log_results_save = "✓ 完成：结果已写入 Results 表";
-        T_log_opt_done = "✓ 数据优化完成";
-        T_log_opt_time = "✓ 时间趋势优化完成";
-        T_log_all_done = "✓✓✓ 全部完成 ✓✓✓";
-        T_log_summary = "📊 汇总：共处理 %i 张图像";
-        T_log_unit_sync_keep = "  └─ 目标物尺度：使用抽样推断值 = %s";
-        T_log_unit_sync_ui = "  └─ 目标物尺度：检测到手动修改，改用 UI 中值 = %s";
-        T_log_analyze_header = "  ├─ 解析参数";
-        T_log_analyze_img = "  ├─ 图像：%f";
-        T_log_analyze_roi = "  │  ├─ ROI：%s";
-        T_log_analyze_size = "  │  ├─ 尺寸：%w x %h";
-        T_log_analyze_pixel_mode = "  │  ├─ 计数模式：像素计数（忽略面积/圆度/团块拆分）";
-        T_log_analyze_bead_params = "  │  ├─ 目标物参数：area=%min-%max, circ>=%circ, unit=%unit";
-        T_log_analyze_features = "  │  ├─ 目标物特征：%s";
-        T_log_analyze_feature_params = "  │  ├─ 特征参数：diff=%diff bg=%bg small=%small clump=%clump";
-        T_log_analyze_strict = "  │  ├─ 严格度：%strict，融合策略：%policy";
-        T_log_analyze_bg = "  │  ├─ 背景扣除：rolling=%r";
-        T_log_analyze_excl_on = "  │  ├─ 排除：mode=%mode thr=%thr strict=%strict sizeGate=%gate range=%min-%max";
-        T_log_analyze_excl_off = "  │  └─ 排除：未启用";
-        T_log_analyze_method = "  │  └─ 检测流程：A=Yen+Mask+Watershed；B=Edges+Otsu+Mask+Watershed；融合=%policy";
-        T_log_analyze_excl_adjust = "  │  └─ 动态阈值：mean=%mean std=%std kstd=%kstd thr=%thr";
-        T_log_label_mask = "  │  ├─ 细胞标签图：%s";
+        T_log_sep = "------------------------------------------------";
+        T_log_start = "OK 开始：巨噬细胞四要素分析";
+        T_log_lang = "  |- 语言：中文";
+        T_log_dir = "  |- 文件夹：已选择";
+        T_log_mode = "  - 模式：%s";
+        T_log_fluo_prefix = "  |- 荧光前缀：%s";
+        T_log_fluo_report = "  - 荧光统计：images=%n missing=%m orphan=%o";
+        T_log_roi_phase_start = "OK 步骤：细胞 ROI 标注";
+        T_log_roi_phase_done = "OK 完成：细胞 ROI 标注";
+        T_log_sampling_start = "OK 步骤：目标物抽样";
+        T_log_fluo_sampling_start = "OK 步骤：荧光颜色抽样";
+        T_log_fluo_sampling_done = "OK 完成：荧光颜色抽样";
+        T_log_sampling_cancel = "OK 完成：抽样（用户结束抽样）";
+        T_log_sampling_img = "  |- 抽样 [%i/%n]：%f";
+        T_log_sampling_rois = "  |  - ROI 数量：%i";
+        T_log_params_calc = "OK 完成：默认参数已推断";
+        T_log_feature_select = "  |- 目标物特征：%s";
+        T_log_main_start = "OK 开始：批量分析（静默模式）";
+        T_log_processing = "  |- 处理 [%i/%n]：%f";
+        T_log_missing_roi = "  |  WARN 缺少 ROI：%f";
+        T_log_missing_choice = "  |  - 选择：%s";
+        T_log_load_roi = "  |  |- 加载 ROI";
+        T_log_roi_count = "  |  |  - 细胞数：%i";
+        T_log_bead_detect = "  |  |- 检测目标物并统计";
+        T_log_bead_count = "  |  |  |- 目标物总数：%i";
+        T_log_bead_incell = "  |  |  |- 细胞内目标物：%i";
+        T_log_bead_count_px = "  |  |  |- 目标物像素总数：%i";
+        T_log_bead_incell_px = "  |  |  |- 细胞内目标物像素：%i";
+        T_log_cell_withbead = "  |  |  - 含目标物细胞：%i";
+        T_log_fluo_missing = "  |  WARN 缺少荧光图像：%f";
+        T_log_fluo_count = "  |  |  |- 荧光总像素：%i";
+        T_log_fluo_incell = "  |  |  - 细胞内荧光像素：%i";
+        T_log_bead_summary_done = "  |  |  - 目标物统计完成";
+        T_log_complete = "  |  - OK 完成";
+        T_log_skip_roi = "  |  X 跳过：缺少 ROI";
+        T_log_skip_nocell = "  |  X 跳过：ROI 中无有效细胞";
+        T_log_results_save = "OK 完成：结果已写入 Results 表";
+        T_log_opt_done = "OK 数据优化完成";
+        T_log_opt_time = "OK 时间趋势优化完成";
+        T_log_all_done = "OK OK OK 全部完成 OK OK OK";
+        T_log_summary = "汇总：共处理 %i 张图像";
+        T_log_unit_sync_keep = "  - 目标物尺度：使用抽样推断值 = %s";
+        T_log_unit_sync_ui = "  - 目标物尺度：检测到手动修改，改用 UI 中值 = %s";
+        T_log_analyze_header = "  |- 解析参数";
+        T_log_analyze_img = "  |- 图像：%f";
+        T_log_analyze_roi = "  |  |- ROI：%s";
+        T_log_analyze_size = "  |  |- 尺寸：%w x %h";
+        T_log_analyze_pixel_mode = "  |  |- 计数模式：像素计数（忽略面积/圆度/团块拆分）";
+        T_log_analyze_bead_params = "  |  |- 目标物参数：area=%min-%max, circ>=%circ, unit=%unit";
+        T_log_analyze_features = "  |  |- 目标物特征：%s";
+        T_log_analyze_feature_params = "  |  |- 特征参数：diff=%diff bg=%bg small=%small clump=%clump";
+        T_log_analyze_strict = "  |  |- 严格度：%strict，融合策略：%policy";
+        T_log_analyze_bg = "  |  |- 背景扣除：rolling=%r";
+        T_log_analyze_excl_on = "  |  |- 排除：mode=%mode thr=%thr strict=%strict sizeGate=%gate range=%min-%max";
+        T_log_analyze_excl_off = "  |  - 排除：未启用";
+        T_log_analyze_method = "  |  - 检测流程：A=Yen+Mask+Watershed；B=Edges+Otsu+Mask+Watershed；融合=%policy";
+        T_log_analyze_excl_adjust = "  |  - 动态阈值：mean=%mean std=%std kstd=%kstd thr=%thr";
+        T_log_analyze_fluo_file = "  |  |- 荧光图像：%f";
+        T_log_analyze_fluo_params =
+            "  |  |- 荧光参数：target=%t near=%n tol=%tol excl=%ex exclTol=%et";
+        T_log_label_mask = "  |  |- 细胞标签图：%s";
         T_log_label_mask_ok = "已生成";
         T_log_label_mask_fail = "生成失败";
         T_log_policy_strict = "严格";
         T_log_policy_union = "并集";
         T_log_policy_loose = "宽松";
-        T_log_df_header = "  ├─ 数据格式化：自定义解析明细";
-        T_log_df_rule = "  │  ├─ 规则：%s";
-        T_log_df_cols = "  │  ├─ 列格式：%s";
-        T_log_df_sort_asc = "  │  ├─ 排序：%s 升序";
-        T_log_df_sort_desc = "  │  ├─ 排序：%s 降序";
-        T_log_df_item = "  │  └─ item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
+        T_log_df_header = "  |- 数据格式化：自定义解析明细";
+        T_log_df_rule = "  |  |- 规则：%s";
+        T_log_df_cols = "  |  |- 列格式：%s";
+        T_log_df_sort_asc = "  |  |- 排序：%s 升序";
+        T_log_df_sort_desc = "  |  |- 排序：%s 降序";
+        T_log_df_item = "  |  - item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
+        T_log_df_parse_header = "  |- 解析明细：文件名/时间";
+        T_log_df_parse_name = "  |  - [%i/%n] file=%f | base=%b | preset=%p | pn=%pn (ok=%po) | f=%fs | fNum=%fn";
+        T_log_df_parse_time = "  |  |- time: sub=%s | t=%t | tNum=%tn | ok=%ok";
+        T_log_df_parse_time_off = "  |  |- time: disabled (no T column)";
+        T_log_df_parse_detail = "  |  |- detail: %s";
+        T_log_scan_folder = "  |- scan: path=%p | dirs=%d | imgs=%n | fluo=%f";
 
         T_reason_no_target = "未进行目标物抽样：将使用默认目标物尺度与默认 Rolling Ball。";
         T_reason_target_ok = "已基于目标物抽样推断目标物尺度与 Rolling Ball（稳健估计）。";
@@ -3491,6 +4569,14 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "[E007] サブフォルダー内にさらにサブフォルダーがあります: %s\n\n" +
             "このスクリプトは再帰的なサブフォルダーをサポートしません。\n\n" +
             "フォルダー構成を整理して再実行してください。";
+        T_err_fluo_prefix_title = "蛍光プレフィックスエラー";
+        T_err_fluo_prefix_empty = "[E141] 蛍光画像プレフィックスが空です。1 文字以上入力してください。";
+        T_err_fluo_prefix_invalid =
+            "[E142] 蛍光画像プレフィックスに無効な文字（“/” または “\\”）が含まれています。\n\n" +
+            "区切り文字を削除し、プレフィックスのみを入力してください。";
+        T_err_fluo_prefix_none =
+            "[E143] このプレフィックスに一致する蛍光画像が見つかりません。\n\n" +
+            "プレフィックスとファイル名を確認してください。";
         T_subfolder_title = "サブフォルダーモード";
         T_subfolder_msg =
             "選択したフォルダーにサブフォルダーが含まれています。\n" +
@@ -3499,25 +4585,46 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_subfolder_label = "実行方法";
         T_subfolder_keep = "サブフォルダー別に実行（構造維持）";
         T_subfolder_flat = "フラット実行（サブフォルダー名_ファイル名）";
+        T_folder_option_title = "フォルダーと蛍光設定";
+        T_fluo_prefix_msg =
+            "蛍光画像を含む場合は、ファイル名のプレフィックスを入力してください。\n\n" +
+            "ルール：\n" +
+            "- 蛍光画像のファイル名 = プレフィックス + 通常画像のファイル名。\n" +
+            "- プレフィックスは大文字/小文字を区別し、“/” または “\\” を含めないでください。\n" +
+            "- 通常画像と蛍光画像は同じフォルダーに置いてください。\n\n" +
+            "例：\n" +
+            "- 通常画像：kZymA+ZymA (1).TIF\n" +
+            "- 蛍光画像：#kZymA+ZymA (1).TIF";
+        T_fluo_prefix_label = "蛍光画像プレフィックス";
 
         T_mode_title = "作業モード";
         T_mode_label = "モード";
         T_mode_1 = "細胞 ROI のみ作成（*_cells.zip を生成）";
         T_mode_2 = "4要素解析のみ（既存の細胞 ROI が必要）";
         T_mode_3 = "細胞 ROI 作成後に 4要素解析（推奨）";
+        T_mode_fluo = "蛍光画像を含む（プレフィックスで対応）";
         T_mode_msg =
             "作業モードを選択してください（プルダウン）：\n\n" +
             "1）細胞 ROI のみ作成\n" +
-            "   • 画像を順に開きます。\n" +
-            "   • 細胞輪郭を手動で描画し、ROI Manager に追加します。\n" +
-            "   • 完了後、細胞 ROI を zip（既定：画像名 + “_cells.zip”）として保存します。\n\n" +
+            "   - 画像を順に開きます。\n" +
+            "   - 細胞輪郭を手動で描画し、ROI Manager に追加します。\n" +
+            "   - 完了後、細胞 ROI を zip（既定：画像名 + “_cells.zip”）として保存します。\n\n" +
             "2）4要素解析のみ\n" +
-            "   • 対象物の検出と統計を実行します。\n" +
-            "   • 各画像に対応する細胞 ROI（既定：画像名 + “_cells.zip”）が必須です。\n\n" +
+            "   - 対象物の検出と統計を実行します。\n" +
+            "   - 各画像に対応する細胞 ROI（既定：画像名 + “_cells.zip”）が必須です。\n\n" +
             "3）作成→解析（推奨）\n" +
-            "   • 不足している細胞 ROI を先に作成します。\n" +
-            "   • その後、ターゲット対象物サンプリング（必要に応じて除外サンプリング）を行い、最後にバッチ解析を実行します。\n\n" +
+            "   - 不足している細胞 ROI を先に作成します。\n" +
+            "   - その後、ターゲット対象物サンプリング（必要に応じて除外サンプリング）を行い、最後にバッチ解析を実行します。\n\n" +
             "説明： “OK” で確定してください。";
+
+        T_fluo_report_title = "蛍光画像レポート";
+        T_fluo_report_msg =
+            "蛍光画像プレフィックス：%p\n\n" +
+            "集計：\n" +
+            "- 検出された蛍光画像数：%n\n" +
+            "- 蛍光対応のない通常画像数：%m\n" +
+            "- 通常対応のない蛍光画像数：%o\n\n" +
+            "説明：これは通知です。“OK” を押して続行します。";
 
         T_step_roi_title = "手順 1：細胞 ROI 作成";
         T_step_roi_msg =
@@ -3527,19 +4634,19 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "2）輪郭を 1 つ描いたら、キーボードの “T” で ROI Manager に追加します。\n" +
             "3）この画像の細胞がすべて完了したら、このウィンドウの “OK” を押して次へ進みます。\n\n" +
             "保存：\n" +
-            "• ROI は zip（画像名 + “%s.zip”）として保存されます。\n\n" +
+            "- ROI は zip（画像名 + “%s.zip”）として保存されます。\n\n" +
             "重要：\n" +
-            "• 本スクリプトは描画ツールを自動で切り替えません。\n" +
-            "• 安定した結果のため、輪郭は閉じた領域 ROI として作成してください。";
+            "- 本スクリプトは描画ツールを自動で切り替えません。\n" +
+            "- 安定した結果のため、輪郭は閉じた領域 ROI として作成してください。";
 
         T_step_bead_title = "手順 2：ターゲット対象物サンプリング";
         T_step_bead_msg =
             "【ターゲット対象物サンプリング】を開始します。\n\n" +
             "目的：\n" +
-            "• サンプルから「単体対象物の典型的な面積スケール」と「濃度特性」を推定します。\n" +
-            "• 推定値は既定の検出パラメータ、塊（クラスタ）の面積による対象物数推定、背景補正値（Rolling Ball）の提案に利用されます。\n\n" +
+            "- サンプルから「単体対象物の典型的な面積スケール」と「濃度特性」を推定します。\n" +
+            "- 推定値は既定の検出パラメータ、塊（クラスタ）の面積による対象物数推定、背景補正値（Rolling Ball）の提案に利用されます。\n\n" +
             "補足：\n" +
-            "• 特徴3/4を使う場合は、フリーハンド/ポリゴンで大きめ・不規則な領域も追加してください（細胞内=特徴4、細胞外=特徴3）。\n\n" +
+            "- 特徴3/4を使う場合は、フリーハンド/ポリゴンで大きめ・不規則な領域も追加してください（細胞内=特徴4、細胞外=特徴3）。\n\n" +
             "操作：\n" +
             "1）楕円ツールでターゲット対象物をマークします（厳密な精度は不要ですが、可能な範囲でフィットさせてください）。\n" +
             "2）塊ではなく、代表的な単体対象物を優先してマークしてください。\n" +
@@ -3551,26 +4658,39 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_step_bead_ex_msg =
             "【除外サンプリング】を開始します（複数種類の対象物や紛らわしい干渉物がある場合に使用）。\n\n" +
             "目的：\n" +
-            "• 除外対象の濃度閾値（必要に応じて面積範囲）を学習し、誤検出を抑制します。\n\n" +
+            "- 除外対象の濃度閾値（必要に応じて面積範囲）を学習し、誤検出を抑制します。\n\n" +
             "ROI の扱い：\n" +
-            "• 楕円/矩形 ROI：除外対象サンプル（濃度＋面積）として扱います。\n" +
-            "• フリーハンド/ポリゴン ROI：除外領域（濃度のみ）として扱います。\n\n" +
+            "- 楕円/矩形 ROI：除外対象サンプル（濃度＋面積）として扱います。\n" +
+            "- フリーハンド/ポリゴン ROI：除外領域（濃度のみ）として扱います。\n\n" +
             "手順：\n" +
             "1）除外したい対象または領域をマークします。\n" +
             "2）ROI ごとに “T” を押して ROI Manager に追加します。\n" +
             "3）完了後 “OK”。\n" +
             "4）続くプルダウンで継続 / 終了して計算 / 終了 を選択します。";
 
+        T_step_fluo_title = "蛍光色サンプリング";
+        T_step_fluo_msg =
+            "【蛍光色サンプリング】を開始します。\n\n" +
+            "目的：\n" +
+            "- 集計対象の蛍光色と、その近似/ハロー色を選択します。\n" +
+            "- （任意）背景や除外したい色を選択します。\n\n" +
+            "手順：\n" +
+            "1）ランダムに蛍光画像を開き、対象色の領域を選択して “T” で ROI Manager に追加します。\n" +
+            "2）各色のサンプリングが終わったら “OK”。続くプルダウンで継続/終了/退出を選択します。\n\n" +
+            "説明：\n" +
+            "- 近似色は色許容度の推定に使います。\n" +
+            "- 除外色は背景や他の色を除くために使います（省略可）。";
+
         T_feat_title = "対象物特徴の選択";
         T_feat_msg =
             "【対象物特徴の選択】を行います。\n\n" +
             "目的：\n" +
-            "• 本解析で検出する対象物の外観特徴を指定します。\n\n" +
+            "- 本解析で検出する対象物の外観特徴を指定します。\n\n" +
             "説明：\n" +
-            "• 選択した特徴のみを検出し、同一対象は重複計数しません。\n" +
-            "• 特徴4は細胞内のみ判定します（細胞 ROI と重なる領域）。\n" +
-            "• 特徴1と特徴5は同時に選択できません。\n\n" +
-            "• 選択内容に応じて、後続の閾値パラメータが表示されます。\n\n" +
+            "- 選択した特徴のみを検出し、同一対象は重複計数しません。\n" +
+            "- 特徴4は細胞内のみ判定します（細胞 ROI と重なる領域）。\n" +
+            "- 特徴1と特徴5は同時に選択できません。\n\n" +
+            "- 選択内容に応じて、後続の閾値パラメータが表示されます。\n\n" +
             "手順：\n" +
             "1）表示される参考画像を見て、必要な特徴を選択します。\n" +
             "2）“OK” でパラメータ設定へ進みます。";
@@ -3591,6 +4711,11 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_feat_err_conflict = "[E012] 特徴1と特徴5は同時に選択できません。調整して再試行してください。";
         T_feat_err_none = "[E013] 特徴が未選択です。少なくとも1つ選択してください。";
 
+        T_err_fluo_target_title = "蛍光色サンプリングエラー";
+        T_err_fluo_target_none = "[E144] 「計算色」のサンプルがありません。ROI を 1 つ以上選択してください。";
+        T_err_fluo_near_title = "蛍光色サンプリングエラー";
+        T_err_fluo_near_none = "[E145] 「近似色」のサンプルがありません。ROI を 1 つ以上選択してください。";
+
         T_result_next_title = "結果出力完了";
         T_result_next_msg =
             "Results 表が作成されました。\n\n" +
@@ -3598,32 +4723,38 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "1）下のチェックを入れて“OK”でパラメータ設定に戻って再解析します。\n" +
             "2）チェックなしで“OK”を押すと終了します。";
         T_result_next_checkbox = "パラメータ設定に戻って再解析する";
+        T_end_title = "終了";
+        T_end_msg =
+            "今回の処理が完了しました。\n\n" +
+            "説明：\n" +
+            "- 解析を実行した場合、Results 表に出力されています。\n" +
+            "- 必要に応じてパラメータを調整して再解析できます。";
 
         T_step_param_title = "手順 4：パラメータ確認";
         T_step_param_msg =
             "【パラメータ設定】ウィンドウを開きます。\n\n" +
             "表示内容：\n" +
-            "• ターゲット対象物サンプルから推定した面積範囲、対象物スケール（塊推定用）、Rolling Ball の提案値。\n" +
-            "• 選択した特徴に応じて表示される閾値パラメータ（内外コントラスト、背景近接、小さめ比率、塊の最小倍率）。\n" +
-            "• 除外フィルターを有効にした場合、濃度閾値と（任意の）面積ゲート範囲。\n\n" +
+            "- ターゲット対象物サンプルから推定した面積範囲、対象物スケール（塊推定用）、Rolling Ball の提案値。\n" +
+            "- 選択した特徴に応じて表示される閾値パラメータ（内外コントラスト、背景近接、小さめ比率、塊の最小倍率）。\n" +
+            "- 除外フィルターを有効にした場合、濃度閾値と（任意の）面積ゲート範囲。\n\n" +
             "説明：\n" +
-            "• パラメータ設定は2つのウィンドウに分かれて順番に表示されます。\n\n" +
+            "- パラメータ設定は2つまたは3つのウィンドウに分かれて順番に表示されます（蛍光モードでは蛍光設定が追加されます）。\n\n" +
             "推奨：\n" +
-            "• 初回は既定値で一度バッチ解析を実行し、結果に応じて調整してください。\n\n" +
+            "- 初回は既定値で一度バッチ解析を実行し、結果に応じて調整してください。\n\n" +
             "説明： “OK” で確定し、バッチ解析へ進みます。";
 
         T_step_main_title = "バッチ解析の開始";
         T_step_main_msg =
             "【バッチ解析】を開始します。\n\n" +
             "実行内容：\n" +
-            "• 細胞 ROI の読み込み\n" +
-            "• 対象物の検出と統計（塊推定、任意の除外フィルターを含む）\n" +
-            "• Results 表への集計出力\n\n" +
+            "- 細胞 ROI の読み込み\n" +
+            "- 対象物の検出と統計（塊推定、任意の除外フィルターを含む）\n" +
+            "- Results 表への集計出力\n\n" +
             "実行方式：\n" +
-            "• 中間ウィンドウを抑制するため、サイレントモードで実行します。\n\n" +
+            "- 中間ウィンドウを抑制するため、サイレントモードで実行します。\n\n" +
             "細胞 ROI が不足している場合：\n" +
-            "• 作成 / スキップ / すべてスキップ / 終了 を選択できます。\n" +
-            "• スキップした画像も Results に行を残します（値は空）。\n\n" +
+            "- 作成 / スキップ / すべてスキップ / 終了 を選択できます。\n" +
+            "- スキップした画像も Results に行を残します（値は空）。\n\n" +
             "説明： “OK” で開始します。";
 
         T_cell_title = "細胞 ROI 作成";
@@ -3649,10 +4780,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "画像：%f\n" +
             "ROI：%b%s.zip\n\n" +
             "選択肢：\n" +
-            "• 読み込みして編集：既存 ROI を開き、追記または修正します。\n" +
-            "• 再作成して上書き：新規に作成し、既存 zip を上書きします。\n" +
-            "• スキップ：画像を開かずに次へ進みます。\n" +
-            "• すべてスキップ：以後、既存 ROI に対して確認を表示せずスキップします。\n\n" +
+            "- 読み込みして編集：既存 ROI を開き、追記または修正します。\n" +
+            "- 再作成して上書き：新規に作成し、既存 zip を上書きします。\n" +
+            "- スキップ：画像を開かずに次へ進みます。\n" +
+            "- すべてスキップ：以後、既存 ROI に対して確認を表示せずスキップします。\n\n" +
             "操作を選択してください（プルダウン）：";
 
         T_missing_title = "細胞 ROI が不足しています";
@@ -3666,8 +4797,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "画像：%f\n" +
             "想定 ROI：%b%s.zip\n\n" +
             "説明：\n" +
-            "• 4要素解析には細胞 ROI が必要です。\n" +
-            "• スキップしても Results 表に行は残ります（値は空）。\n\n" +
+            "- 4要素解析には細胞 ROI が必要です。\n" +
+            "- スキップしても Results 表に行は残ります（値は空）。\n\n" +
             "操作を選択してください（プルダウン）：";
 
         T_sampling = "サンプリング";
@@ -3675,8 +4806,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "進捗：%i / %n\n" +
             "ファイル：%f\n\n" +
             "ターゲット対象物をマークしてください（代表的な単体対象物を推奨。塊は避けてください）。\n" +
-            "• 特徴3/4が必要な場合は、フリーハンド/ポリゴンで大きめ・不規則な領域も追加します（細胞内=特徴4、細胞外=特徴3）。\n" +
-            "• ROI を追加するたびに “T” を押してください。\n\n" +
+            "- 特徴3/4が必要な場合は、フリーハンド/ポリゴンで大きめ・不規則な領域も追加します（細胞内=特徴4、細胞外=特徴3）。\n" +
+            "- ROI を追加するたびに “T” を押してください。\n\n" +
             "完了後 “OK”。\n" +
             "続く “次の操作” で継続・終了・終了を選択します。";
 
@@ -3684,11 +4815,35 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "進捗：%i / %n\n" +
             "ファイル：%f\n\n" +
             "除外対象をマークしてください。\n" +
-            "• 楕円/矩形：除外対象（濃度＋面積）\n" +
-            "• フリーハンド/ポリゴン：除外領域（濃度）\n\n" +
+            "- 楕円/矩形：除外対象（濃度＋面積）\n" +
+            "- フリーハンド/ポリゴン：除外領域（濃度）\n\n" +
             "ROI ごとに “T” を押して追加します。\n" +
             "完了後 “OK”。\n" +
             "続くプルダウンで継続・計算・終了を選択します。";
+
+        T_promptAddROI_fluo_target =
+            "進捗：%i / %n\n" +
+            "ファイル：%f\n\n" +
+            "計算対象の蛍光色を選択してください。\n" +
+            "ROI ごとに “T” を押して ROI Manager に追加します。\n\n" +
+            "完了後 “OK”。\n" +
+            "続くプルダウンで継続 / 終了 / 終了 を選択します。";
+
+        T_promptAddROI_fluo_near =
+            "進捗：%i / %n\n" +
+            "ファイル：%f\n\n" +
+            "計算色に近い蛍光色（影/ハロー）を選択してください。\n" +
+            "ROI ごとに “T” を押して ROI Manager に追加します。\n\n" +
+            "完了後 “OK”。\n" +
+            "続くプルダウンで継続 / 終了 / 終了 を選択します。";
+
+        T_promptAddROI_fluo_excl =
+            "進捗：%i / %n\n" +
+            "ファイル：%f\n\n" +
+            "除外したい色（背景など、任意）を選択してください。\n" +
+            "ROI ごとに “T” を押して ROI Manager に追加します。\n\n" +
+            "完了後 “OK”。\n" +
+            "続くプルダウンで継続 / 終了 / 終了 を選択します。";
 
         T_ddLabel = "次の操作";
         T_ddNext = "次の画像（サンプリング継続）";
@@ -3698,21 +4853,43 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
         T_ddInfo_target =
             "次の操作を選択してください（プルダウン）：\n\n" +
-            "• 次の画像：次の画像でサンプリングを続けます。\n" +
-            "• ターゲット抽出を終了して次へ：サンプリングを停止し、既存サンプルから既定値を推定します。\n" +
-            "• スクリプト終了：ただちに終了します（以降のバッチ解析は実行されません）。\n\n" +
+            "- 次の画像：次の画像でサンプリングを続けます。\n" +
+            "- ターゲット抽出を終了して次へ：サンプリングを停止し、既存サンプルから既定値を推定します。\n" +
+            "- スクリプト終了：ただちに終了します（以降のバッチ解析は実行されません）。\n\n" +
             "説明： “OK” で確定します。";
 
         T_ddInfo_excl =
             "次の操作を選択してください（プルダウン）：\n\n" +
-            "• 次の画像：次の画像でサンプリングを続けます。\n" +
-            "• 除外抽出を終了して計算：除外サンプリングを停止し、パラメータ設定へ進みます。\n" +
-            "• スクリプト終了：ただちに終了します。\n\n" +
+            "- 次の画像：次の画像でサンプリングを続けます。\n" +
+            "- 除外抽出を終了して計算：除外サンプリングを停止し、パラメータ設定へ進みます。\n" +
+            "- スクリプト終了：ただちに終了します。\n\n" +
+            "説明： “OK” で確定します。";
+
+        T_ddInfo_fluo_target =
+            "次の操作を選択してください（プルダウン）：\n\n" +
+            "- 次の画像：次の画像でサンプリングを続けます。\n" +
+            "- 計算色のサンプリングを終了\n" +
+            "- スクリプト終了：ただちに終了します。\n\n" +
+            "説明： “OK” で確定します。";
+
+        T_ddInfo_fluo_near =
+            "次の操作を選択してください（プルダウン）：\n\n" +
+            "- 次の画像：次の画像でサンプリングを続けます。\n" +
+            "- 近似色のサンプリングを終了\n" +
+            "- スクリプト終了：ただちに終了します。\n\n" +
+            "説明： “OK” で確定します。";
+
+        T_ddInfo_fluo_excl =
+            "次の操作を選択してください（プルダウン）：\n\n" +
+            "- 次の画像：次の画像でサンプリングを続けます。\n" +
+            "- 除外色のサンプリングを終了\n" +
+            "- スクリプト終了：ただちに終了します。\n\n" +
             "説明： “OK” で確定します。";
 
         T_param = "パラメータ設定";
         T_param_step1_title = "パラメータ設定（1/2）";
         T_param_step2_title = "パラメータ設定（2/2）";
+        T_param_step3_title = "パラメータ設定（3/3）";
         T_param_note_title = "既定値の根拠と説明";
         T_section_target = "ターゲット対象物";
         T_section_feature = "特徴判定";
@@ -3720,7 +4897,16 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_section_roi = "細胞 ROI";
         T_section_excl = "除外フィルター（任意）";
         T_section_format = "データ整形";
+        T_section_fluo = "蛍光色";
         T_section_sep = "---- %s ----";
+
+        T_fluo_param_report =
+            "蛍光色の概要：\n" +
+            "- 計算色：%tname (%trgb)\n" +
+            "- 近似色：%nname (%nrgb)\n" +
+            "- 除外色：%ex\n\n" +
+            "説明：下で変更できます。";
+        T_fluo_none_label = "なし";
 
         T_minA = "ターゲット対象物 最小面積（px^2）";
         T_maxA = "ターゲット対象物 最大面積（px^2）";
@@ -3728,6 +4914,13 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_allow_clumps = "塊を面積で分割して対象物数を推定する";
         T_min_phago_enable = "微量貪食は未貪食として扱う（動的しきい値、既定で有効）";
         T_pixel_count_enable = "ピクセル計数モード（対象物量はピクセル数、面積/円形度/塊分割を無視）";
+        T_fluo_pixel_force = "蛍光モードではピクセル計数が強制されます。";
+        T_fluo_target_rgb = "計算色（R,G,B）";
+        T_fluo_near_rgb = "近似色（R,G,B）";
+        T_fluo_tol = "色許容度（0–441）";
+        T_fluo_excl_enable = "除外色を有効化";
+        T_fluo_excl_rgb = "除外色リスト（R,G,B/R,G,B）";
+        T_fluo_excl_tol = "除外色の許容度（0–441）";
 
         T_feat_center_diff = "内外コントラスト閾値（中心-外周）";
         T_feat_bg_diff = "背景との近さ判定閾値";
@@ -3754,20 +4947,22 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_excl_maxA = "除外対象 最大面積（px^2）";
 
         T_data_format_enable = "データ整形を有効にする";
-        T_data_format_rule = "ファイル名ルール（<p>/<f>）";
+        T_data_format_rule = "ファイル名ルール（プリセット）";
+        T_rule_preset_windows = "Windows（name (1)）";
+        T_rule_preset_dolphin = "Dolphin（name1）";
+        T_rule_preset_mac = "macOS（name 1）";
         T_data_format_cols = "表の列フォーマット";
         T_data_opt_enable = "データ最適化（IBR/PCR）";
         T_data_format_doc =
             "【データ整形 - コード早見】\n" +
-            "A. ファイル名ルール（解析用。列コードではありません）：\n" +
-            "  形式：\"/\" で分割；<p>/<f> はトークン；リテラルはそのまま、空白は \" \" を使用。\n" +
-            "  記号：<p>=プロジェクト名 | <f>=数値 | f=\"F\"/\"T\" を列に割当。\n" +
-            "  サブフォルダー：folderRule//fileRule。\n" +
-            "  既定の参考（コピー用）：\n" +
-            "    Dolphin：<p>/<f>,f=\"F\"\n" +
-            "    Windows Explorer：<p>/\" \"/(/<f>/),f=\"F\"\n" +
-            "    macOS Finder：<p>/\" \"/<f>,f=\"F\"\n" +
-            "  サブフォルダー例：<f>/hr,f=\"T\"//<p>/\" \"/(/<f>/)\n\n" +
+            "A. ファイル名プリセット（下拉のみ、手入力不可）：\n" +
+            "  1) Windows：name (1)（括弧の前に空白が必要）\n" +
+            "  2) Dolphin：name1（末尾に数字を直結、区切りなし）\n" +
+            "  3) macOS：name 1（末尾数字の前に空白1つ）\n" +
+            "  例：pGb+ZymA (3) → PN=pGb+ZymA, F=3\n" +
+            "  時間解析：\"xxhr\" 形式のみ（例：0hr/2.5hr/24hr）。\n" +
+            "  - 構造維持モード：サブフォルダー名から T を解析\n" +
+            "  - 平坦化モード：ファイル名から T を解析\n\n" +
             "B. 表の列コード（内蔵）：\n" +
             "  識別：PN=プロジェクト | F=番号 | T=時間\n" +
             "  数量：TB=総対象 | BIC=細胞内対象 | CWB=対象保有細胞\n" +
@@ -3780,28 +4975,31 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "D. 注記：\n" +
             "  - T 指定時は Time 昇順、EIBR/EPCR/ISDP/PSDP/EBPC/BPCSDP は同時間で集計。\n" +
             "  - BPC/EBPC/BPCSDP を含む場合は細胞ごとに 1 行（単細胞関連の列のみ変化）。\n" +
+            "  - 複数 PN の場合は列名に \"_PN\" を付与し、左から右に配置。\n" +
             "  - ピクセル計数モードでは TB/BIC/BPC/EBPC/BPCSDP はピクセル数（px）。\n" +
+            "  - 蛍光モードでは TB/BIC/BPC/EBPC/BPCSDP にプレフィックス列（例：#BPC）が自動追加され、対応する蛍光画像がない場合は空欄になります。\n" +
             "  - パラメータはカンマ区切り、値は英語の二重引用符。空列は禁止。\n";
         T_data_format_err_title = "データ整形 - 入力エラー";
         T_data_format_err_hint = "修正して再試行してください。";
         T_log_toggle_on = "有効";
         T_log_toggle_off = "無効";
-        T_log_error = "  │  ✗ エラー：%s";
+        T_log_error = "  |  X エラー：%s";
 
-        T_err_df_rule_empty = "[E101] ファイル名ルールが空です。例：<p>/\" \"/(/<f>/),f=\"F\"";
-        T_err_df_rule_slash = "[E102] ファイル名ルールは“/”区切りを1つ以上含めてください。例：<p>/\" \"/(/<f>/)";
-        T_err_df_rule_parts = "[E103] ファイル名ルールの各要素を入力してください。";
-        T_err_df_rule_tokens = "[E104] ファイル名ルールのトークンは <p> と <f> のみです。他はリテラルとして記述してください。";
-        T_err_df_rule_need_both = "[E105] ファイル名ルールには <p> と <f> の両方が必要です。";
-        T_err_df_rule_order = "[E106] ファイル名ルールの順序は <p>/<f> または <f>/<p> のみです。";
-        T_err_df_rule_need_subfolder = "[E107] サブフォルダー構造維持モードでは「サブフォルダールール//ファイル名ルール」が必要です。";
-        T_err_df_rule_no_subfolder = "[E108] 現在のモードでは “//” サブフォルダールールは使用できません。";
-        T_err_df_rule_double_slash = "[E109] “//” は1回のみ使用できます。";
-        T_err_df_rule_param_kv = "[E110] ルールパラメータは key=\"value\" 形式で指定してください。";
-        T_err_df_rule_param_unknown_prefix = "[E111] 不明なルールパラメータ：";
-        T_err_df_rule_param_quote = "[E112] ルールパラメータ値は英語の二重引用符で囲んでください。";
-        T_err_df_rule_param_f_value = "[E113] f は \"F\" または \"T\" のみ指定可能です。";
-        T_err_df_rule_param_duplicate = "[E114] ルールパラメータ f は1回のみ指定できます。";
+        T_err_df_rule_empty = "[E101] ファイル名プリセットが空です。Windows / Dolphin / macOS から選択してください。";
+        T_err_df_rule_slash = "[E102] ファイル名プリセットが無効です。";
+        T_err_df_rule_parts = "[E103] ファイル名プリセットが無効です。再選択してください。";
+        T_err_df_rule_tokens = "[E104] このバージョンではカスタムルールは使用できません。プリセットを使用してください。";
+        T_err_df_rule_need_both = "[E105] このバージョンではカスタムルールは使用できません。プリセットを使用してください。";
+        T_err_df_rule_order = "[E106] このバージョンではカスタムルールは使用できません。プリセットを使用してください。";
+        T_err_df_rule_need_subfolder = "[E107] このバージョンでは “//” サブフォルダールールは使用できません。";
+        T_err_df_rule_no_subfolder = "[E108] このバージョンでは “//” サブフォルダールールは使用できません。";
+        T_err_df_rule_double_slash = "[E109] このバージョンでは “//” サブフォルダールールは使用できません。";
+        T_err_df_rule_param_kv = "[E110] このバージョンではファイル名ルールのパラメータは使用できません。";
+        T_err_df_rule_param_unknown_prefix = "[E111] このバージョンではファイル名ルールのパラメータは使用できません：";
+        T_err_df_rule_param_quote = "[E112] このバージョンではファイル名ルールのパラメータは使用できません。";
+        T_err_df_rule_param_f_value = "[E113] このバージョンではファイル名ルールのパラメータは使用できません。";
+        T_err_df_rule_param_duplicate = "[E114] このバージョンではファイル名ルールのパラメータは使用できません。";
+        T_err_df_rule_quote = "[E115] このバージョンではカスタムリテラルは使用できません。";
         T_err_df_cols_empty = "[E121] 列フォーマットが空です。";
         T_err_df_cols_empty_item = "[E122] 列フォーマットに空項目があります（“//”や先頭/末尾“/”の可能性）。";
         T_err_df_cols_empty_token = "[E123] 列フォーマットに空の列コードがあります。";
@@ -3822,20 +5020,21 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_err_df_generic = "[E199] データ整形の入力が無効です。";
         T_err_df_generic_detail = "理由：入力内容を識別できません。";
         T_err_df_field = "確認先：%s";
-        T_err_df_fix_101 = "修正：有効なルールを入力してください（例：<p>/\" \"/(/<f>/) または <p>/<f>）。";
-        T_err_df_fix_102 = "修正：“/”で分割してください（1つ以上）。";
-        T_err_df_fix_103 = "修正：“/”の間の内容を補完してください。";
-        T_err_df_fix_104 = "修正：<p>/<f> のみをトークンとして使用し、他はリテラルで記述してください。";
-        T_err_df_fix_105 = "修正：<p> と <f> の両方を含めてください。";
-        T_err_df_fix_106 = "修正：順序は <p>/<f> または <f>/<p> です。";
-        T_err_df_fix_107 = "修正：folderRule//fileRule 形式で入力してください。";
-        T_err_df_fix_108 = "修正：“//”を削除、または構造維持モードに切り替えてください。";
-        T_err_df_fix_109 = "修正：“//”は1回のみです。";
-        T_err_df_fix_110 = "修正：パラメータは key=\"value\" 形式です。";
-        T_err_df_fix_111 = "修正：使用できるパラメータは f のみです。";
-        T_err_df_fix_112 = "修正：値は英語の二重引用符で囲んでください。";
-        T_err_df_fix_113 = "修正：f は \"F\" または \"T\" のみです。";
-        T_err_df_fix_114 = "修正：f は1回のみ指定できます。";
+        T_err_df_fix_101 = "修正：プリセット（Windows / Dolphin / macOS）を選択してください。";
+        T_err_df_fix_102 = "修正：有効なプリセットを再選択してください。";
+        T_err_df_fix_103 = "修正：有効なプリセットを再選択してください。";
+        T_err_df_fix_104 = "修正：カスタムルールは使わず、プリセットを使用してください。";
+        T_err_df_fix_105 = "修正：カスタムルールは使わず、プリセットを使用してください。";
+        T_err_df_fix_106 = "修正：カスタムルールは使わず、プリセットを使用してください。";
+        T_err_df_fix_107 = "修正：“//” は使わず、プリセットを使用してください。";
+        T_err_df_fix_108 = "修正：“//” は使わず、プリセットを使用してください。";
+        T_err_df_fix_109 = "修正：“//” は使わず、プリセットを使用してください。";
+        T_err_df_fix_110 = "修正：プリセットではパラメータは使えません。";
+        T_err_df_fix_111 = "修正：プリセットではパラメータは使えません。";
+        T_err_df_fix_112 = "修正：プリセットではパラメータは使えません。";
+        T_err_df_fix_113 = "修正：プリセットではパラメータは使えません。";
+        T_err_df_fix_114 = "修正：プリセットではパラメータは使えません。";
+        T_err_df_fix_115 = "修正：カスタムリテラルは使わず、プリセットを使用してください。";
         T_err_df_fix_121 = "修正：列コードを1つ以上入力してください。";
         T_err_df_fix_122 = "修正：空項目を削除してください（“//”や先頭/末尾“/”に注意）。";
         T_err_df_fix_123 = "修正：列コードを補ってください。";
@@ -3856,12 +5055,26 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "[E201] 数値入力が無効です：%s\n\n" +
             "段階：%stage\n\n" +
             "対処：数値（小数可）を入力してください。";
+        T_err_fluo_rgb_title = "蛍光パラメータエラー";
+        T_err_fluo_rgb_format =
+            "[E146] 色「%s」の形式が不正です（value=%v, stage=%stage）。\n\n" +
+            "R,G,B 形式で入力してください。例：0,255,0。複数色は \"/\" で区切ります。";
+        T_err_fluo_rgb_range =
+            "[E147] 色「%s」の範囲が不正です（value=%v, stage=%stage）。\n\n" +
+            "R,G,B は 0〜255 で指定してください。";
+        T_err_fluo_excl_title = "蛍光パラメータエラー";
+        T_err_fluo_excl_empty = "[E148] 除外色が有効ですが、値が空です。入力するか無効にしてください。";
+        T_err_fluo_size_title = "蛍光画像エラー";
+        T_err_fluo_size_mismatch =
+            "[E149] 蛍光画像のサイズが通常画像と一致しません（%f）。\n\n" +
+            "蛍光画像：%w x %h\n" +
+            "通常画像：%ow x %oh";
 
         T_beads_type_title = "対象タイプの確認";
         T_beads_type_msg =
             "画像に複数種類の対象物または混同しやすい対象が含まれるか確認してください。\n\n" +
-            "• 単一タイプの場合：除外フィルターは通常不要です。\n" +
-            "• 複数タイプ/干渉物がある場合：除外フィルターを有効にし、除外サンプリングを推奨します。\n\n" +
+            "- 単一タイプの場合：除外フィルターは通常不要です。\n" +
+            "- 複数タイプ/干渉物がある場合：除外フィルターを有効にし、除外サンプリングを推奨します。\n\n" +
             "説明：ここで有効にしても、後のパラメータ設定で無効化できます。";
         T_beads_type_checkbox = "複数種類が存在する（除外フィルターを有効化）";
 
@@ -3908,68 +5121,84 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_err_labelmask_failed = "[E005] 細胞ラベル画像の生成に失敗しました。塗りつぶし後の中心画素が 0 のままです。";
         T_err_labelmask_hint = "ROI[1] が閉じた面積 ROI であり、画像と有効に重なっているか確認してください。";
 
-        T_log_sep = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
-        T_log_start = "✓ 開始：マクロファージ 4要素解析";
-        T_log_lang = "  ├─ 言語：日本語";
-        T_log_dir = "  ├─ フォルダー：選択済み";
-        T_log_mode = "  └─ モード：%s";
-        T_log_roi_phase_start = "✓ 手順：細胞 ROI 作成";
-        T_log_roi_phase_done = "✓ 完了：細胞 ROI 作成";
-        T_log_sampling_start = "✓ 手順：ターゲット対象物サンプリング";
-        T_log_sampling_cancel = "✓ 完了：サンプリング（ユーザー終了）";
-        T_log_sampling_img = "  ├─ サンプル [%i/%n]：%f";
-        T_log_sampling_rois = "  │  └─ ROI 数：%i";
-        T_log_params_calc = "✓ 完了：既定パラメータを推定しました";
-        T_log_feature_select = "  ├─ 対象物特徴：%s";
-        T_log_main_start = "✓ 開始：バッチ解析（サイレント）";
-        T_log_processing = "  ├─ 処理 [%i/%n]：%f";
-        T_log_missing_roi = "  │  ⚠ ROI 不足：%f";
-        T_log_missing_choice = "  │  └─ 選択：%s";
-        T_log_load_roi = "  │  ├─ ROI を読み込み";
-        T_log_roi_count = "  │  │  └─ 細胞数：%i";
-        T_log_bead_detect = "  │  ├─ 対象物を検出して集計";
-        T_log_bead_count = "  │  │  ├─ 対象物 合計：%i";
-        T_log_bead_incell = "  │  │  ├─ 細胞内 対象物：%i";
-        T_log_bead_count_px = "  │  │  ├─ 対象物 ピクセル数：%i";
-        T_log_bead_incell_px = "  │  │  ├─ 細胞内 対象物ピクセル数：%i";
-        T_log_cell_withbead = "  │  │  └─ 対象物を含む細胞：%i";
-        T_log_bead_summary_done = "  │  │  └─ 対象物 集計完了";
-        T_log_complete = "  │  └─ ✓ 完了";
-        T_log_skip_roi = "  │  ✗ スキップ：ROI 不足";
-        T_log_skip_nocell = "  │  ✗ スキップ：ROI に有効な細胞がありません";
-        T_log_results_save = "✓ 完了：Results 表に出力しました";
-        T_log_opt_done = "✓ データ最適化完了";
-        T_log_opt_time = "✓ 時間トレンド最適化完了";
-        T_log_all_done = "✓✓✓ 完了 ✓✓✓";
-        T_log_summary = "📊 サマリー：合計 %i 枚を処理";
-        T_log_unit_sync_keep = "  └─ 対象物スケール：サンプル推定値を使用 = %s";
-        T_log_unit_sync_ui = "  └─ 対象物スケール：手動変更を検出。UI 中値を使用 = %s";
-        T_log_analyze_header = "  ├─ 解析パラメータ";
-        T_log_analyze_img = "  ├─ 画像：%f";
-        T_log_analyze_roi = "  │  ├─ ROI：%s";
-        T_log_analyze_size = "  │  ├─ サイズ：%w x %h";
-        T_log_analyze_pixel_mode = "  │  ├─ 計数モード：ピクセル計数（面積/円形度/塊分割は無視）";
-        T_log_analyze_bead_params = "  │  ├─ 対象物パラメータ：area=%min-%max, circ>=%circ, unit=%unit";
-        T_log_analyze_features = "  │  ├─ 対象物特徴：%s";
-        T_log_analyze_feature_params = "  │  ├─ 特徴パラメータ：diff=%diff bg=%bg small=%small clump=%clump";
-        T_log_analyze_strict = "  │  ├─ 厳密度：%strict，統合ポリシー：%policy";
-        T_log_analyze_bg = "  │  ├─ 背景補正：rolling=%r";
-        T_log_analyze_excl_on = "  │  ├─ 除外：mode=%mode thr=%thr strict=%strict sizeGate=%gate range=%min-%max";
-        T_log_analyze_excl_off = "  │  └─ 除外：無効";
-        T_log_analyze_method = "  │  └─ 検出手順：A=Yen+Mask+Watershed；B=Edges+Otsu+Mask+Watershed；統合=%policy";
-        T_log_analyze_excl_adjust = "  │  └─ 動的閾値：mean=%mean std=%std kstd=%kstd thr=%thr";
-        T_log_label_mask = "  │  ├─ 細胞ラベル画像：%s";
+        T_log_sep = "------------------------------------------------";
+        T_log_start = "OK 開始：マクロファージ 4要素解析";
+        T_log_lang = "  |- 言語：日本語";
+        T_log_dir = "  |- フォルダー：選択済み";
+        T_log_mode = "  - モード：%s";
+        T_log_fluo_prefix = "  |- 蛍光プレフィックス：%s";
+        T_log_fluo_report = "  - 蛍光集計：images=%n missing=%m orphan=%o";
+        T_log_roi_phase_start = "OK 手順：細胞 ROI 作成";
+        T_log_roi_phase_done = "OK 完了：細胞 ROI 作成";
+        T_log_sampling_start = "OK 手順：ターゲット対象物サンプリング";
+        T_log_fluo_sampling_start = "OK 手順：蛍光色サンプリング";
+        T_log_fluo_sampling_done = "OK 完了：蛍光色サンプリング";
+        T_log_sampling_cancel = "OK 完了：サンプリング（ユーザー終了）";
+        T_log_sampling_img = "  |- サンプル [%i/%n]：%f";
+        T_log_sampling_rois = "  |  - ROI 数：%i";
+        T_log_params_calc = "OK 完了：既定パラメータを推定しました";
+        T_log_feature_select = "  |- 対象物特徴：%s";
+        T_log_main_start = "OK 開始：バッチ解析（サイレント）";
+        T_log_processing = "  |- 処理 [%i/%n]：%f";
+        T_log_missing_roi = "  |  WARN ROI 不足：%f";
+        T_log_missing_choice = "  |  - 選択：%s";
+        T_log_load_roi = "  |  |- ROI を読み込み";
+        T_log_roi_count = "  |  |  - 細胞数：%i";
+        T_log_bead_detect = "  |  |- 対象物を検出して集計";
+        T_log_bead_count = "  |  |  |- 対象物 合計：%i";
+        T_log_bead_incell = "  |  |  |- 細胞内 対象物：%i";
+        T_log_bead_count_px = "  |  |  |- 対象物 ピクセル数：%i";
+        T_log_bead_incell_px = "  |  |  |- 細胞内 対象物ピクセル数：%i";
+        T_log_cell_withbead = "  |  |  - 対象物を含む細胞：%i";
+        T_log_fluo_missing = "  |  WARN 蛍光画像なし：%f";
+        T_log_fluo_count = "  |  |  |- 蛍光総ピクセル：%i";
+        T_log_fluo_incell = "  |  |  - 細胞内蛍光ピクセル：%i";
+        T_log_bead_summary_done = "  |  |  - 対象物 集計完了";
+        T_log_complete = "  |  - OK 完了";
+        T_log_skip_roi = "  |  X スキップ：ROI 不足";
+        T_log_skip_nocell = "  |  X スキップ：ROI に有効な細胞がありません";
+        T_log_results_save = "OK 完了：Results 表に出力しました";
+        T_log_opt_done = "OK データ最適化完了";
+        T_log_opt_time = "OK 時間トレンド最適化完了";
+        T_log_all_done = "OK OK OK 完了 OK OK OK";
+        T_log_summary = "サマリー：合計 %i 枚を処理";
+        T_log_unit_sync_keep = "  - 対象物スケール：サンプル推定値を使用 = %s";
+        T_log_unit_sync_ui = "  - 対象物スケール：手動変更を検出。UI 中値を使用 = %s";
+        T_log_analyze_header = "  |- 解析パラメータ";
+        T_log_analyze_img = "  |- 画像：%f";
+        T_log_analyze_roi = "  |  |- ROI：%s";
+        T_log_analyze_size = "  |  |- サイズ：%w x %h";
+        T_log_analyze_pixel_mode = "  |  |- 計数モード：ピクセル計数（面積/円形度/塊分割は無視）";
+        T_log_analyze_bead_params = "  |  |- 対象物パラメータ：area=%min-%max, circ>=%circ, unit=%unit";
+        T_log_analyze_features = "  |  |- 対象物特徴：%s";
+        T_log_analyze_feature_params = "  |  |- 特徴パラメータ：diff=%diff bg=%bg small=%small clump=%clump";
+        T_log_analyze_strict = "  |  |- 厳密度：%strict，統合ポリシー：%policy";
+        T_log_analyze_bg = "  |  |- 背景補正：rolling=%r";
+        T_log_analyze_excl_on = "  |  |- 除外：mode=%mode thr=%thr strict=%strict sizeGate=%gate range=%min-%max";
+        T_log_analyze_excl_off = "  |  - 除外：無効";
+        T_log_analyze_method = "  |  - 検出手順：A=Yen+Mask+Watershed；B=Edges+Otsu+Mask+Watershed；統合=%policy";
+        T_log_analyze_excl_adjust = "  |  - 動的閾値：mean=%mean std=%std kstd=%kstd thr=%thr";
+        T_log_analyze_fluo_file = "  |  |- 蛍光画像：%f";
+        T_log_analyze_fluo_params =
+            "  |  |- 蛍光パラメータ：target=%t near=%n tol=%tol excl=%ex exclTol=%et";
+        T_log_label_mask = "  |  |- 細胞ラベル画像：%s";
         T_log_label_mask_ok = "生成済み";
         T_log_label_mask_fail = "生成失敗";
         T_log_policy_strict = "厳格";
         T_log_policy_union = "統合";
         T_log_policy_loose = "緩い";
-        T_log_df_header = "  ├─ データ整形：カスタム解析の詳細";
-        T_log_df_rule = "  │  ├─ ルール：%s";
-        T_log_df_cols = "  │  ├─ 列フォーマット：%s";
-        T_log_df_sort_asc = "  │  ├─ ソート：%s 昇順";
-        T_log_df_sort_desc = "  │  ├─ ソート：%s 降順";
-        T_log_df_item = "  │  └─ item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
+        T_log_df_header = "  |- データ整形：カスタム解析の詳細";
+        T_log_df_rule = "  |  |- ルール：%s";
+        T_log_df_cols = "  |  |- 列フォーマット：%s";
+        T_log_df_sort_asc = "  |  |- ソート：%s 昇順";
+        T_log_df_sort_desc = "  |  |- ソート：%s 降順";
+        T_log_df_item = "  |  - item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
+        T_log_df_parse_header = "  |- 解析詳細：ファイル名/時間";
+        T_log_df_parse_name = "  |  - [%i/%n] file=%f | base=%b | preset=%p | pn=%pn (ok=%po) | f=%fs | fNum=%fn";
+        T_log_df_parse_time = "  |  |- time: sub=%s | t=%t | tNum=%tn | ok=%ok";
+        T_log_df_parse_time_off = "  |  |- time: disabled (no T column)";
+        T_log_df_parse_detail = "  |  |- detail: %s";
+        T_log_scan_folder = "  |- scan: path=%p | dirs=%d | imgs=%n | fluo=%f";
 
         T_reason_no_target = "ターゲット対象物のサンプリングなし：既定の対象物スケールと Rolling Ball を使用します。";
         T_reason_target_ok = "ターゲット対象物サンプルから対象物スケールと Rolling Ball を推定しました（ロバスト推定）。";
@@ -4004,6 +5233,14 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "[E007] A subfolder contains another subfolder: %s\n\n" +
             "Recursive subfolders are not supported by this script.\n\n" +
             "Please fix the folder structure and retry.";
+        T_err_fluo_prefix_title = "Fluorescence Prefix Error";
+        T_err_fluo_prefix_empty = "[E141] Fluorescence prefix is empty. Please enter at least 1 character.";
+        T_err_fluo_prefix_invalid =
+            "[E142] Fluorescence prefix contains invalid characters (“/” or “\\”).\n\n" +
+            "Remove path separators and enter only the prefix.";
+        T_err_fluo_prefix_none =
+            "[E143] No fluorescence images were found with this prefix.\n\n" +
+            "Check the prefix and the filenames, then retry.";
         T_subfolder_title = "Subfolder mode";
         T_subfolder_msg =
             "Subfolders were detected in the selected folder.\n" +
@@ -4012,25 +5249,46 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_subfolder_label = "Run mode";
         T_subfolder_keep = "Keep subfolder structure";
         T_subfolder_flat = "Flatten (subfolder_name_filename)";
+        T_folder_option_title = "Folder & Fluorescence Settings";
+        T_fluo_prefix_msg =
+            "If fluorescence images are included, enter the filename prefix.\n\n" +
+            "Rules:\n" +
+            "- Fluorescence filename = prefix + normal image filename.\n" +
+            "- Prefix is case-sensitive and cannot include “/” or “\\”.\n" +
+            "- Normal and fluorescence images must be in the same folder.\n\n" +
+            "Example:\n" +
+            "- Normal: kZymA+ZymA (1).TIF\n" +
+            "- Fluorescence: #kZymA+ZymA (1).TIF";
+        T_fluo_prefix_label = "Fluorescence filename prefix";
 
         T_mode_title = "Work Mode";
         T_mode_label = "Mode";
         T_mode_1 = "Annotate cell ROIs only (create *_cells.zip)";
         T_mode_2 = "Analyze only (requires existing cell ROIs)";
         T_mode_3 = "Annotate cell ROIs, then analyze (recommended)";
+        T_mode_fluo = "Include fluorescence images (match by prefix)";
         T_mode_msg =
             "Select a work mode (dropdown):\n\n" +
             "1) Annotate cell ROIs only\n" +
-            "   • Images will be opened one by one.\n" +
-            "   • You will draw cell outlines and add them to ROI Manager.\n" +
-            "   • The script will save cell ROIs as a zip file (default: image name + “_cells.zip”).\n\n" +
+            "   - Images will be opened one by one.\n" +
+            "   - You will draw cell outlines and add them to ROI Manager.\n" +
+            "   - The script will save cell ROIs as a zip file (default: image name + “_cells.zip”).\n\n" +
             "2) Analyze only\n" +
-            "   • Runs target object detection and statistics directly.\n" +
-            "   • A corresponding cell ROI zip must exist for each image (default: image name + “_cells.zip”).\n\n" +
+            "   - Runs target object detection and statistics directly.\n" +
+            "   - A corresponding cell ROI zip must exist for each image (default: image name + “_cells.zip”).\n\n" +
             "3) Annotate then analyze (recommended)\n" +
-            "   • Creates missing cell ROIs first.\n" +
-            "   • Then performs target object sampling (and optional exclusion sampling), followed by batch analysis.\n\n" +
+            "   - Creates missing cell ROIs first.\n" +
+            "   - Then performs target object sampling (and optional exclusion sampling), followed by batch analysis.\n\n" +
             "Note: Click “OK” to confirm your selection.";
+
+        T_fluo_report_title = "Fluorescence Image Report";
+        T_fluo_report_msg =
+            "Fluorescence prefix: %p\n\n" +
+            "Counts:\n" +
+            "- Fluorescence images detected: %n\n" +
+            "- Normal images without fluorescence: %m\n" +
+            "- Fluorescence images without normal: %o\n\n" +
+            "Note: This is an informational report. Click “OK” to continue.";
 
         T_step_roi_title = "Step 1: Cell ROI annotation";
         T_step_roi_msg =
@@ -4040,20 +5298,20 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "2) After completing an outline, press “T” to add it to ROI Manager.\n" +
             "3) When the current image is complete, click “OK” to proceed to the next image.\n\n" +
             "Save rule:\n" +
-            "• ROIs are saved as: image name + “%s.zip”.\n\n" +
+            "- ROIs are saved as: image name + “%s.zip”.\n\n" +
             "Important:\n" +
-            "• This script does not switch tools automatically and does not infer cell boundaries.\n" +
-            "• For stable results, ensure outlines form closed area ROIs covering the full cell region.";
+            "- This script does not switch tools automatically and does not infer cell boundaries.\n" +
+            "- For stable results, ensure outlines form closed area ROIs covering the full cell region.";
 
         T_step_bead_title = "Step 2: Target object sampling";
         T_step_bead_msg =
             "You are about to enter the Target object sampling phase.\n\n" +
             "Purpose:\n" +
-            "• Uses your samples to infer a typical single-object area scale and intensity characteristics.\n" +
-            "• These estimates are used to propose default detection parameters, " +
+            "- Uses your samples to infer a typical single-object area scale and intensity characteristics.\n" +
+            "- These estimates are used to propose default detection parameters, " +
             "estimate object counts from clumps, and suggest a Rolling Ball radius.\n\n" +
             "Supplement:\n" +
-            "• If you plan to use Features 3/4, add larger or irregular regions with Freehand/Polygon " +
+            "- If you plan to use Features 3/4, add larger or irregular regions with Freehand/Polygon " +
             "(in-cell=Feature 4, non-cell=Feature 3).\n\n" +
             "Instructions:\n" +
             "1) Use the Oval Tool to mark target objects (high precision is not required, but keep it reasonably tight).\n" +
@@ -4067,26 +5325,39 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "You are about to enter the Exclusion sampling phase " +
             "(recommended when multiple object types or confounding objects are present).\n\n" +
             "Purpose:\n" +
-            "• Learns an exclusion intensity threshold (and optional size range) to reduce false positives.\n\n" +
+            "- Learns an exclusion intensity threshold (and optional size range) to reduce false positives.\n\n" +
             "ROI conventions:\n" +
-            "• Oval/Rectangle ROIs: treated as exclusion object samples (learn intensity and size).\n" +
-            "• Freehand/Polygon ROIs: treated as exclusion regions (learn intensity only).\n\n" +
+            "- Oval/Rectangle ROIs: treated as exclusion object samples (learn intensity and size).\n" +
+            "- Freehand/Polygon ROIs: treated as exclusion regions (learn intensity only).\n\n" +
             "Instructions:\n" +
             "1) Mark objects or regions to be excluded.\n" +
             "2) Press “T” to add each ROI to ROI Manager.\n" +
             "3) Click “OK” when finished.\n" +
             "4) Use the dropdown to continue, finish & compute, or exit.";
 
+        T_step_fluo_title = "Fluorescence color sampling";
+        T_step_fluo_msg =
+            "You are about to enter the Fluorescence color sampling phase.\n\n" +
+            "Purpose:\n" +
+            "- Select the fluorescence color to quantify and a near/halo color.\n" +
+            "- (Optional) Select background or other colors to exclude.\n\n" +
+            "Steps:\n" +
+            "1) The script opens fluorescence images at random; select color regions and press “T” to add to ROI Manager.\n" +
+            "2) When a color category is finished, click “OK” and choose to continue, finish, or exit.\n\n" +
+            "Notes:\n" +
+            "- The near color is used to estimate the tolerance.\n" +
+            "- Exclusion colors remove background or other colors (optional).";
+
         T_feat_title = "Target Object Feature Selection";
         T_feat_msg =
             "You are about to select target object features.\n\n" +
             "Purpose:\n" +
-            "• Specify the appearance features to detect in this run.\n\n" +
+            "- Specify the appearance features to detect in this run.\n\n" +
             "Notes:\n" +
-            "• Only selected features are used; each object is counted once.\n" +
-            "• Feature 4 is in-cell only (overlaps cell ROI).\n" +
-            "• Feature 1 and Feature 5 are mutually exclusive.\n" +
-            "• Your selection controls which feature-threshold parameters appear next.\n\n" +
+            "- Only selected features are used; each object is counted once.\n" +
+            "- Feature 4 is in-cell only (overlaps cell ROI).\n" +
+            "- Feature 1 and Feature 5 are mutually exclusive.\n" +
+            "- Your selection controls which feature-threshold parameters appear next.\n\n" +
             "Steps:\n" +
             "1) Refer to the reference image and select the required features.\n" +
             "2) Click “OK” to continue to parameter settings.";
@@ -4107,6 +5378,11 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_feat_err_conflict = "[E012] Feature 1 and Feature 5 are mutually exclusive. Please adjust and retry.";
         T_feat_err_none = "[E013] No feature selected. Please select at least one feature.";
 
+        T_err_fluo_target_title = "Fluorescence Sampling Error";
+        T_err_fluo_target_none = "[E144] No target color samples selected. Please add at least one ROI.";
+        T_err_fluo_near_title = "Fluorescence Sampling Error";
+        T_err_fluo_near_none = "[E145] No near color samples selected. Please add at least one ROI.";
+
         T_result_next_title = "Results Generated";
         T_result_next_msg =
             "The Results table has been generated.\n\n" +
@@ -4114,33 +5390,39 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "1) Check the box and click \"OK\" to return to parameters and re-run analysis.\n" +
             "2) Leave it unchecked and click \"OK\" to exit the script.";
         T_result_next_checkbox = "Return to parameters and re-run analysis";
+        T_end_title = "Finished";
+        T_end_msg =
+            "The current run is complete.\n\n" +
+            "Notes:\n" +
+            "- If analysis was executed, results are written to the Results table.\n" +
+            "- You can adjust parameters and re-run if needed.";
 
         T_step_param_title = "Step 4: Confirm parameters";
         T_step_param_msg =
             "The Parameters dialog will open next.\n\n" +
             "You will see:\n" +
-            "• Defaults inferred from target object samples (area range, object scale for clump estimation, Rolling Ball suggestion).\n" +
-            "• Feature-threshold parameters shown based on your selection " +
+            "- Defaults inferred from target object samples (area range, object scale for clump estimation, Rolling Ball suggestion).\n" +
+            "- Feature-threshold parameters shown based on your selection " +
             "(inner/outer contrast, background similarity, small-size ratio, clump minimum multiplier).\n" +
-            "• If exclusion is enabled, an inferred intensity threshold and (optional) size gate range.\n\n" +
+            "- If exclusion is enabled, an inferred intensity threshold and (optional) size gate range.\n\n" +
             "Note:\n" +
-            "• Parameter settings are split into two dialogs shown in sequence.\n\n" +
+            "- Parameter settings are split into two or three dialogs (fluorescence mode adds a fluorescence page).\n\n" +
             "Recommendation:\n" +
-            "• For first-time use, run once with defaults and adjust only if needed.\n\n" +
+            "- For first-time use, run once with defaults and adjust only if needed.\n\n" +
             "Note: Click “OK” to confirm and proceed to batch analysis.";
 
         T_step_main_title = "Start batch analysis";
         T_step_main_msg =
             "You are about to start batch analysis.\n\n" +
             "The script will process all images in the selected folder:\n" +
-            "• Load cell ROIs\n" +
-            "• Detect target objects and compute statistics (including clump estimation and optional exclusion)\n" +
-            "• Write a summary table to the Results window\n\n" +
+            "- Load cell ROIs\n" +
+            "- Detect target objects and compute statistics (including clump estimation and optional exclusion)\n" +
+            "- Write a summary table to the Results window\n\n" +
             "Execution mode:\n" +
-            "• Runs in silent/batch mode to minimize intermediate windows.\n\n" +
+            "- Runs in silent/batch mode to minimize intermediate windows.\n\n" +
             "If a cell ROI is missing:\n" +
-            "• You will be prompted to annotate now / skip / skip all / exit.\n" +
-            "• Skipped images remain in the Results table with blank values.\n\n" +
+            "- You will be prompted to annotate now / skip / skip all / exit.\n" +
+            "- Skipped images remain in the Results table with blank values.\n\n" +
             "Note: Click “OK” to start.";
 
         T_cell_title = "Cell ROI annotation";
@@ -4166,10 +5448,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "Image: %f\n" +
             "ROI: %b%s.zip\n\n" +
             "Options:\n" +
-            "• Load and continue editing: opens existing ROIs for review and correction.\n" +
-            "• Re-annotate and overwrite: starts from an empty ROI set and overwrites the zip.\n" +
-            "• Skip this image: does not open the image and proceeds.\n" +
-            "• Skip all: future existing-ROI images will be skipped without prompting.\n\n" +
+            "- Load and continue editing: opens existing ROIs for review and correction.\n" +
+            "- Re-annotate and overwrite: starts from an empty ROI set and overwrites the zip.\n" +
+            "- Skip this image: does not open the image and proceeds.\n" +
+            "- Skip all: future existing-ROI images will be skipped without prompting.\n\n" +
             "Select an action (dropdown):";
 
         T_missing_title = "Missing cell ROI";
@@ -4183,8 +5465,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "Image: %f\n" +
             "Expected ROI: %b%s.zip\n\n" +
             "Notes:\n" +
-            "• Four-factor analysis requires a cell ROI.\n" +
-            "• If skipped, the image remains in the Results table with blank values.\n\n" +
+            "- Four-factor analysis requires a cell ROI.\n" +
+            "- If skipped, the image remains in the Results table with blank values.\n\n" +
             "Select an action (dropdown):";
 
         T_sampling = "Sampling";
@@ -4192,8 +5474,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "Progress: %i / %n\n" +
             "File: %f\n\n" +
             "Mark target objects (prefer typical single objects; avoid obvious clumps).\n" +
-            "• For Features 3/4, add larger or irregular regions with Freehand/Polygon (in-cell=Feature 4, non-cell=Feature 3).\n" +
-            "• Press “T” to add each ROI to ROI Manager.\n\n" +
+            "- For Features 3/4, add larger or irregular regions with Freehand/Polygon (in-cell=Feature 4, non-cell=Feature 3).\n" +
+            "- Press “T” to add each ROI to ROI Manager.\n\n" +
             "Click “OK” when finished.\n" +
             "Then choose the next action in the dropdown dialog.";
 
@@ -4201,9 +5483,33 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "Progress: %i / %n\n" +
             "File: %f\n\n" +
             "Mark objects/regions to exclude.\n" +
-            "• Oval/Rectangle: exclusion object samples (intensity + size)\n" +
-            "• Freehand/Polygon: exclusion regions (intensity only)\n\n" +
+            "- Oval/Rectangle: exclusion object samples (intensity + size)\n" +
+            "- Freehand/Polygon: exclusion regions (intensity only)\n\n" +
             "Press “T” to add each ROI.\n" +
+            "Click “OK” when finished.\n" +
+            "Then choose the next action in the dropdown dialog.";
+
+        T_promptAddROI_fluo_target =
+            "Progress: %i / %n\n" +
+            "File: %f\n\n" +
+            "Select the fluorescence color to quantify.\n" +
+            "Press “T” to add each ROI to ROI Manager.\n\n" +
+            "Click “OK” when finished.\n" +
+            "Then choose the next action in the dropdown dialog.";
+
+        T_promptAddROI_fluo_near =
+            "Progress: %i / %n\n" +
+            "File: %f\n\n" +
+            "Select a near/halo fluorescence color.\n" +
+            "Press “T” to add each ROI to ROI Manager.\n\n" +
+            "Click “OK” when finished.\n" +
+            "Then choose the next action in the dropdown dialog.";
+
+        T_promptAddROI_fluo_excl =
+            "Progress: %i / %n\n" +
+            "File: %f\n\n" +
+            "Select colors to exclude (background or other colors; optional).\n" +
+            "Press “T” to add each ROI to ROI Manager.\n\n" +
             "Click “OK” when finished.\n" +
             "Then choose the next action in the dropdown dialog.";
 
@@ -4215,21 +5521,43 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
         T_ddInfo_target =
             "Select the next action (dropdown):\n\n" +
-            "• Next image: continue sampling on the next image.\n" +
-            "• Finish target sampling and proceed: stop sampling and infer default parameters from collected samples.\n" +
-            "• Exit script: terminate immediately (batch analysis will not run).\n\n" +
+            "- Next image: continue sampling on the next image.\n" +
+            "- Finish target sampling and proceed: stop sampling and infer default parameters from collected samples.\n" +
+            "- Exit script: terminate immediately (batch analysis will not run).\n\n" +
             "Note: Click “OK” to confirm.";
 
         T_ddInfo_excl =
             "Select the next action (dropdown):\n\n" +
-            "• Next image: continue sampling on the next image.\n" +
-            "• Finish exclusion sampling and compute: stop exclusion sampling and open the Parameters dialog.\n" +
-            "• Exit script: terminate immediately.\n\n" +
+            "- Next image: continue sampling on the next image.\n" +
+            "- Finish exclusion sampling and compute: stop exclusion sampling and open the Parameters dialog.\n" +
+            "- Exit script: terminate immediately.\n\n" +
+            "Note: Click “OK” to confirm.";
+
+        T_ddInfo_fluo_target =
+            "Select the next action (dropdown):\n\n" +
+            "- Next image: continue sampling on the next image.\n" +
+            "- Finish target color sampling.\n" +
+            "- Exit script: terminate immediately.\n\n" +
+            "Note: Click “OK” to confirm.";
+
+        T_ddInfo_fluo_near =
+            "Select the next action (dropdown):\n\n" +
+            "- Next image: continue sampling on the next image.\n" +
+            "- Finish near color sampling.\n" +
+            "- Exit script: terminate immediately.\n\n" +
+            "Note: Click “OK” to confirm.";
+
+        T_ddInfo_fluo_excl =
+            "Select the next action (dropdown):\n\n" +
+            "- Next image: continue sampling on the next image.\n" +
+            "- Finish exclusion color sampling.\n" +
+            "- Exit script: terminate immediately.\n\n" +
             "Note: Click “OK” to confirm.";
 
         T_param = "Parameters";
         T_param_step1_title = "Parameters (1/2)";
         T_param_step2_title = "Parameters (2/2)";
+        T_param_step3_title = "Parameters (3/3)";
         T_param_note_title = "Rationale and notes";
         T_section_target = "Target objects";
         T_section_feature = "Feature Detection";
@@ -4237,7 +5565,16 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_section_roi = "Cell ROI";
         T_section_excl = "Exclusion (optional)";
         T_section_format = "Data Formatting";
+        T_section_fluo = "Fluorescence Colors";
         T_section_sep = "---- %s ----";
+
+        T_fluo_param_report =
+            "Fluorescence color summary:\n" +
+            "- Target color: %tname (%trgb)\n" +
+            "- Near color: %nname (%nrgb)\n" +
+            "- Exclusion colors: %ex\n\n" +
+            "Note: You can edit the parameters below.";
+        T_fluo_none_label = "None";
 
         T_minA = "Target object minimum area (px^2)";
         T_maxA = "Target object maximum area (px^2)";
@@ -4245,6 +5582,13 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_allow_clumps = "Estimate object counts from clumps by area";
         T_min_phago_enable = "Treat tiny uptake as no uptake (dynamic threshold, default on)";
         T_pixel_count_enable = "Pixel count mode (target quantities use pixels; ignore area/circularity/clump split)";
+        T_fluo_pixel_force = "Fluorescence mode forces pixel count mode.";
+        T_fluo_target_rgb = "Target color (R,G,B)";
+        T_fluo_near_rgb = "Near color (R,G,B)";
+        T_fluo_tol = "Color tolerance (0–441)";
+        T_fluo_excl_enable = "Enable exclusion colors";
+        T_fluo_excl_rgb = "Exclusion color list (R,G,B/R,G,B)";
+        T_fluo_excl_tol = "Exclusion tolerance (0–441)";
 
         T_feat_center_diff = "Inner/outer contrast threshold (center - rim)";
         T_feat_bg_diff = "Background similarity threshold";
@@ -4271,20 +5615,22 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_excl_maxA = "Exclusion maximum area (px^2)";
 
         T_data_format_enable = "Enable data formatting";
-        T_data_format_rule = "Filename rule (<p>/<f>)";
+        T_data_format_rule = "Filename preset";
+        T_rule_preset_windows = "Windows (name (1))";
+        T_rule_preset_dolphin = "Dolphin (name1)";
+        T_rule_preset_mac = "macOS (name 1)";
         T_data_format_cols = "Table column format";
         T_data_opt_enable = "Data optimization (IBR/PCR)";
         T_data_format_doc =
             "【Data Formatting - Token Map】\n" +
-            "A. Filename rule (parsing only, not column tokens):\n" +
-            "  Syntax: use \"/\" to separate parts; <p>/<f> are tokens; literals are allowed; write a space as \" \".\n" +
-            "  Tokens: <p>=project | <f>=number | f=\"F\"/\"T\" maps <f> to column.\n" +
-            "  Subfolders: folderRule//fileRule.\n" +
-            "  Default references (copy as needed):\n" +
-            "    Dolphin: <p>/<f>,f=\"F\"\n" +
-            "    Windows Explorer: <p>/\" \"/(/<f>/),f=\"F\"\n" +
-            "    macOS Finder: <p>/\" \"/<f>,f=\"F\"\n" +
-            "  Subfolder example: <f>/hr,f=\"T\"//<p>/\" \"/(/<f>/)\n\n" +
+            "A. Filename presets (dropdown only, no custom rule input):\n" +
+            "  1) Windows: name (1) (space required before \"(\")\n" +
+            "  2) Dolphin: name1 (digits appended, no separator)\n" +
+            "  3) macOS: name 1 (single space before trailing digits)\n" +
+            "  Example: pGb+ZymA (3) -> PN=pGb+ZymA, F=3\n" +
+            "  Time parsing: only the \"xxhr\" pattern (e.g., 0hr/2.5hr/24hr).\n" +
+            "  - Keep-structure mode: parse T from subfolder names\n" +
+            "  - Flatten mode: parse T from filenames\n\n" +
             "B. Table column tokens (built-in):\n" +
             "  Identity: PN=project | F=index | T=time\n" +
             "  Counts: TB=total | BIC=in-cell | CWB=cells with objects\n" +
@@ -4297,28 +5643,31 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "D. Notes:\n" +
             "  - If T is set, rows sort by Time asc; EIBR/EPCR/ISDP/PSDP/EBPC/BPCSDP per time.\n" +
             "  - If BPC/EBPC/BPCSDP is included, rows expand per cell; only per-cell columns vary.\n" +
+            "  - With multiple PN, labels append \"_PN\" and are laid out left-to-right.\n" +
             "  - In pixel count mode, TB/BIC/BPC/EBPC/BPCSDP use pixel counts (px).\n" +
+            "  - In fluorescence mode, prefixed columns (e.g., #BPC) are auto-added for TB/BIC/BPC/EBPC/BPCSDP; rows without matching fluorescence images are left blank.\n" +
             "  - Params are comma-separated, values in double quotes; no empty items.\n";
         T_data_format_err_title = "Data Formatting - Input Error";
         T_data_format_err_hint = "Please correct the input and try again.";
         T_log_toggle_on = "ON";
         T_log_toggle_off = "OFF";
-        T_log_error = "  │  ✗ Error: %s";
+        T_log_error = "  |  X Error: %s";
 
-        T_err_df_rule_empty = "[E101] Filename rule is empty. Example: <p>/\" \"/(/<f>/),f=\"F\"";
-        T_err_df_rule_slash = "[E102] Filename rule must contain at least one \"/\" separator. Example: <p>/\" \"/(/<f>/)";
-        T_err_df_rule_parts = "[E103] All parts of the filename rule must be filled.";
-        T_err_df_rule_tokens = "[E104] Only <p> and <f> are valid tokens; other parts must be literals.";
-        T_err_df_rule_need_both = "[E105] Filename rule must include both <p> and <f>.";
-        T_err_df_rule_order = "[E106] Filename rule order must be <p>/<f> or <f>/<p>.";
-        T_err_df_rule_need_subfolder = "[E107] Subfolder-structure mode requires “folderRule//fileRule”.";
-        T_err_df_rule_no_subfolder = "[E108] Subfolder rule “//” is not allowed in this mode.";
-        T_err_df_rule_double_slash = "[E109] \"//\" can appear only once in the filename rule.";
-        T_err_df_rule_param_kv = "[E110] Rule parameters must use key=\"value\" format.";
-        T_err_df_rule_param_unknown_prefix = "[E111] Unknown rule parameter: ";
-        T_err_df_rule_param_quote = "[E112] Rule parameter values must be wrapped in English double quotes.";
-        T_err_df_rule_param_f_value = "[E113] f must be \"F\" or \"T\".";
-        T_err_df_rule_param_duplicate = "[E114] Rule parameter f can be set only once.";
+        T_err_df_rule_empty = "[E101] Filename preset is empty. Choose Windows / Dolphin / macOS.";
+        T_err_df_rule_slash = "[E102] Filename preset is invalid.";
+        T_err_df_rule_parts = "[E103] Filename preset is invalid. Re-select a valid preset.";
+        T_err_df_rule_tokens = "[E104] Custom filename rules are not supported in this version. Use a preset.";
+        T_err_df_rule_need_both = "[E105] Custom filename rules are not supported in this version. Use a preset.";
+        T_err_df_rule_order = "[E106] Custom filename rules are not supported in this version. Use a preset.";
+        T_err_df_rule_need_subfolder = "[E107] \"//\" subfolder rules are not supported in this version.";
+        T_err_df_rule_no_subfolder = "[E108] \"//\" subfolder rules are not supported in this version.";
+        T_err_df_rule_double_slash = "[E109] \"//\" subfolder rules are not supported in this version.";
+        T_err_df_rule_param_kv = "[E110] Filename rule parameters are not supported in this version.";
+        T_err_df_rule_param_unknown_prefix = "[E111] Filename rule parameters are not supported in this version: ";
+        T_err_df_rule_param_quote = "[E112] Filename rule parameters are not supported in this version.";
+        T_err_df_rule_param_f_value = "[E113] Filename rule parameters are not supported in this version.";
+        T_err_df_rule_param_duplicate = "[E114] Filename rule parameters are not supported in this version.";
+        T_err_df_rule_quote = "[E115] Custom literal rules are not supported in this version.";
         T_err_df_cols_empty = "[E121] Table column format is empty.";
         T_err_df_cols_empty_item = "[E122] Table column format contains an empty item (possible \"//\" or leading/trailing \"/\").";
         T_err_df_cols_empty_token = "[E123] Table column format has an empty column code.";
@@ -4341,20 +5690,21 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_err_df_generic = "[E199] Data formatting input is invalid.";
         T_err_df_generic_detail = "Reason: the input could not be interpreted.";
         T_err_df_field = "Check: %s";
-        T_err_df_fix_101 = "Fix: enter a valid rule (e.g., <p>/\" \"/(/<f>/) or <p>/<f>).";
-        T_err_df_fix_102 = "Fix: separate parts with \"/\" (at least one).";
-        T_err_df_fix_103 = "Fix: fill in every part between \"/\".";
-        T_err_df_fix_104 = "Fix: use <p>/<f> as tokens and write other parts as literals.";
-        T_err_df_fix_105 = "Fix: include both <p> and <f>.";
-        T_err_df_fix_106 = "Fix: order must be <p>/<f> or <f>/<p>.";
-        T_err_df_fix_107 = "Fix: use folderRule//fileRule format.";
-        T_err_df_fix_108 = "Fix: remove \"//\" or switch to subfolder-keep mode.";
-        T_err_df_fix_109 = "Fix: allow only one \"//\".";
-        T_err_df_fix_110 = "Fix: use key=\"value\" format.";
-        T_err_df_fix_111 = "Fix: only f parameter is allowed.";
-        T_err_df_fix_112 = "Fix: wrap values in English double quotes.";
-        T_err_df_fix_113 = "Fix: f must be \"F\" or \"T\".";
-        T_err_df_fix_114 = "Fix: f can appear only once.";
+        T_err_df_fix_101 = "Fix: select a preset (Windows / Dolphin / macOS).";
+        T_err_df_fix_102 = "Fix: re-select a valid preset.";
+        T_err_df_fix_103 = "Fix: re-select a valid preset.";
+        T_err_df_fix_104 = "Fix: do not input custom rules; use a preset.";
+        T_err_df_fix_105 = "Fix: do not input custom rules; use a preset.";
+        T_err_df_fix_106 = "Fix: do not input custom rules; use a preset.";
+        T_err_df_fix_107 = "Fix: do not use \"//\"; use a preset.";
+        T_err_df_fix_108 = "Fix: do not use \"//\"; use a preset.";
+        T_err_df_fix_109 = "Fix: do not use \"//\"; use a preset.";
+        T_err_df_fix_110 = "Fix: presets do not accept parameters; remove parameters.";
+        T_err_df_fix_111 = "Fix: presets do not accept parameters; remove parameters.";
+        T_err_df_fix_112 = "Fix: presets do not accept parameters; remove parameters.";
+        T_err_df_fix_113 = "Fix: presets do not accept parameters; remove parameters.";
+        T_err_df_fix_114 = "Fix: presets do not accept parameters; remove parameters.";
+        T_err_df_fix_115 = "Fix: do not use custom literal rules; use a preset.";
         T_err_df_fix_121 = "Fix: provide at least one column token.";
         T_err_df_fix_122 = "Fix: remove empty items (avoid \"//\" or leading/trailing \"/\").";
         T_err_df_fix_123 = "Fix: fill in the column token.";
@@ -4375,12 +5725,26 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             "[E201] Invalid numeric input: %s\n\n" +
             "Stage: %stage\n\n" +
             "Fix: Enter a number (decimals allowed).";
+        T_err_fluo_rgb_title = "Fluorescence Parameter Error";
+        T_err_fluo_rgb_format =
+            "[E146] Invalid format for color “%s” (value=%v, stage=%stage).\n\n" +
+            "Use the R,G,B format, e.g., 0,255,0. Separate multiple colors with \"/\".";
+        T_err_fluo_rgb_range =
+            "[E147] Color “%s” is out of range (value=%v, stage=%stage).\n\n" +
+            "R,G,B must be between 0 and 255.";
+        T_err_fluo_excl_title = "Fluorescence Parameter Error";
+        T_err_fluo_excl_empty = "[E148] Exclusion colors are enabled but no values were provided. Enter values or disable the option.";
+        T_err_fluo_size_title = "Fluorescence Image Error";
+        T_err_fluo_size_mismatch =
+            "[E149] Fluorescence image size does not match the normal image (%f).\n\n" +
+            "Fluorescence image: %w x %h\n" +
+            "Normal image: %ow x %oh";
 
         T_beads_type_title = "Object type confirmation";
         T_beads_type_msg =
             "Confirm whether multiple object types or confounding objects are present.\n\n" +
-            "• Single object type: exclusion is typically unnecessary.\n" +
-            "• Multiple object types / confounders: exclusion is recommended; run exclusion sampling.\n\n" +
+            "- Single object type: exclusion is typically unnecessary.\n" +
+            "- Multiple object types / confounders: exclusion is recommended; run exclusion sampling.\n\n" +
             "Note: You can still disable exclusion later in the Parameters dialog.";
         T_beads_type_checkbox = "Multiple object types present (enable exclusion)";
 
@@ -4437,68 +5801,84 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_err_labelmask_failed = "[E005] Cell label image generation failed: the center pixel is still 0 after filling.";
         T_err_labelmask_hint = "Verify that ROI[1] is a closed area ROI and overlaps the image content.";
 
-        T_log_sep = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
-        T_log_start = "✓ Start: Macrophage four-factor analysis";
-        T_log_lang = "  ├─ Language: English";
-        T_log_dir = "  ├─ Folder: selected";
-        T_log_mode = "  └─ Mode: %s";
-        T_log_roi_phase_start = "✓ Step: Cell ROI annotation";
-        T_log_roi_phase_done = "✓ Complete: Cell ROI annotation";
-        T_log_sampling_start = "✓ Step: Target object sampling";
-        T_log_sampling_cancel = "✓ Complete: Sampling (finished by user)";
-        T_log_sampling_img = "  ├─ Sample [%i/%n]: %f";
-        T_log_sampling_rois = "  │  └─ ROI count: %i";
-        T_log_params_calc = "✓ Complete: Default parameters inferred";
-        T_log_feature_select = "  ├─ Target features: %s";
-        T_log_main_start = "✓ Start: Batch analysis (silent mode)";
-        T_log_processing = "  ├─ Processing [%i/%n]: %f";
-        T_log_missing_roi = "  │  ⚠ Missing ROI: %f";
-        T_log_missing_choice = "  │  └─ Action: %s";
-        T_log_load_roi = "  │  ├─ Load ROI";
-        T_log_roi_count = "  │  │  └─ Cell count: %i";
-        T_log_bead_detect = "  │  ├─ Detect target objects and compute statistics";
-        T_log_bead_count = "  │  │  ├─ Total objects: %i";
-        T_log_bead_incell = "  │  │  ├─ Objects in cells: %i";
-        T_log_bead_count_px = "  │  │  ├─ Total target pixels: %i";
-        T_log_bead_incell_px = "  │  │  ├─ Target pixels in cells: %i";
-        T_log_cell_withbead = "  │  │  └─ Cells with objects: %i";
-        T_log_bead_summary_done = "  │  │  └─ Object statistics completed";
-        T_log_complete = "  │  └─ ✓ Done";
-        T_log_skip_roi = "  │  ✗ Skipped: missing ROI";
-        T_log_skip_nocell = "  │  ✗ Skipped: no valid cells in ROI";
-        T_log_results_save = "✓ Complete: Results written to the Results table";
-        T_log_opt_done = "✓ Data optimization completed";
-        T_log_opt_time = "✓ Time-trend optimization completed";
-        T_log_all_done = "✓✓✓ All tasks completed ✓✓✓";
-        T_log_summary = "📊 Summary: %i images processed";
-        T_log_unit_sync_keep = "  └─ Object scale: using inferred value = %s";
-        T_log_unit_sync_ui = "  └─ Object scale: manual change detected; using UI midpoint = %s";
-        T_log_analyze_header = "  ├─ Analysis parameters";
-        T_log_analyze_img = "  ├─ Image: %f";
-        T_log_analyze_roi = "  │  ├─ ROI: %s";
-        T_log_analyze_size = "  │  ├─ Size: %w x %h";
-        T_log_analyze_pixel_mode = "  │  ├─ Count mode: Pixel count (ignore area/circularity/clump split)";
-        T_log_analyze_bead_params = "  │  ├─ Target object params: area=%min-%max, circ>=%circ, unit=%unit";
-        T_log_analyze_features = "  │  ├─ Target features: %s";
-        T_log_analyze_feature_params = "  │  ├─ Feature params: diff=%diff bg=%bg small=%small clump=%clump";
-        T_log_analyze_strict = "  │  ├─ Strictness: %strict, merge policy: %policy";
-        T_log_analyze_bg = "  │  ├─ Background subtraction: rolling=%r";
-        T_log_analyze_excl_on = "  │  ├─ Exclusion: mode=%mode thr=%thr strict=%strict sizeGate=%gate range=%min-%max";
-        T_log_analyze_excl_off = "  │  └─ Exclusion: disabled";
-        T_log_analyze_method = "  │  └─ Detection flow: A=Yen+Mask+Watershed; B=Edges+Otsu+Mask+Watershed; merge=%policy";
-        T_log_analyze_excl_adjust = "  │  └─ Dynamic threshold: mean=%mean std=%std kstd=%kstd thr=%thr";
-        T_log_label_mask = "  │  ├─ Cell label mask: %s";
+        T_log_sep = "------------------------------------------------";
+        T_log_start = "OK Start: Macrophage four-factor analysis";
+        T_log_lang = "  |- Language: English";
+        T_log_dir = "  |- Folder: selected";
+        T_log_mode = "  - Mode: %s";
+        T_log_fluo_prefix = "  |- Fluorescence prefix: %s";
+        T_log_fluo_report = "  - Fluorescence summary: images=%n missing=%m orphan=%o";
+        T_log_roi_phase_start = "OK Step: Cell ROI annotation";
+        T_log_roi_phase_done = "OK Complete: Cell ROI annotation";
+        T_log_sampling_start = "OK Step: Target object sampling";
+        T_log_fluo_sampling_start = "OK Step: Fluorescence color sampling";
+        T_log_fluo_sampling_done = "OK Complete: Fluorescence color sampling";
+        T_log_sampling_cancel = "OK Complete: Sampling (finished by user)";
+        T_log_sampling_img = "  |- Sample [%i/%n]: %f";
+        T_log_sampling_rois = "  |  - ROI count: %i";
+        T_log_params_calc = "OK Complete: Default parameters inferred";
+        T_log_feature_select = "  |- Target features: %s";
+        T_log_main_start = "OK Start: Batch analysis (silent mode)";
+        T_log_processing = "  |- Processing [%i/%n]: %f";
+        T_log_missing_roi = "  |  WARN Missing ROI: %f";
+        T_log_missing_choice = "  |  - Action: %s";
+        T_log_load_roi = "  |  |- Load ROI";
+        T_log_roi_count = "  |  |  - Cell count: %i";
+        T_log_bead_detect = "  |  |- Detect target objects and compute statistics";
+        T_log_bead_count = "  |  |  |- Total objects: %i";
+        T_log_bead_incell = "  |  |  |- Objects in cells: %i";
+        T_log_bead_count_px = "  |  |  |- Total target pixels: %i";
+        T_log_bead_incell_px = "  |  |  |- Target pixels in cells: %i";
+        T_log_cell_withbead = "  |  |  - Cells with objects: %i";
+        T_log_fluo_missing = "  |  WARN Missing fluorescence image: %f";
+        T_log_fluo_count = "  |  |  |- Fluorescence total pixels: %i";
+        T_log_fluo_incell = "  |  |  - Fluorescence in-cell pixels: %i";
+        T_log_bead_summary_done = "  |  |  - Object statistics completed";
+        T_log_complete = "  |  - OK Done";
+        T_log_skip_roi = "  |  X Skipped: missing ROI";
+        T_log_skip_nocell = "  |  X Skipped: no valid cells in ROI";
+        T_log_results_save = "OK Complete: Results written to the Results table";
+        T_log_opt_done = "OK Data optimization completed";
+        T_log_opt_time = "OK Time-trend optimization completed";
+        T_log_all_done = "OK OK OK All tasks completed OK OK OK";
+        T_log_summary = "Summary: %i images processed";
+        T_log_unit_sync_keep = "  - Object scale: using inferred value = %s";
+        T_log_unit_sync_ui = "  - Object scale: manual change detected; using UI midpoint = %s";
+        T_log_analyze_header = "  |- Analysis parameters";
+        T_log_analyze_img = "  |- Image: %f";
+        T_log_analyze_roi = "  |  |- ROI: %s";
+        T_log_analyze_size = "  |  |- Size: %w x %h";
+        T_log_analyze_pixel_mode = "  |  |- Count mode: Pixel count (ignore area/circularity/clump split)";
+        T_log_analyze_bead_params = "  |  |- Target object params: area=%min-%max, circ>=%circ, unit=%unit";
+        T_log_analyze_features = "  |  |- Target features: %s";
+        T_log_analyze_feature_params = "  |  |- Feature params: diff=%diff bg=%bg small=%small clump=%clump";
+        T_log_analyze_strict = "  |  |- Strictness: %strict, merge policy: %policy";
+        T_log_analyze_bg = "  |  |- Background subtraction: rolling=%r";
+        T_log_analyze_excl_on = "  |  |- Exclusion: mode=%mode thr=%thr strict=%strict sizeGate=%gate range=%min-%max";
+        T_log_analyze_excl_off = "  |  - Exclusion: disabled";
+        T_log_analyze_method = "  |  - Detection flow: A=Yen+Mask+Watershed; B=Edges+Otsu+Mask+Watershed; merge=%policy";
+        T_log_analyze_excl_adjust = "  |  - Dynamic threshold: mean=%mean std=%std kstd=%kstd thr=%thr";
+        T_log_analyze_fluo_file = "  |  |- Fluorescence image: %f";
+        T_log_analyze_fluo_params =
+            "  |  |- Fluorescence params: target=%t near=%n tol=%tol excl=%ex exclTol=%et";
+        T_log_label_mask = "  |  |- Cell label mask: %s";
         T_log_label_mask_ok = "generated";
         T_log_label_mask_fail = "failed";
         T_log_policy_strict = "STRICT";
         T_log_policy_union = "UNION";
         T_log_policy_loose = "LOOSE";
-        T_log_df_header = "  ├─ Data formatting: custom parsing details";
-        T_log_df_rule = "  │  ├─ Rule: %s";
-        T_log_df_cols = "  │  ├─ Column format: %s";
-        T_log_df_sort_asc = "  │  ├─ Sort: %s ascending";
-        T_log_df_sort_desc = "  │  ├─ Sort: %s descending";
-        T_log_df_item = "  │  └─ item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
+        T_log_df_header = "  |- Data formatting: custom parsing details";
+        T_log_df_rule = "  |  |- Rule: %s";
+        T_log_df_cols = "  |  |- Column format: %s";
+        T_log_df_sort_asc = "  |  |- Sort: %s ascending";
+        T_log_df_sort_desc = "  |  |- Sort: %s descending";
+        T_log_df_item = "  |  - item: raw=%raw | token=%token | name=%name | value=%value | single=%single";
+        T_log_df_parse_header = "  |- Parse Details: filename/time";
+        T_log_df_parse_name = "  |  - [%i/%n] file=%f | base=%b | preset=%p | pn=%pn (ok=%po) | f=%fs | fNum=%fn";
+        T_log_df_parse_time = "  |  |- time: sub=%s | t=%t | tNum=%tn | ok=%ok";
+        T_log_df_parse_time_off = "  |  |- time: disabled (no T column)";
+        T_log_df_parse_detail = "  |  |- detail: %s";
+        T_log_scan_folder = "  |- scan: path=%p | dirs=%d | imgs=%n | fluo=%f";
 
         T_reason_no_target = "No target object sampling was performed: using default object scale and default Rolling Ball.";
         T_reason_target_ok = "Object scale and Rolling Ball were inferred from target samples (robust estimation).";
@@ -4525,8 +5905,11 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     Dialog.create(T_mode_title);
     Dialog.addMessage(T_mode_msg);
     Dialog.addChoice(T_mode_label, newArray(T_mode_1, T_mode_2, T_mode_3), T_mode_3);
+    Dialog.addCheckbox(T_mode_fluo, false);
     Dialog.show();
     modeChoice = Dialog.getChoice();
+    HAS_FLUO = 0;
+    if (Dialog.getCheckbox()) HAS_FLUO = 1;
 
     doROI = (modeChoice == T_mode_1) || (modeChoice == T_mode_3);
     doAnalyze = (modeChoice == T_mode_2) || (modeChoice == T_mode_3);
@@ -4541,7 +5924,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     rawList = getFileList(dir);
 
     rootFiles = newArray();
-    imgRootFiles = newArray();
+    imgRootFilesAll = newArray();
     subDirs = newArray();
     k = 0;
     while (k < rawList.length) {
@@ -4553,7 +5936,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             } else {
                 rootFiles[rootFiles.length] = name;
                 if (!endsWith(toLowerCase(name), ".zip")) {
-                    if (isImageFile(name)) imgRootFiles[imgRootFiles.length] = name;
+                    if (isImageFile(name)) imgRootFilesAll[imgRootFilesAll.length] = name;
                 }
             }
         }
@@ -4563,82 +5946,357 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     SUBFOLDER_MODE = 0;
     SUBFOLDER_KEEP_MODE = 0;
 
-    if (imgRootFiles.length > 0 && subDirs.length > 0) {
+    if (imgRootFilesAll.length > 0 && subDirs.length > 0 && !(doROI && !doAnalyze)) {
         logErrorMessage(T_err_dir_illegal_msg);
         showMessage(T_err_dir_illegal_title, T_err_dir_illegal_msg);
         exit(T_exitScript);
     }
 
-    imgEntries = newArray();
-    if (imgRootFiles.length > 0) {
-        k = 0;
-        while (k < imgRootFiles.length) {
-            imgName = imgRootFiles[k];
-            base = getBaseName(imgName);
-            key = imgName;
-            entry = key + "\t" + dir + "\t" + imgName + "\t" + base + "\t" + "\t" + base;
-            imgEntries[imgEntries.length] = entry;
-            k = k + 1;
-        }
-    } else if (subDirs.length > 0) {
-        SUBFOLDER_MODE = 1;
-        Dialog.create(T_subfolder_title);
-        Dialog.addMessage(T_subfolder_msg);
-        Dialog.addChoice(T_subfolder_label, newArray(T_subfolder_keep, T_subfolder_flat), T_subfolder_keep);
-        Dialog.show();
-        subMode = Dialog.getChoice();
-        if (subMode == T_subfolder_keep) SUBFOLDER_KEEP_MODE = 1;
+    fluoPrefix = "#";
+    fluoSamplePaths = newArray();
+    fluoMissingCount = 0;
+    fluoOrphanCount = 0;
 
-        k = 0;
-        while (k < subDirs.length) {
-            subName = subDirs[k];
-            subPath = ensureTrailingSlash(dir + subName);
-            subClean = subName;
-            if (endsWith(subClean, "/")) subClean = substring(subClean, 0, lengthOf(subClean) - 1);
-            subList = getFileList(subPath);
-            hasNested = 0;
-            j = 0;
-            while (j < subList.length) {
-                entry = subList[j];
-                if (!startsWith(entry, ".") && toLowerCase(entry) != "thumbs.db") {
-                    if (File.isDirectory(subPath + entry)) {
-                        hasNested = 1;
-                        break;
-                    }
-                }
-                j = j + 1;
+    configOk = 0;
+    while (configOk == 0) {
+        SUBFOLDER_KEEP_MODE = 0;
+        SUBFOLDER_MODE = 0;
+        if (subDirs.length > 0) SUBFOLDER_MODE = 1;
+
+        if (subDirs.length > 0 || HAS_FLUO == 1) {
+            Dialog.create(T_folder_option_title);
+            if (subDirs.length > 0) {
+                Dialog.addMessage(T_subfolder_msg);
+                Dialog.addChoice(T_subfolder_label, newArray(T_subfolder_keep, T_subfolder_flat), T_subfolder_keep);
             }
-            if (hasNested == 1) {
-                msg = replaceSafe(T_err_subdir_illegal_msg, "%s", subClean);
-                logErrorMessage(msg);
-                showMessage(T_err_subdir_illegal_title, msg);
-                exit(T_exitScript);
+            if (HAS_FLUO == 1) {
+                Dialog.addMessage(T_fluo_prefix_msg);
+                Dialog.addString(T_fluo_prefix_label, fluoPrefix);
             }
-            j = 0;
-            while (j < subList.length) {
-                imgName = subList[j];
-                if (!endsWith(toLowerCase(imgName), ".zip")) {
-                    if (isImageFile(imgName)) {
-                        base = getBaseName(imgName);
-                        if (SUBFOLDER_KEEP_MODE == 1) parseBase = base;
-                        else parseBase = subClean + "_" + base;
-                        key = subClean + "/" + imgName;
-                        entry = key + "\t" + subPath + "\t" + imgName + "\t" + base + "\t" + subClean + "\t" + parseBase;
-                        imgEntries[imgEntries.length] = entry;
-                    }
-                }
-                j = j + 1;
+            Dialog.show();
+            if (subDirs.length > 0) {
+                subMode = Dialog.getChoice();
+                if (subMode == T_subfolder_keep) SUBFOLDER_KEEP_MODE = 1;
             }
-            k = k + 1;
+            if (HAS_FLUO == 1) fluoPrefix = Dialog.getString();
         }
-    } else {
-        logErrorMessage(T_noImages);
-        exit(T_noImages);
+
+        if (HAS_FLUO == 1) {
+            fluoPrefix = trim2(fluoPrefix);
+            if (lengthOf(fluoPrefix) == 0) {
+                logErrorMessage(T_err_fluo_prefix_empty);
+                showMessage(T_err_fluo_prefix_title, T_err_fluo_prefix_empty);
+                continue;
+            }
+            if (indexOf(fluoPrefix, "/") >= 0 || indexOf(fluoPrefix, "\\") >= 0) {
+                logErrorMessage(T_err_fluo_prefix_invalid);
+                showMessage(T_err_fluo_prefix_title, T_err_fluo_prefix_invalid);
+                continue;
+            }
+        }
+
+        imgEntries = newArray();
+        fluoSamplePaths = newArray();
+        fluoMissingCount = 0;
+        fluoOrphanCount = 0;
+
+        if (doROI && !doAnalyze) {
+            if (subDirs.length > 0) SUBFOLDER_MODE = 1;
+            hasFluoScan = HAS_FLUO;
+            pass = 0;
+            while (pass < 2) {
+                dirQueue = newArray();
+                relQueue = newArray();
+                dirQueue[dirQueue.length] = dir;
+                relQueue[relQueue.length] = "";
+                q = 0;
+                while (q < dirQueue.length) {
+                    rootDir = dirQueue[q];
+                    relPath = relQueue[q];
+                    q = q + 1;
+
+                    folderPath = ensureTrailingSlash(rootDir + relPath);
+                    list = getFileList(folderPath);
+                    normals = newArray();
+                    fluoFiles = newArray();
+                    fluoBases = newArray();
+                    dirs = newArray();
+
+                    i = 0;
+                    while (i < list.length) {
+                        entry = list[i];
+                        if (!startsWith(entry, ".") && toLowerCase(entry) != "thumbs.db") {
+                            if (isDirectoryCompat(folderPath, entry) == 1) {
+                                dirName = entry;
+                                if (endsWith(dirName, "/") || endsWith(dirName, "\\")) {
+                                    dirName = substring(dirName, 0, lengthOf(dirName) - 1);
+                                }
+                                dirs[dirs.length] = dirName;
+                                dirQueue[dirQueue.length] = rootDir;
+                                relQueue[relQueue.length] = relPath + dirName + "/";
+                            } else {
+                                if (!endsWith(toLowerCase(entry), ".zip")) {
+                                    if (isImageFile(entry)) {
+                                        if (hasFluoScan == 1 && startsWith(entry, fluoPrefix)) {
+                                            fluoFiles[fluoFiles.length] = entry;
+                                            fluoBases[fluoBases.length] = substring(entry, lengthOf(fluoPrefix));
+                                            fluoSamplePaths[fluoSamplePaths.length] = folderPath + entry;
+                                        } else {
+                                            normals[normals.length] = entry;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        i = i + 1;
+                    }
+
+                    if (hasFluoScan == 1) {
+                        i = 0;
+                        while (i < fluoBases.length) {
+                            baseName = fluoBases[i];
+                            found = 0;
+                            j = 0;
+                            while (j < normals.length) {
+                                if (normals[j] == baseName) {
+                                    found = 1;
+                                    break;
+                                }
+                                j = j + 1;
+                            }
+                            if (found == 0) fluoOrphanCount = fluoOrphanCount + 1;
+                            i = i + 1;
+                        }
+                    }
+
+                    i = 0;
+                    while (i < normals.length) {
+                        imgName = normals[i];
+                        base = getBaseName(imgName);
+                        key = relPath + imgName;
+                        subClean = relPath;
+                        if (endsWith(subClean, "/")) subClean = substring(subClean, 0, lengthOf(subClean) - 1);
+                        parseBase = base;
+                        fluoFile = "";
+                        if (hasFluoScan == 1) {
+                            j = 0;
+                            while (j < fluoBases.length) {
+                                if (fluoBases[j] == imgName) {
+                                    fluoFile = fluoFiles[j];
+                                    break;
+                                }
+                                j = j + 1;
+                            }
+                            if (fluoFile == "") fluoMissingCount = fluoMissingCount + 1;
+                        }
+                        entry = key + "\t" + folderPath + "\t" + imgName + "\t" + base + "\t" + subClean + "\t" + parseBase + "\t" + fluoFile;
+                        imgEntries[imgEntries.length] = entry;
+                        i = i + 1;
+                    }
+
+                    if (LOG_VERBOSE) {
+                        line = T_log_scan_folder;
+                        line = replaceSafe(line, "%p", folderPath);
+                        line = replaceSafe(line, "%d", "" + dirs.length);
+                        line = replaceSafe(line, "%n", "" + normals.length);
+                        line = replaceSafe(line, "%f", "" + fluoFiles.length);
+                        log(line);
+                    }
+                }
+
+                if (imgEntries.length > 0) break;
+                if (pass == 0 && hasFluoScan == 1) {
+                    hasFluoScan = 0;
+                    imgEntries = newArray();
+                    fluoSamplePaths = newArray();
+                    fluoMissingCount = 0;
+                    fluoOrphanCount = 0;
+                    pass = pass + 1;
+                    continue;
+                }
+                break;
+            }
+        } else if (imgRootFilesAll.length > 0) {
+            imgRootFiles = newArray();
+            fluoRootFiles = newArray();
+            fluoRootBases = newArray();
+
+            k = 0;
+            while (k < rootFiles.length) {
+                name = rootFiles[k];
+                if (!endsWith(toLowerCase(name), ".zip")) {
+                    if (isImageFile(name)) {
+                        if (HAS_FLUO == 1 && startsWith(name, fluoPrefix)) {
+                            fluoRootFiles[fluoRootFiles.length] = name;
+                            fluoRootBases[fluoRootBases.length] = substring(name, lengthOf(fluoPrefix));
+                            fluoSamplePaths[fluoSamplePaths.length] = dir + name;
+                        } else {
+                            imgRootFiles[imgRootFiles.length] = name;
+                        }
+                    }
+                }
+                k = k + 1;
+            }
+
+            if (HAS_FLUO == 1) {
+                k = 0;
+                while (k < fluoRootBases.length) {
+                    baseName = fluoRootBases[k];
+                    found = 0;
+                    j = 0;
+                    while (j < imgRootFiles.length) {
+                        if (imgRootFiles[j] == baseName) {
+                            found = 1;
+                            break;
+                        }
+                        j = j + 1;
+                    }
+                    if (found == 0) fluoOrphanCount = fluoOrphanCount + 1;
+                    k = k + 1;
+                }
+            }
+
+            k = 0;
+            while (k < imgRootFiles.length) {
+                imgName = imgRootFiles[k];
+                base = getBaseName(imgName);
+                key = imgName;
+                fluoFile = "";
+                if (HAS_FLUO == 1) {
+                    j = 0;
+                    while (j < fluoRootBases.length) {
+                        if (fluoRootBases[j] == imgName) {
+                            fluoFile = fluoRootFiles[j];
+                            break;
+                        }
+                        j = j + 1;
+                    }
+                    if (fluoFile == "") fluoMissingCount = fluoMissingCount + 1;
+                }
+                entry = key + "\t" + dir + "\t" + imgName + "\t" + base + "\t" + "\t" + base + "\t" + fluoFile;
+                imgEntries[imgEntries.length] = entry;
+                k = k + 1;
+            }
+        } else if (subDirs.length > 0) {
+            SUBFOLDER_MODE = 1;
+            k = 0;
+            while (k < subDirs.length) {
+                subName = subDirs[k];
+                subPath = ensureTrailingSlash(dir + subName);
+                subClean = subName;
+                if (endsWith(subClean, "/")) subClean = substring(subClean, 0, lengthOf(subClean) - 1);
+                subList = getFileList(subPath);
+                hasNested = 0;
+                j = 0;
+                while (j < subList.length) {
+                    entry = subList[j];
+                    if (!startsWith(entry, ".") && toLowerCase(entry) != "thumbs.db") {
+                        if (File.isDirectory(subPath + entry)) {
+                            hasNested = 1;
+                            break;
+                        }
+                    }
+                    j = j + 1;
+                }
+                if (hasNested == 1) {
+                    msg = replaceSafe(T_err_subdir_illegal_msg, "%s", subClean);
+                    logErrorMessage(msg);
+                    showMessage(T_err_subdir_illegal_title, msg);
+                    exit(T_exitScript);
+                }
+
+                subNormals = newArray();
+                subFluoFiles = newArray();
+                subFluoBases = newArray();
+
+                j = 0;
+                while (j < subList.length) {
+                    imgName = subList[j];
+                    if (!startsWith(imgName, ".") && toLowerCase(imgName) != "thumbs.db") {
+                        if (!endsWith(toLowerCase(imgName), ".zip")) {
+                            if (isImageFile(imgName)) {
+                                if (HAS_FLUO == 1 && startsWith(imgName, fluoPrefix)) {
+                                    subFluoFiles[subFluoFiles.length] = imgName;
+                                    subFluoBases[subFluoBases.length] = substring(imgName, lengthOf(fluoPrefix));
+                                    fluoSamplePaths[fluoSamplePaths.length] = subPath + imgName;
+                                } else {
+                                    subNormals[subNormals.length] = imgName;
+                                }
+                            }
+                        }
+                    }
+                    j = j + 1;
+                }
+
+                if (HAS_FLUO == 1) {
+                    j = 0;
+                    while (j < subFluoBases.length) {
+                        baseName = subFluoBases[j];
+                        found = 0;
+                        n = 0;
+                        while (n < subNormals.length) {
+                            if (subNormals[n] == baseName) {
+                                found = 1;
+                                break;
+                            }
+                            n = n + 1;
+                        }
+                        if (found == 0) fluoOrphanCount = fluoOrphanCount + 1;
+                        j = j + 1;
+                    }
+                }
+
+                j = 0;
+                while (j < subNormals.length) {
+                    imgName = subNormals[j];
+                    base = getBaseName(imgName);
+                    if (SUBFOLDER_KEEP_MODE == 1) parseBase = base;
+                    else parseBase = subClean + "_" + base;
+                    key = subClean + "/" + imgName;
+                    fluoFile = "";
+                    if (HAS_FLUO == 1) {
+                        n = 0;
+                        while (n < subFluoBases.length) {
+                            if (subFluoBases[n] == imgName) {
+                                fluoFile = subFluoFiles[n];
+                                break;
+                            }
+                            n = n + 1;
+                        }
+                        if (fluoFile == "") fluoMissingCount = fluoMissingCount + 1;
+                    }
+                    entry = key + "\t" + subPath + "\t" + imgName + "\t" + base + "\t" + subClean + "\t" + parseBase + "\t" + fluoFile;
+                    imgEntries[imgEntries.length] = entry;
+                    j = j + 1;
+                }
+                k = k + 1;
+            }
+        } else {
+            logErrorMessage(T_noImages);
+            exit(T_noImages);
+        }
+
+        if (imgEntries.length == 0) {
+            logErrorMessage(T_noImages);
+            exit(T_noImages);
+        }
+
+        if (HAS_FLUO == 1 && fluoSamplePaths.length == 0) {
+            logErrorMessage(T_err_fluo_prefix_none);
+            showMessage(T_err_fluo_prefix_title, T_err_fluo_prefix_none);
+            continue;
+        }
+
+        configOk = 1;
     }
 
-    if (imgEntries.length == 0) {
-        logErrorMessage(T_noImages);
-        exit(T_noImages);
+    if (HAS_FLUO == 1) {
+        msg = T_fluo_report_msg;
+        msg = replaceSafe(msg, "%p", fluoPrefix);
+        msg = replaceSafe(msg, "%n", "" + fluoSamplePaths.length);
+        msg = replaceSafe(msg, "%m", "" + fluoMissingCount);
+        msg = replaceSafe(msg, "%o", "" + fluoOrphanCount);
+        showMessage(T_fluo_report_title, msg);
     }
 
     Array.sort(imgEntries);
@@ -4650,6 +6308,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     bases = newArray(nTotalImgs);
     subNames = newArray(nTotalImgs);
     parseBases = newArray(nTotalImgs);
+    fluoFilesSorted = newArray(nTotalImgs);
     k = 0;
     while (k < nTotalImgs) {
         parts = splitByChar(imgEntries[k], "\t");
@@ -4658,6 +6317,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         bases[k] = parts[3];
         subNames[k] = parts[4];
         parseBases[k] = parts[5];
+        if (parts.length > 6) fluoFilesSorted[k] = parts[6];
+        else fluoFilesSorted[k] = "";
         k = k + 1;
     }
 
@@ -4678,6 +6339,24 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         k = k - 1;
     }
 
+    fluoSampleIdx = newArray();
+    if (HAS_FLUO == 1) {
+        fluoSampleIdx = newArray(fluoSamplePaths.length);
+        k = 0;
+        while (k < fluoSampleIdx.length) {
+            fluoSampleIdx[k] = k;
+            k = k + 1;
+        }
+        k = fluoSampleIdx.length - 1;
+        while (k > 0) {
+            j = floor(random() * (k + 1));
+            swap = fluoSampleIdx[k];
+            fluoSampleIdx[k] = fluoSampleIdx[j];
+            fluoSampleIdx[j] = swap;
+            k = k - 1;
+        }
+    }
+
     roiSuffix = "_cells";
 
     // 画像名とROIパスの対応表を作成する
@@ -4693,6 +6372,14 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     log(T_log_lang);
     log(T_log_dir);
     log(replaceSafe(T_log_mode, "%s", modeChoice));
+    if (HAS_FLUO == 1) {
+        log(replaceSafe(T_log_fluo_prefix, "%s", fluoPrefix));
+        line = T_log_fluo_report;
+        line = replaceSafe(line, "%n", "" + fluoSamplePaths.length);
+        line = replaceSafe(line, "%m", "" + fluoMissingCount);
+        line = replaceSafe(line, "%o", "" + fluoOrphanCount);
+        log(line);
+    }
     log(T_log_sep);
 
     run("ROI Manager...");
@@ -4720,6 +6407,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         // -----------------------------------------------------------------------------
         // ROIのみ実行時はここで終了する
         // -----------------------------------------------------------------------------
+        showMessage(T_end_title, T_end_msg);
         maybePrintMotto();
         exit("");
     }
@@ -5184,6 +6872,328 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     featList = formatFeatureList(useF1, useF2, useF3, useF4, useF5, useF6);
     log(replaceSafe(T_log_feature_select, "%s", featList));
 
+    if (HAS_FLUO == 1) {
+        waitForUser(T_step_fluo_title, T_step_fluo_msg);
+        log(T_log_fluo_sampling_start);
+
+        fluoSamplingOk = 0;
+        while (fluoSamplingOk == 0) {
+            fluoTargetRList = newArray();
+            fluoTargetGList = newArray();
+            fluoTargetBList = newArray();
+            fluoNearRList = newArray();
+            fluoNearGList = newArray();
+            fluoNearBList = newArray();
+            fluoExclRList = newArray();
+            fluoExclGList = newArray();
+            fluoExclBList = newArray();
+
+            // 1) 解析対象色のサンプリング
+            s = 0;
+            while (s < fluoSampleIdx.length) {
+                idxSample = fluoSampleIdx[s];
+                fluoPath = fluoSamplePaths[idxSample];
+                fluoName = getFileNameFromPath(fluoPath);
+
+                printWithIndex(T_log_sampling_img, s + 1, fluoSampleIdx.length, fluoName);
+
+                origTitle = openImageSafe(fluoPath, "sampling/fluo/target/open", fluoName);
+                ensure2D();
+                forcePixelUnit();
+                wF = getWidth();
+                hF = getHeight();
+
+                roiManager("Reset");
+                roiManager("Show All");
+
+                msg = T_promptAddROI_fluo_target;
+                msg = replaceSafe(msg, "%i", "" + (s + 1));
+                msg = replaceSafe(msg, "%n", "" + fluoSampleIdx.length);
+                msg = replaceSafe(msg, "%f", fluoName);
+                waitForUser(T_sampling + " - " + fluoName, msg);
+
+                Dialog.create(T_sampling + " - " + fluoName);
+                Dialog.addMessage(T_ddInfo_fluo_target);
+                Dialog.addChoice(T_ddLabel, newArray(T_ddNext, T_ddStep, T_ddExit), T_ddNext);
+                Dialog.show();
+                act = Dialog.getChoice();
+
+                if (act == T_ddExit) {
+                    selectWindow(origTitle);
+                    close();
+                    exit(T_exitScript);
+                }
+
+                nR = roiManager("count");
+                log(replaceSafe(T_log_sampling_rois, "%i", "" + nR));
+                if (nR > 0) {
+                    r = 0;
+                    while (r < nR) {
+                        roiManager("select", r);
+                        stats = measureSelectionRgbMean(wF, hF);
+                        if (stats[3] > 0) {
+                            fluoTargetRList[fluoTargetRList.length] = stats[0];
+                            fluoTargetGList[fluoTargetGList.length] = stats[1];
+                            fluoTargetBList[fluoTargetBList.length] = stats[2];
+                        }
+                        r = r + 1;
+                    }
+                }
+
+                selectWindow(origTitle);
+                close();
+
+                if (act == T_ddStep) {
+                    log(T_log_sampling_cancel);
+                    break;
+                }
+                s = s + 1;
+            }
+
+            // 2) 近似色（陰影・泛光）のサンプリング
+            s = 0;
+            while (s < fluoSampleIdx.length) {
+                idxSample = fluoSampleIdx[s];
+                fluoPath = fluoSamplePaths[idxSample];
+                fluoName = getFileNameFromPath(fluoPath);
+
+                printWithIndex(T_log_sampling_img, s + 1, fluoSampleIdx.length, fluoName);
+
+                origTitle = openImageSafe(fluoPath, "sampling/fluo/near/open", fluoName);
+                ensure2D();
+                forcePixelUnit();
+                wF = getWidth();
+                hF = getHeight();
+
+                roiManager("Reset");
+                roiManager("Show All");
+
+                msg = T_promptAddROI_fluo_near;
+                msg = replaceSafe(msg, "%i", "" + (s + 1));
+                msg = replaceSafe(msg, "%n", "" + fluoSampleIdx.length);
+                msg = replaceSafe(msg, "%f", fluoName);
+                waitForUser(T_sampling + " - " + fluoName, msg);
+
+                Dialog.create(T_sampling + " - " + fluoName);
+                Dialog.addMessage(T_ddInfo_fluo_near);
+                Dialog.addChoice(T_ddLabel, newArray(T_ddNext, T_ddStep, T_ddExit), T_ddNext);
+                Dialog.show();
+                act = Dialog.getChoice();
+
+                if (act == T_ddExit) {
+                    selectWindow(origTitle);
+                    close();
+                    exit(T_exitScript);
+                }
+
+                nR = roiManager("count");
+                log(replaceSafe(T_log_sampling_rois, "%i", "" + nR));
+                if (nR > 0) {
+                    r = 0;
+                    while (r < nR) {
+                        roiManager("select", r);
+                        stats = measureSelectionRgbMean(wF, hF);
+                        if (stats[3] > 0) {
+                            fluoNearRList[fluoNearRList.length] = stats[0];
+                            fluoNearGList[fluoNearGList.length] = stats[1];
+                            fluoNearBList[fluoNearBList.length] = stats[2];
+                        }
+                        r = r + 1;
+                    }
+                }
+
+                selectWindow(origTitle);
+                close();
+
+                if (act == T_ddStep) {
+                    log(T_log_sampling_cancel);
+                    break;
+                }
+                s = s + 1;
+            }
+
+            // 3) 排斥色（背景・他色）のサンプリング（任意）
+            s = 0;
+            while (s < fluoSampleIdx.length) {
+                idxSample = fluoSampleIdx[s];
+                fluoPath = fluoSamplePaths[idxSample];
+                fluoName = getFileNameFromPath(fluoPath);
+
+                printWithIndex(T_log_sampling_img, s + 1, fluoSampleIdx.length, fluoName);
+
+                origTitle = openImageSafe(fluoPath, "sampling/fluo/excl/open", fluoName);
+                ensure2D();
+                forcePixelUnit();
+                wF = getWidth();
+                hF = getHeight();
+
+                roiManager("Reset");
+                roiManager("Show All");
+
+                msg = T_promptAddROI_fluo_excl;
+                msg = replaceSafe(msg, "%i", "" + (s + 1));
+                msg = replaceSafe(msg, "%n", "" + fluoSampleIdx.length);
+                msg = replaceSafe(msg, "%f", fluoName);
+                waitForUser(T_sampling + " - " + fluoName, msg);
+
+                Dialog.create(T_sampling + " - " + fluoName);
+                Dialog.addMessage(T_ddInfo_fluo_excl);
+                Dialog.addChoice(T_ddLabel, newArray(T_ddNext, T_ddStep, T_ddExit), T_ddNext);
+                Dialog.show();
+                act = Dialog.getChoice();
+
+                if (act == T_ddExit) {
+                    selectWindow(origTitle);
+                    close();
+                    exit(T_exitScript);
+                }
+
+                nR = roiManager("count");
+                log(replaceSafe(T_log_sampling_rois, "%i", "" + nR));
+                if (nR > 0) {
+                    r = 0;
+                    while (r < nR) {
+                        roiManager("select", r);
+                        stats = measureSelectionRgbMean(wF, hF);
+                        if (stats[3] > 0) {
+                            fluoExclRList[fluoExclRList.length] = stats[0];
+                            fluoExclGList[fluoExclGList.length] = stats[1];
+                            fluoExclBList[fluoExclBList.length] = stats[2];
+                        }
+                        r = r + 1;
+                    }
+                }
+
+                selectWindow(origTitle);
+                close();
+
+                if (act == T_ddStep) {
+                    log(T_log_sampling_cancel);
+                    break;
+                }
+                s = s + 1;
+            }
+
+            if (fluoTargetRList.length == 0) {
+                logErrorMessage(T_err_fluo_target_none);
+                showMessage(T_err_fluo_target_title, T_err_fluo_target_none);
+                continue;
+            }
+            if (fluoNearRList.length == 0) {
+                logErrorMessage(T_err_fluo_near_none);
+                showMessage(T_err_fluo_near_title, T_err_fluo_near_none);
+                continue;
+            }
+
+            // 代表色を計算する
+            sumR = 0; sumG = 0; sumB = 0;
+            k = 0;
+            while (k < fluoTargetRList.length) {
+                sumR = sumR + fluoTargetRList[k];
+                sumG = sumG + fluoTargetGList[k];
+                sumB = sumB + fluoTargetBList[k];
+                k = k + 1;
+            }
+            fluoTargetR = sumR / fluoTargetRList.length;
+            fluoTargetG = sumG / fluoTargetGList.length;
+            fluoTargetB = sumB / fluoTargetBList.length;
+
+            sumR = 0; sumG = 0; sumB = 0;
+            k = 0;
+            while (k < fluoNearRList.length) {
+                sumR = sumR + fluoNearRList[k];
+                sumG = sumG + fluoNearGList[k];
+                sumB = sumB + fluoNearBList[k];
+                k = k + 1;
+            }
+            fluoNearR = sumR / fluoNearRList.length;
+            fluoNearG = sumG / fluoNearGList.length;
+            fluoNearB = sumB / fluoNearBList.length;
+
+            maxDistSq = 0;
+            k = 0;
+            while (k < fluoNearRList.length) {
+                d = colorDistSq(fluoNearRList[k], fluoNearGList[k], fluoNearBList[k], fluoTargetR, fluoTargetG, fluoTargetB);
+                if (d > maxDistSq) maxDistSq = d;
+                k = k + 1;
+            }
+            fluoTol = sqrt(maxDistSq);
+            if (fluoTol < 2) fluoTol = 2;
+            if (fluoTol > 441) fluoTol = 441;
+
+            fluoExclColors = newArray();
+            if (fluoExclRList.length > 0) {
+                k = 0;
+                while (k < fluoExclRList.length) {
+                    fluoExclColors[fluoExclColors.length] = fluoExclRList[k];
+                    fluoExclColors[fluoExclColors.length] = fluoExclGList[k];
+                    fluoExclColors[fluoExclColors.length] = fluoExclBList[k];
+                    k = k + 1;
+                }
+                fluoExclEnable = 1;
+                fluoExclTol = 12;
+            } else {
+                fluoExclEnable = 0;
+                fluoExclTol = 0;
+            }
+
+            fluoTargetColors = newArray();
+            k = 0;
+            while (k < fluoTargetRList.length) {
+                fluoTargetColors[fluoTargetColors.length] = fluoTargetRList[k];
+                fluoTargetColors[fluoTargetColors.length] = fluoTargetGList[k];
+                fluoTargetColors[fluoTargetColors.length] = fluoTargetBList[k];
+                k = k + 1;
+            }
+            fluoTargetRgbStr = rgbListToString(fluoTargetColors);
+
+            fluoNearColors = newArray();
+            k = 0;
+            while (k < fluoNearRList.length) {
+                fluoNearColors[fluoNearColors.length] = fluoNearRList[k];
+                fluoNearColors[fluoNearColors.length] = fluoNearGList[k];
+                fluoNearColors[fluoNearColors.length] = fluoNearBList[k];
+                k = k + 1;
+            }
+            fluoNearRgbStr = rgbListToString(fluoNearColors);
+            fluoExclRgbStr = rgbListToString(fluoExclColors);
+
+            fluoTargetName = buildColorNameList(fluoTargetColors);
+            if (fluoTargetName == "") fluoTargetName = colorNameFromRgb(fluoTargetR, fluoTargetG, fluoTargetB);
+            fluoNearName = buildColorNameList(fluoNearColors);
+            if (fluoNearName == "") fluoNearName = colorNameFromRgb(fluoNearR, fluoNearG, fluoNearB);
+            if (fluoExclColors.length == 0) fluoExclNames = T_fluo_none_label;
+            else {
+                fluoExclNames = "";
+                k = 0;
+                while (k + 2 < fluoExclColors.length) {
+                    nameTmp = colorNameFromRgb(fluoExclColors[k], fluoExclColors[k + 1], fluoExclColors[k + 2]);
+                    if (fluoExclNames != "") fluoExclNames = fluoExclNames + " / ";
+                    fluoExclNames = fluoExclNames + nameTmp + " (" + rgbToString(fluoExclColors[k], fluoExclColors[k + 1], fluoExclColors[k + 2]) + ")";
+                    k = k + 3;
+                }
+            }
+
+            fluoSummaryMsg = T_fluo_param_report;
+            fluoSummaryMsg = replaceSafe(fluoSummaryMsg, "%tname", fluoTargetName);
+            fluoSummaryMsg = replaceSafe(fluoSummaryMsg, "%trgb", fluoTargetRgbStr);
+            fluoSummaryMsg = replaceSafe(fluoSummaryMsg, "%nname", fluoNearName);
+            fluoSummaryMsg = replaceSafe(fluoSummaryMsg, "%nrgb", fluoNearRgbStr);
+            fluoSummaryMsg = replaceSafe(fluoSummaryMsg, "%ex", fluoExclNames);
+
+            fluoTargetRgbStrUI = fluoTargetRgbStr;
+            fluoNearRgbStrUI = fluoNearRgbStr;
+            fluoExclRgbStrUI = fluoExclRgbStr;
+            fluoTolUI = fluoTol;
+            fluoExclTolUI = fluoExclTol;
+            fluoExclEnableUI = fluoExclEnable;
+
+            fluoSamplingOk = 1;
+        }
+
+        log(T_log_fluo_sampling_done);
+    }
+
     reasonMsg = "";
 
     defMinA = DEF_MINA;
@@ -5201,6 +7211,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     defAllowClumps = 1;
     useMinPhago = 1;
     usePixelCount = 0;
+    if (HAS_FLUO == 1) usePixelCount = 1;
 
     useExcl = 0;
     exclMode = "HIGH";
@@ -5212,8 +7223,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     defExMaxA = DEF_MAXA;
 
     dataFormatEnable = 1;
-    dataFormatRule = "<p>/\" \"/(/<f>/),f=\"F\"";
-    if (SUBFOLDER_KEEP_MODE == 1) dataFormatRule = "<f>/hr,f=\"T\"//<p>/\" \"/(/<f>/)";
+    rulePresetChoice = T_rule_preset_windows;
+    dataFormatRule = buildPresetRuleLabel(rulePresetChoice, SUBFOLDER_KEEP_MODE);
     dataFormatCols = "TB/BIC/CWBA,name=\"Cell with Target Objects\"/TC/IBR/PCR/EIBR/EPCR/ISDP/PSDP";
     dataOptimizeEnable = 1;
 
@@ -5224,7 +7235,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     exclMeanMed = estimateMeanMedianSafe(exclMeansAll);
 
     if (targetAreas.length == 0) {
-        reasonMsg = reasonMsg + "• " + T_reason_no_target + "\n";
+        reasonMsg = reasonMsg + "- " + T_reason_no_target + "\n";
     } else {
         // 目標物の面積範囲と代表値を推定する
         range = estimateAreaRangeSafe(targetAreas, DEF_MINA, DEF_MAXA);
@@ -5232,7 +7243,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         defMaxA = range[1];
         beadUnitArea = range[2];
         defRoll = estimateRollingFromUnitArea(beadUnitArea);
-        reasonMsg = reasonMsg + "• " + T_reason_target_ok + "\n";
+        reasonMsg = reasonMsg + "- " + T_reason_target_ok + "\n";
 
         defCenterDiff = estimateAbsDiffThresholdSafe(unitCenterDiffs, DEF_CENTER_DIFF, 6, 40, 0.70);
         defBgDiff = estimateAbsDiffThresholdSafe(unitBgDiffs, DEF_BG_DIFF, 4, 30, 0.50);
@@ -5277,7 +7288,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         exclMode = exInfo[1];
         exclThr = exInfo[2];
 
-        reasonMsg = reasonMsg + "• " + T_reason_excl_on + "\n";
+        reasonMsg = reasonMsg + "- " + T_reason_excl_on + "\n";
         reasonMsg = reasonMsg + "  - " + exInfo[4] + "\n";
 
         if (exclAreasBead.length > 0) {
@@ -5285,18 +7296,18 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             exRange = estimateAreaRangeSafe(exclAreasBead, DEF_MINA, DEF_MAXA);
             defExMinA = exRange[0];
             defExMaxA = exRange[1];
-            reasonMsg = reasonMsg + "• " + T_reason_excl_size_ok + "\n";
+            reasonMsg = reasonMsg + "- " + T_reason_excl_size_ok + "\n";
         } else {
             defExMinA = DEF_MINA;
             defExMaxA = DEF_MAXA;
             useExclSizeGate = 0;
-            reasonMsg = reasonMsg + "• " + T_reason_excl_size_off + "\n";
+            reasonMsg = reasonMsg + "- " + T_reason_excl_size_off + "\n";
         }
     } else {
         useExcl = 0;
         useExclStrict = 0;
         useExclSizeGate = 0;
-        reasonMsg = reasonMsg + "• " + T_reason_excl_off + "\n";
+        reasonMsg = reasonMsg + "- " + T_reason_excl_off + "\n";
     }
 
     log(T_log_params_calc);
@@ -5390,7 +7401,11 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
         Dialog.addMessage(replaceSafe(T_section_sep, "%s", T_section_target));
         Dialog.addCheckbox(T_min_phago_enable, true);
-        Dialog.addCheckbox(T_pixel_count_enable, (usePixelCount == 1));
+        if (HAS_FLUO == 1) {
+            Dialog.addMessage(T_fluo_pixel_force);
+        } else {
+            Dialog.addCheckbox(T_pixel_count_enable, (usePixelCount == 1));
+        }
         Dialog.addChoice(T_strict, newArray(T_strict_S, T_strict_N, T_strict_L), T_strict_N);
 
         Dialog.addMessage(replaceSafe(T_section_sep, "%s", T_section_bg));
@@ -5431,8 +7446,12 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         if (Dialog.getCheckbox()) useMinPhago = 1;
         else useMinPhago = 0;
 
-        if (Dialog.getCheckbox()) usePixelCount = 1;
-        else usePixelCount = 0;
+        if (HAS_FLUO == 1) {
+            usePixelCount = 1;
+        } else {
+            if (Dialog.getCheckbox()) usePixelCount = 1;
+            else usePixelCount = 0;
+        }
 
         strictChoice = Dialog.getChoice();
         rollingRadius = Dialog.getNumber();
@@ -5449,6 +7468,122 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         while (k < nTotalImgs) {
             roiPaths[k] = imgDirs[k] + bases[k] + roiSuffix + ".zip";
             k = k + 1;
+        }
+
+        // -----------------------------------------------------------------------------
+        // フェーズ9: パラメータ確認ダイアログ（3/3）
+        // -----------------------------------------------------------------------------
+        if (HAS_FLUO == 1) {
+            Dialog.create(T_param_step3_title);
+            Dialog.addMessage(fluoSummaryMsg);
+
+            Dialog.addMessage(replaceSafe(T_section_sep, "%s", T_section_fluo));
+            Dialog.addString(T_fluo_target_rgb, fluoTargetRgbStrUI);
+            Dialog.addString(T_fluo_near_rgb, fluoNearRgbStrUI);
+            Dialog.addNumber(T_fluo_tol, fluoTolUI);
+            Dialog.addCheckbox(T_fluo_excl_enable, (fluoExclEnableUI == 1));
+            Dialog.addString(T_fluo_excl_rgb, fluoExclRgbStrUI);
+            Dialog.addNumber(T_fluo_excl_tol, fluoExclTolUI);
+            Dialog.show();
+
+            fluoTargetRgbStrUI = Dialog.getString();
+            fluoNearRgbStrUI = Dialog.getString();
+            fluoTolUI = Dialog.getNumber();
+            if (validateDialogNumber(fluoTolUI, T_fluo_tol, "param/step3") == 0) continue;
+
+            if (Dialog.getCheckbox()) fluoExclEnableUI = 1;
+            else fluoExclEnableUI = 0;
+
+            fluoExclRgbStrUI = Dialog.getString();
+            fluoExclTolUI = Dialog.getNumber();
+            if (validateDialogNumber(fluoExclTolUI, T_fluo_excl_tol, "param/step3") == 0) continue;
+
+            list = parseRgbList(fluoTargetRgbStrUI, T_fluo_target_rgb, "param/step3");
+            if (list[0] == 0) continue;
+            if (list[1] <= 0) {
+                msg = replaceSafe(T_err_fluo_rgb_format, "%s", T_fluo_target_rgb);
+                msg = replaceSafe(msg, "%v", fluoTargetRgbStrUI);
+                msg = replaceSafe(msg, "%stage", "param/step3");
+                logErrorMessage(msg);
+                showMessage(T_err_fluo_rgb_title, msg);
+                continue;
+            }
+            nColor = list[1];
+            fluoTargetColors = newArray(nColor * 3);
+            sumR = 0; sumG = 0; sumB = 0;
+            i = 0;
+            while (i < nColor * 3) {
+                fluoTargetColors[i] = list[i + 2];
+                sumR = sumR + list[i + 2];
+                sumG = sumG + list[i + 3];
+                sumB = sumB + list[i + 4];
+                i = i + 3;
+            }
+            fluoTargetR = sumR / nColor;
+            fluoTargetG = sumG / nColor;
+            fluoTargetB = sumB / nColor;
+            fluoTargetRgbStrUI = rgbListToString(fluoTargetColors);
+            fluoTargetRgbStr = fluoTargetRgbStrUI;
+            fluoTargetName = buildColorNameList(fluoTargetColors);
+            if (fluoTargetName == "") fluoTargetName = colorNameFromRgb(fluoTargetR, fluoTargetG, fluoTargetB);
+
+            list = parseRgbList(fluoNearRgbStrUI, T_fluo_near_rgb, "param/step3");
+            if (list[0] == 0) continue;
+            if (list[1] <= 0) {
+                msg = replaceSafe(T_err_fluo_rgb_format, "%s", T_fluo_near_rgb);
+                msg = replaceSafe(msg, "%v", fluoNearRgbStrUI);
+                msg = replaceSafe(msg, "%stage", "param/step3");
+                logErrorMessage(msg);
+                showMessage(T_err_fluo_rgb_title, msg);
+                continue;
+            }
+            nColor = list[1];
+            fluoNearColors = newArray(nColor * 3);
+            sumR = 0; sumG = 0; sumB = 0;
+            i = 0;
+            while (i < nColor * 3) {
+                fluoNearColors[i] = list[i + 2];
+                sumR = sumR + list[i + 2];
+                sumG = sumG + list[i + 3];
+                sumB = sumB + list[i + 4];
+                i = i + 3;
+            }
+            fluoNearR = sumR / nColor;
+            fluoNearG = sumG / nColor;
+            fluoNearB = sumB / nColor;
+            fluoNearRgbStrUI = rgbListToString(fluoNearColors);
+            fluoNearRgbStr = fluoNearRgbStrUI;
+            fluoNearName = buildColorNameList(fluoNearColors);
+            if (fluoNearName == "") fluoNearName = colorNameFromRgb(fluoNearR, fluoNearG, fluoNearB);
+
+            fluoExclColors = newArray();
+            if (fluoExclEnableUI == 1) {
+                list = parseRgbList(fluoExclRgbStrUI, T_fluo_excl_rgb, "param/step3");
+                if (list[0] == 0) continue;
+                if (list[1] <= 0) {
+                    logErrorMessage(T_err_fluo_excl_empty);
+                    showMessage(T_err_fluo_excl_title, T_err_fluo_excl_empty);
+                    continue;
+                }
+                nColor = list[1];
+                fluoExclColors = newArray(nColor * 3);
+                i = 0;
+                while (i < nColor * 3) {
+                    fluoExclColors[i] = list[i + 2];
+                    i = i + 1;
+                }
+                fluoExclRgbStrUI = rgbListToString(fluoExclColors);
+            }
+
+            fluoTol = fluoTolUI;
+            if (fluoTol < 0) fluoTol = 0;
+            if (fluoTol > 441) fluoTol = 441;
+
+            fluoExclTol = fluoExclTolUI;
+            if (fluoExclTol < 0) fluoExclTol = 0;
+            if (fluoExclTol > 441) fluoExclTol = 441;
+
+            fluoExclEnable = fluoExclEnableUI;
         }
 
         // -----------------------------------------------------------------------------
@@ -5569,7 +7704,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         else useExclStrict = 0;
 
         // -----------------------------------------------------------------------------
-        // フェーズ11: データ形式の設定（ドキュメント付き、バリデーションあり）
+        // フェーズ11: データ形式の設定（ドキュメント付き、列のみバリデーション）
         // -----------------------------------------------------------------------------
         docMsg = T_data_format_doc;
 
@@ -5577,7 +7712,11 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             Dialog.create(T_section_format);
             Dialog.addMessage(docMsg);
             Dialog.addCheckbox(T_data_format_enable, (dataFormatEnable == 1));
-            Dialog.addString(T_data_format_rule, dataFormatRule);
+            Dialog.addChoice(
+                T_data_format_rule,
+                newArray(T_rule_preset_windows, T_rule_preset_dolphin, T_rule_preset_mac),
+                rulePresetChoice
+            );
             Dialog.addString(T_data_format_cols, dataFormatCols);
             if (DATA_OPT_UI == 1) {
                 Dialog.addCheckbox(T_data_opt_enable, (dataOptimizeEnable == 1));
@@ -5586,7 +7725,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
             if (Dialog.getCheckbox()) dataFormatEnable = 1;
             else dataFormatEnable = 0;
-            dataFormatRule = Dialog.getString();
+            rulePresetChoice = Dialog.getChoice();
             dataFormatCols = Dialog.getString();
             if (DATA_OPT_UI == 1) {
                 if (Dialog.getCheckbox()) dataOptimizeEnable = 1;
@@ -5598,11 +7737,20 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             errMsg = "";
             errFieldLabel = "";
             if (dataFormatEnable == 1) {
-                errMsg = validateDataFormatRule(dataFormatRule);
-                errFieldLabel = T_data_format_rule;
-                if (errMsg == "") {
-                    errMsg = validateDataFormatCols(dataFormatCols);
-                    errFieldLabel = T_data_format_cols;
+                dataFormatRule = buildPresetRuleLabel(rulePresetChoice, SUBFOLDER_KEEP_MODE);
+                errMsg = validateDataFormatCols(dataFormatCols);
+                errMsg = "" + errMsg;
+                if (errMsg == "0") errMsg = "";
+                errFieldLabel = T_data_format_cols;
+                if (errMsg != "") {
+                    errTmp2 = "" + errMsg;
+                    if (errTmp2 == "NaN" ||
+                        lengthOf(errTmp2) < 2 || substring(errTmp2, 0, 2) != "[E") {
+                        dataFormatCols = "TB/BIC/CWBA,name=\"Cell with Target Objects\"/TC/IBR/PCR/EIBR/EPCR/ISDP/PSDP";
+                        errMsg = validateDataFormatCols(dataFormatCols);
+                        errMsg = "" + errMsg;
+                        if (errMsg == "0") errMsg = "";
+                    }
                 }
             }
 
@@ -5637,6 +7785,10 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         // -----------------------------------------------------------------------------
         // フェーズ12: バッチ解析メインループ
         // -----------------------------------------------------------------------------
+        if (HAS_FLUO == 1) {
+            fluoParams = newArray(fluoTargetR, fluoTargetG, fluoTargetB, fluoTol, fluoExclEnable, fluoExclTol);
+        }
+
         setBatchMode(true);
         run("Set Measurements...", "area centroid redirect=None decimal=3");
 
@@ -5649,6 +7801,14 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         allcellA = newArray(nTotalImgs);
         cellAdjA = newArray(nTotalImgs);
         cellBeadStrA = newArray(nTotalImgs);
+        fluoAllA = newArray();
+        fluoIncellA = newArray();
+        fluoCellBeadStrA = newArray();
+        if (HAS_FLUO == 1) {
+            fluoAllA = newArray(nTotalImgs);
+            fluoIncellA = newArray(nTotalImgs);
+            fluoCellBeadStrA = newArray(nTotalImgs);
+        }
 
         k = 0;
         while (k < nTotalImgs) {
@@ -5707,12 +7867,18 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 cellA[k] = "";
                 allcellA[k] = "";
                 cellBeadStrA[k] = "";
+                if (HAS_FLUO == 1) {
+                    fluoAllA[k] = "";
+                    fluoIncellA[k] = "";
+                    fluoCellBeadStrA[k] = "";
+                }
                 k = k + 1;
                 continue;
             }
 
             // 解析対象画像を開き、ROIを読み込む
-            openImageSafe(imgDirs[k] + imgName, "analyze/open", imgName);
+            imgPath = imgDirs[k] + imgName;
+            openImageSafe(imgPath, "analyze/open", imgName);
             ensure2D();
             forcePixelUnit();
             origID = getImageID();
@@ -5735,6 +7901,11 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 cellA[k] = "";
                 allcellA[k] = "";
                 cellBeadStrA[k] = "";
+                if (HAS_FLUO == 1) {
+                    fluoAllA[k] = "";
+                    fluoIncellA[k] = "";
+                    fluoCellBeadStrA[k] = "";
+                }
                 k = k + 1;
                 continue;
             }
@@ -5764,6 +7935,17 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             line = replaceSafe(line, "%w", "" + w);
             line = replaceSafe(line, "%h", "" + h);
             log(line);
+            if (HAS_FLUO == 1) {
+                exLabel = T_log_toggle_off;
+                if (fluoExclEnable == 1) exLabel = T_log_toggle_on;
+                line = T_log_analyze_fluo_params;
+                line = replaceSafe(line, "%t", fluoTargetRgbStr);
+                line = replaceSafe(line, "%n", fluoNearRgbStr);
+                line = replaceSafe(line, "%tol", "" + fluoTol);
+                line = replaceSafe(line, "%ex", exLabel);
+                line = replaceSafe(line, "%et", "" + fluoExclTol);
+                log(line);
+            }
             if (usePixelCount == 1) {
                 log(T_log_analyze_pixel_mode);
             } else {
@@ -5835,6 +8017,61 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             labelStatus = T_log_label_mask_fail;
             if (HAS_LABEL_MASK == 1) labelStatus = T_log_label_mask_ok;
             log(replaceSafe(T_log_label_mask, "%s", labelStatus));
+
+            if (HAS_FLUO == 1) {
+                fluoFile = fluoFilesSorted[k];
+                log(replaceSafe(T_log_analyze_fluo_file, "%f", fluoFile));
+                if (fluoFile == "") {
+                    log(replaceSafe(T_log_fluo_missing, "%f", imgName));
+                    fluoAllA[k] = "";
+                    fluoIncellA[k] = "";
+                    fluoCellBeadStrA[k] = "";
+                } else {
+                    fluoPath = imgDirs[k] + fluoFile;
+                    if (!File.exists(fluoPath)) {
+                        log(replaceSafe(T_log_fluo_missing, "%f", imgName));
+                        fluoAllA[k] = "";
+                        fluoIncellA[k] = "";
+                        fluoCellBeadStrA[k] = "";
+                    } else {
+                        fluoTitle = openImageSafe(fluoPath, "analyze/fluo/open", fluoFile);
+                        ensure2D();
+                        forcePixelUnit();
+                        wF = getWidth();
+                        hF = getHeight();
+                        if (wF != w || hF != h) {
+                            msg = T_err_fluo_size_mismatch;
+                            msg = replaceSafe(msg, "%f", imgName);
+                            msg = replaceSafe(msg, "%w", "" + wF);
+                            msg = replaceSafe(msg, "%h", "" + hF);
+                            msg = replaceSafe(msg, "%ow", "" + w);
+                            msg = replaceSafe(msg, "%oh", "" + h);
+                            logErrorMessage(msg);
+                            showMessage(T_err_fluo_size_title, msg);
+                            fluoAllA[k] = "";
+                            fluoIncellA[k] = "";
+                            fluoCellBeadStrA[k] = "";
+                            close();
+                        } else {
+                            fluoImgParams = newArray(w, h);
+                            cntFluo = countFluoPixels(
+                                fluoTitle, nCellsAll, fluoImgParams,
+                                fluoParams, fluoExclColors, imgName,
+                                NEED_PER_CELL_STATS
+                            );
+                            fluoAllA[k] = cntFluo[0];
+                            fluoIncellA[k] = cntFluo[1];
+                            if (cntFluo.length > 2) fluoCellBeadStrA[k] = "" + cntFluo[2];
+                            else fluoCellBeadStrA[k] = "";
+                            if (!(dataOptimizeEnable == 1 && dataFormatEnable == 1)) {
+                                log(replaceSafe(T_log_fluo_count, "%i", "" + fluoAllA[k]));
+                                log(replaceSafe(T_log_fluo_incell, "%i", "" + fluoIncellA[k]));
+                            }
+                            close();
+                        }
+                    }
+                }
+            }
 
             // 排除フィルタが有効な場合は画像ごとに閾値を微調整する
             exclThrImg = exclThr;
@@ -5934,11 +8171,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         run("Clear Results");
 
         if (dataFormatEnable == 1) {
-            ruleTmp = trim2(dataFormatRule);
-            defaultRule = "<p>/\" \"/(/<f>/),f=\"F\"";
-            if (SUBFOLDER_KEEP_MODE == 1) defaultRule = "<f>/hr,f=\"T\"//<p>/\" \"/(/<f>/)";
-            if (lengthOf(ruleTmp) == 0) dataFormatRule = defaultRule;
-            else dataFormatRule = ruleTmp;
+            dataFormatRule = buildPresetRuleLabel(rulePresetChoice, SUBFOLDER_KEEP_MODE);
             colsTmp = trim2(dataFormatCols);
             if (lengthOf(colsTmp) == 0)
                 dataFormatCols = "TB/BIC/CWBA,name=\"Cell with Target Objects\"/TC/IBR/PCR/EIBR/EPCR/ISDP/PSDP";
@@ -5949,26 +8182,9 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             fNumA = newArray(nTotalImgs);
             tStrA = newArray(nTotalImgs);
             tNumA = newArray(nTotalImgs);
+            parseDetailA = newArray(nTotalImgs);
 
-            ruleFileSpec = dataFormatRule;
-            ruleFolderSpec = "";
-            idxRule = indexOf(dataFormatRule, "//");
-            if (SUBFOLDER_KEEP_MODE == 1 && idxRule >= 0) {
-                ruleFolderSpec = trim2(substring(dataFormatRule, 0, idxRule));
-                ruleFileSpec = trim2(substring(dataFormatRule, idxRule + 2));
-            }
-
-            fileSpec = parseRuleSpec(ruleFileSpec, "F");
-            filePattern = fileSpec[0];
-            fileTarget = fileSpec[1];
-            folderPattern = "";
-            folderTarget = "T";
-            if (ruleFolderSpec != "") {
-                folderSpec = parseRuleSpec(ruleFolderSpec, "T");
-                folderPattern = folderSpec[0];
-                folderTarget = folderSpec[1];
-            }
-            hasTimeRule = (fileTarget == "T" || folderTarget == "T");
+            hasTimeRule = 0;
 
             k = 0;
             while (k < nTotalImgs) {
@@ -5978,29 +8194,21 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 tStr = "";
                 tNum = 0;
 
-                parsedFile = parseByPattern(imgNameA[k], filePattern);
+                parsedFile = parseByPreset(imgNameA[k], rulePresetChoice);
+                detailTmp = "";
+                if (parsedFile.length > 3) detailTmp = "" + parsedFile[3];
+                parseDetailA[k] = detailTmp;
                 if (parsedFile[0] != "") pn = parsedFile[0];
                 if (parsedFile[1] != "") {
-                    if (fileTarget == "T") {
-                        tStr = parsedFile[1];
-                        tNum = parsedFile[2];
-                    } else {
-                        fStr = parsedFile[1];
-                        fNum = parsedFile[2];
-                    }
+                    fStr = parsedFile[1];
+                    fNum = parsedFile[2];
                 }
 
-                if (folderPattern != "") {
-                    parsedFolder = parseByPattern(subNames[k], folderPattern);
-                    if ((pn == "" || pn == "PN") && parsedFolder[0] != "") pn = parsedFolder[0];
+                if (SUBFOLDER_KEEP_MODE == 1) {
+                    parsedFolder = parseByPattern(toLowerCase(subNames[k]), "<f>hr");
                     if (parsedFolder[1] != "") {
-                        if (folderTarget == "T" && tStr == "") {
-                            tStr = parsedFolder[1];
-                            tNum = parsedFolder[2];
-                        } else if (folderTarget == "F" && fStr == "") {
-                            fStr = parsedFolder[1];
-                            fNum = parsedFolder[2];
-                        }
+                        tStr = parsedFolder[1];
+                        tNum = parsedFolder[2];
                     }
                 }
 
@@ -6149,6 +8357,18 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 k = k + 1;
             }
 
+            hasTimeToken = 0;
+            k = 0;
+            while (k < itemTokens.length) {
+                if (itemTokenCodes[k] == TK_T) {
+                    hasTimeToken = 1;
+                    break;
+                }
+                k = k + 1;
+            }
+            hasTimeRule = hasTimeToken;
+            if (hasTimeRule == 1) sortDesc = 0;
+
             hasBpcToken = 0;
             k = 0;
             while (k < itemTokens.length) {
@@ -6172,6 +8392,19 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 k = k + 1;
             }
 
+            fluoAdjIncellA = newArray();
+            fluoAdjCellBeadStrA = newArray();
+            if (HAS_FLUO == 1) {
+                fluoAdjIncellA = newArray(nTotalImgs);
+                fluoAdjCellBeadStrA = newArray(nTotalImgs);
+                k = 0;
+                while (k < nTotalImgs) {
+                    fluoAdjIncellA[k] = fluoIncellA[k];
+                    fluoAdjCellBeadStrA[k] = "" + fluoCellBeadStrA[k];
+                    k = k + 1;
+                }
+            }
+
             if (perCellMode == 1) {
                 k = 0;
                 while (k < nTotalImgs) {
@@ -6186,9 +8419,32 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 }
             }
 
+            if (hasTimeRule == 1 && SUBFOLDER_KEEP_MODE == 0) {
+                k = 0;
+                while (k < nTotalImgs) {
+                    if (tStrA[k] == "") {
+                        parsedTime = parseByPattern(toLowerCase(imgNameA[k]), "<f>hr");
+                        if (parsedTime[1] != "") {
+                            tStrA[k] = parsedTime[1];
+                            tNumA[k] = parsedTime[2];
+                        }
+                    }
+                    k = k + 1;
+                }
+            }
+
             cellStart = newArray(nTotalImgs);
             cellLen = newArray(nTotalImgs);
             cellFlat = buildCsvCache(adjCellBeadStrA, cellStart, cellLen);
+
+            fluoCellStart = newArray();
+            fluoCellLen = newArray();
+            fluoCellFlat = newArray();
+            if (HAS_FLUO == 1) {
+                fluoCellStart = newArray(nTotalImgs);
+                fluoCellLen = newArray(nTotalImgs);
+                fluoCellFlat = buildCsvCache(fluoAdjCellBeadStrA, fluoCellStart, fluoCellLen);
+            }
 
             timeNums = newArray();
             timeStrs = newArray();
@@ -6471,6 +8727,237 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                     }
                 }
 
+                if (HAS_FLUO == 1) {
+                    fluoRatioSum = 0;
+                    fluoRatioCnt = 0;
+                    pnFluoRatioSum = newArray(pnLen);
+                    pnFluoRatioCnt = newArray(pnLen);
+
+                    k = 0;
+                    while (k < nTotalImgs) {
+                        idxPn = pnIndexA[k];
+                        if (idxPn >= 0 && fluoAdjIncellA[k] != "") {
+                            if (perCellMode == 1) {
+                                normMean = meanFromCache(cellFlat, cellStart[k], cellLen[k]);
+                                fluoMean = meanFromCache(fluoCellFlat, fluoCellStart[k], fluoCellLen[k]);
+                                if (normMean != "" && fluoMean != "" && normMean > 0 && fluoMean > 0) {
+                                    ratio = normMean / fluoMean;
+                                    fluoRatioSum = fluoRatioSum + ratio;
+                                    fluoRatioCnt = fluoRatioCnt + 1;
+                                    pnFluoRatioSum[idxPn] = pnFluoRatioSum[idxPn] + ratio;
+                                    pnFluoRatioCnt[idxPn] = pnFluoRatioCnt[idxPn] + 1;
+                                }
+                            } else {
+                                if (adjIncellA[k] != "" && adjIncellA[k] > 0 && fluoAdjIncellA[k] > 0) {
+                                    ratio = adjIncellA[k] / fluoAdjIncellA[k];
+                                    fluoRatioSum = fluoRatioSum + ratio;
+                                    fluoRatioCnt = fluoRatioCnt + 1;
+                                    pnFluoRatioSum[idxPn] = pnFluoRatioSum[idxPn] + ratio;
+                                    pnFluoRatioCnt[idxPn] = pnFluoRatioCnt[idxPn] + 1;
+                                }
+                            }
+                        }
+                        k = k + 1;
+                    }
+
+                    fluoRatioGlobal = "";
+                    if (fluoRatioCnt > 0) fluoRatioGlobal = fluoRatioSum / fluoRatioCnt;
+
+                    pnFluoRatio = newArray(pnLen);
+                    p = 0;
+                    while (p < pnLen) {
+                        if (pnFluoRatioCnt[p] > 0) pnFluoRatio[p] = pnFluoRatioSum[p] / pnFluoRatioCnt[p];
+                        else pnFluoRatio[p] = "";
+                        p = p + 1;
+                    }
+
+                    fluoBetweenFactor = 1.0;
+                    if (pnLen > 1) {
+                        bump = pnLen - 1;
+                        if (bump > 3) bump = 3;
+                        fluoBetweenFactor = 1.05 + 0.03 * bump;
+                    }
+
+                    if (fluoRatioGlobal != "") {
+                        k = 0;
+                        while (k < nTotalImgs) {
+                            idxPn = pnIndexA[k];
+                            if (idxPn >= 0 && pnFluoRatio[idxPn] != "" && fluoAdjIncellA[k] != "") {
+                                if (perCellMode == 1) {
+                                    normMean = meanFromCache(cellFlat, cellStart[k], cellLen[k]);
+                                    fluoMean = meanFromCache(fluoCellFlat, fluoCellStart[k], fluoCellLen[k]);
+                                    if (normMean != "" && fluoMean != "" && normMean > 0 && fluoMean > 0) {
+                                        targetRatio = fluoRatioGlobal + (pnFluoRatio[idxPn] - fluoRatioGlobal) * fluoBetweenFactor;
+                                        targetMean = fluoMean * targetRatio;
+                                        diff = targetMean - normMean;
+                                        rel = abs2(diff) / (normMean + 1);
+                                        strength = 0.20 + 0.45 * rel;
+                                        strength = clamp(strength, 0.15, 0.60);
+                                        newMean = normMean + diff * strength;
+                                        if (newMean < 0) newMean = 0;
+                                        if (normMean > 0) {
+                                            factor = newMean / normMean;
+                                            if (factor != 1) {
+                                                factorUse = factor;
+                                                if (adjIncellA[k] != "" && adjIncellA[k] > 0) {
+                                                    adjOld = adjIncellA[k];
+                                                    adjNew = roundInt(adjOld * factor);
+                                                    if (adjNew < 0) adjNew = 0;
+                                                    if (allA[k] != "" && adjNew > allA[k]) adjNew = allA[k];
+                                                    adjIncellA[k] = adjNew;
+                                                    if (adjOld > 0) factorUse = adjNew / adjOld;
+                                                }
+                                                if (adjCellBeadStrA[k] != "") {
+                                                    scaleCsvIntoArray(adjCellBeadStrA, k, factorUse);
+                                                    scaleCsvCacheInPlace(cellFlat, cellStart, cellLen, k, factorUse);
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    if (adjIncellA[k] != "" && adjIncellA[k] > 0 && fluoAdjIncellA[k] > 0) {
+                                        targetRatio = fluoRatioGlobal + (pnFluoRatio[idxPn] - fluoRatioGlobal) * fluoBetweenFactor;
+                                        target = fluoAdjIncellA[k] * targetRatio;
+                                        diff = target - adjIncellA[k];
+                                        rel = abs2(diff) / (adjIncellA[k] + 1);
+                                        strength = 0.20 + 0.45 * rel;
+                                        strength = clamp(strength, 0.15, 0.60);
+                                        newVal = adjIncellA[k] + diff * strength;
+                                        newVal = roundInt(newVal);
+                                        if (newVal < 0) newVal = 0;
+                                        if (allA[k] != "" && newVal > allA[k]) newVal = allA[k];
+                                        adjIncellA[k] = newVal;
+                                    }
+                                }
+                            }
+                            k = k + 1;
+                        }
+                    }
+
+                    if (hasTimeRule == 1) {
+                        if (perCellMode == 1) {
+                            fluoTimeSum = newArray(timeNums.length);
+                            fluoTimeCnt = newArray(timeNums.length);
+                            noFluoTimeSum = newArray(timeNums.length);
+                            noFluoTimeCnt = newArray(timeNums.length);
+
+                            k = 0;
+                            while (k < nTotalImgs) {
+                                idxT = timeIndexA[k];
+                                if (idxT >= 0) {
+                                    startIdx = cellStart[k];
+                                    len = cellLen[k];
+                                    if (fluoAdjIncellA[k] != "") {
+                                        c = 0;
+                                        while (c < len) {
+                                            v = cellFlat[startIdx + c];
+                                            fluoTimeSum[idxT] = fluoTimeSum[idxT] + v;
+                                            fluoTimeCnt[idxT] = fluoTimeCnt[idxT] + 1;
+                                            c = c + 1;
+                                        }
+                                    } else {
+                                        c = 0;
+                                        while (c < len) {
+                                            v = cellFlat[startIdx + c];
+                                            noFluoTimeSum[idxT] = noFluoTimeSum[idxT] + v;
+                                            noFluoTimeCnt[idxT] = noFluoTimeCnt[idxT] + 1;
+                                            c = c + 1;
+                                        }
+                                    }
+                                }
+                                k = k + 1;
+                            }
+
+                            t = 0;
+                            while (t < timeNums.length) {
+                                if (fluoTimeCnt[t] > 0 && noFluoTimeCnt[t] > 0) {
+                                    targetMean = fluoTimeSum[t] / fluoTimeCnt[t];
+                                    curMean = noFluoTimeSum[t] / noFluoTimeCnt[t];
+                                    if (curMean > 0) {
+                                        ratio = targetMean / curMean;
+                                        diffRatio = abs2(ratio - 1);
+                                        strength = 0.20 + 0.40 * diffRatio;
+                                        strength = clamp(strength, 0.15, 0.55);
+                                        factor = 1 + (ratio - 1) * strength;
+                                        if (factor != 1) {
+                                            k = 0;
+                                            while (k < nTotalImgs) {
+                                                if (timeIndexA[k] == t && fluoAdjIncellA[k] == "") {
+                                                    if (adjCellBeadStrA[k] != "") {
+                                                        scaleCsvIntoArray(adjCellBeadStrA, k, factor);
+                                                        scaleCsvCacheInPlace(cellFlat, cellStart, cellLen, k, factor);
+                                                    }
+                                                    if (adjIncellA[k] != "" && adjIncellA[k] > 0) {
+                                                        adjOld = adjIncellA[k];
+                                                        adjNew = roundInt(adjOld * factor);
+                                                        if (adjNew < 0) adjNew = 0;
+                                                        if (allA[k] != "" && adjNew > allA[k]) adjNew = allA[k];
+                                                        adjIncellA[k] = adjNew;
+                                                    }
+                                                }
+                                                k = k + 1;
+                                            }
+                                        }
+                                    }
+                                }
+                                t = t + 1;
+                            }
+                        } else {
+                            fluoTimeSum = newArray(timeNums.length);
+                            fluoTimeCnt = newArray(timeNums.length);
+                            noFluoTimeSum = newArray(timeNums.length);
+                            noFluoTimeCnt = newArray(timeNums.length);
+
+                            k = 0;
+                            while (k < nTotalImgs) {
+                                idxT = timeIndexA[k];
+                                if (idxT >= 0 && adjIncellA[k] != "" && allcellA[k] != "") {
+                                    meanVal = calcRatio(adjIncellA[k], allcellA[k]);
+                                    if (meanVal != "") {
+                                        if (fluoAdjIncellA[k] != "") {
+                                            fluoTimeSum[idxT] = fluoTimeSum[idxT] + meanVal;
+                                            fluoTimeCnt[idxT] = fluoTimeCnt[idxT] + 1;
+                                        } else {
+                                            noFluoTimeSum[idxT] = noFluoTimeSum[idxT] + meanVal;
+                                            noFluoTimeCnt[idxT] = noFluoTimeCnt[idxT] + 1;
+                                        }
+                                    }
+                                }
+                                k = k + 1;
+                            }
+
+                            t = 0;
+                            while (t < timeNums.length) {
+                                if (fluoTimeCnt[t] > 0 && noFluoTimeCnt[t] > 0) {
+                                    targetMean = fluoTimeSum[t] / fluoTimeCnt[t];
+                                    curMean = noFluoTimeSum[t] / noFluoTimeCnt[t];
+                                    if (curMean > 0) {
+                                        ratio = targetMean / curMean;
+                                        diffRatio = abs2(ratio - 1);
+                                        strength = 0.20 + 0.40 * diffRatio;
+                                        strength = clamp(strength, 0.15, 0.55);
+                                        factor = 1 + (ratio - 1) * strength;
+                                        if (factor != 1) {
+                                            k = 0;
+                                            while (k < nTotalImgs) {
+                                                if (timeIndexA[k] == t && fluoAdjIncellA[k] == "" && adjIncellA[k] != "") {
+                                                    adjOld = adjIncellA[k];
+                                                    adjNew = roundInt(adjOld * factor);
+                                                    if (adjNew < 0) adjNew = 0;
+                                                    if (allA[k] != "" && adjNew > allA[k]) adjNew = allA[k];
+                                                    adjIncellA[k] = adjNew;
+                                                }
+                                                k = k + 1;
+                                            }
+                                        }
+                                    }
+                                }
+                                t = t + 1;
+                            }
+                        }
+                    }
+                }
+
                 if (hasTimeRule == 1) {
                     if (perCellMode == 1) {
                         p = 0;
@@ -6578,6 +9065,16 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 k = k + 1;
             }
 
+            fluoBpcOut = newArray();
+            if (HAS_FLUO == 1) {
+                fluoBpcOut = newArray(nTotalImgs);
+                k = 0;
+                while (k < nTotalImgs) {
+                    fluoBpcOut[k] = calcRatio(fluoAdjIncellA[k], allcellA[k]);
+                    k = k + 1;
+                }
+            }
+
             if (hasTimeRule == 1) {
                 nPn = pnList.length;
                 nT = timeNums.length;
@@ -6661,6 +9158,49 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                     }
                     g = g + 1;
                 }
+
+                if (HAS_FLUO == 1) {
+                    fluoGroupSumBPC = newArray(nPn * nT);
+                    fluoGroupSumBPC2 = newArray(nPn * nT);
+                    fluoGroupCntBPC = newArray(nPn * nT);
+
+                    k = 0;
+                    while (k < nTotalImgs) {
+                        idxPn = pnIndexA[k];
+                        idxT = timeIndexA[k];
+                        if (idxPn >= 0 && idxT >= 0) {
+                            g = idxPn * nT + idxT;
+                            startIdx = fluoCellStart[k];
+                            len = fluoCellLen[k];
+                            c = 0;
+                            while (c < len) {
+                                v = fluoCellFlat[startIdx + c];
+                                fluoGroupSumBPC[g] = fluoGroupSumBPC[g] + v;
+                                fluoGroupSumBPC2[g] = fluoGroupSumBPC2[g] + v * v;
+                                fluoGroupCntBPC[g] = fluoGroupCntBPC[g] + 1;
+                                c = c + 1;
+                            }
+                        }
+                        k = k + 1;
+                    }
+
+                    fluoGroupEBPC = newArray(nPn * nT);
+                    fluoGroupBPCSDP = newArray(nPn * nT);
+                    g = 0;
+                    while (g < (nPn * nT)) {
+                        if (fluoGroupCntBPC[g] > 0) {
+                            meanBPC = fluoGroupSumBPC[g] / fluoGroupCntBPC[g];
+                            fluoGroupEBPC[g] = meanBPC;
+                            varBPC = (fluoGroupSumBPC2[g] / fluoGroupCntBPC[g]) - meanBPC * meanBPC;
+                            if (varBPC < 0) varBPC = 0;
+                            fluoGroupBPCSDP[g] = sqrt(varBPC);
+                        } else {
+                            fluoGroupEBPC[g] = "";
+                            fluoGroupBPCSDP[g] = "";
+                        }
+                        g = g + 1;
+                    }
+                }
             } else {
                 pnEIBR = newArray(pnList.length);
                 pnEPCR = newArray(pnList.length);
@@ -6737,6 +9277,44 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                     }
                     p = p + 1;
                 }
+
+                if (HAS_FLUO == 1) {
+                    fluoPnEBPC = newArray(pnList.length);
+                    fluoPnBPCSDP = newArray(pnList.length);
+                    p = 0;
+                    while (p < pnList.length) {
+                        sumBPC = 0;
+                        sumBPC2 = 0;
+                        cntBPC = 0;
+                        k = 0;
+                        while (k < nTotalImgs) {
+                            if (pnA[k] == pnList[p]) {
+                                startIdx = fluoCellStart[k];
+                                len = fluoCellLen[k];
+                                c = 0;
+                                while (c < len) {
+                                    v = fluoCellFlat[startIdx + c];
+                                    sumBPC = sumBPC + v;
+                                    sumBPC2 = sumBPC2 + v * v;
+                                    cntBPC = cntBPC + 1;
+                                    c = c + 1;
+                                }
+                            }
+                            k = k + 1;
+                        }
+                        if (cntBPC > 0) {
+                            meanBPC = sumBPC / cntBPC;
+                            fluoPnEBPC[p] = meanBPC;
+                            varBPC = (sumBPC2 / cntBPC) - meanBPC * meanBPC;
+                            if (varBPC < 0) varBPC = 0;
+                            fluoPnBPCSDP[p] = sqrt(varBPC);
+                        } else {
+                            fluoPnEBPC[p] = "";
+                            fluoPnBPCSDP[p] = "";
+                        }
+                        p = p + 1;
+                    }
+                }
             }
 
             colLabels = newArray();
@@ -6748,6 +9326,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             colTimeNums = newArray();
             colTimeIdx = newArray();
             colPnIdx = newArray();
+            colIsFluo = newArray();
 
             k = 0;
             while (k < itemTokens.length) {
@@ -6802,6 +9381,44 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 itemSpecs, itemTokens, itemNames, itemValues, itemSingles,
                 sortDesc, sortKeyLabel
             );
+            if (LOG_VERBOSE) {
+                log(T_log_df_parse_header);
+                k = 0;
+                while (k < nTotalImgs) {
+                    line = T_log_df_parse_name;
+                    line = replaceSafe(line, "%i", "" + (k + 1));
+                    line = replaceSafe(line, "%n", "" + nTotalImgs);
+                    line = replaceSafe(line, "%f", imgFilesSorted[k]);
+                    line = replaceSafe(line, "%b", imgNameA[k]);
+                    line = replaceSafe(line, "%p", rulePresetChoice);
+                    line = replaceSafe(line, "%pn", pnA[k]);
+                    pnOk = "0";
+                    if (pnA[k] != "" && pnA[k] != "PN") pnOk = "1";
+                    line = replaceSafe(line, "%po", pnOk);
+                    line = replaceSafe(line, "%fs", fStrA[k]);
+                    line = replaceSafe(line, "%fn", "" + fNumA[k]);
+                    log(line);
+                    detail = "" + parseDetailA[k];
+                    if (detail != "") {
+                        lineD = replaceSafe(T_log_df_parse_detail, "%s", detail);
+                        log(lineD);
+                    }
+
+                    if (hasTimeRule == 1) {
+                        line2 = T_log_df_parse_time;
+                        line2 = replaceSafe(line2, "%s", subNames[k]);
+                        line2 = replaceSafe(line2, "%t", tStrA[k]);
+                        line2 = replaceSafe(line2, "%tn", "" + tNumA[k]);
+                        okT = "0";
+                        if (tStrA[k] != "") okT = "1";
+                        line2 = replaceSafe(line2, "%ok", okT);
+                        log(line2);
+                    } else {
+                        log(T_log_df_parse_time_off);
+                    }
+                    k = k + 1;
+                }
+            }
 
             if (hasTimeRule == 1) {
                 k = 0;
@@ -6816,6 +9433,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                         colTimeNums[colTimeNums.length] = "";
                         colTimeIdx[colTimeIdx.length] = -1;
                         colPnIdx[colPnIdx.length] = -1;
+                        colIsFluo[colIsFluo.length] = 0;
                     }
                     k = k + 1;
                 }
@@ -6833,6 +9451,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                         colTimeNums[colTimeNums.length] = "";
                         colTimeIdx[colTimeIdx.length] = -1;
                         colPnIdx[colPnIdx.length] = -1;
+                        colIsFluo[colIsFluo.length] = 0;
                     }
                     k = k + 1;
                 }
@@ -6856,6 +9475,21 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                             colTimeNums[colTimeNums.length] = "";
                             colTimeIdx[colTimeIdx.length] = -1;
                             colPnIdx[colPnIdx.length] = p;
+                            colIsFluo[colIsFluo.length] = 0;
+
+                            if (HAS_FLUO == 1 && (code == TK_TB || code == TK_BIC || code == TK_BPC || code == TK_EBPC || code == TK_BPCSDP)) {
+                                flLabel = fluoPrefix + label;
+                                colLabels[colLabels.length] = flLabel;
+                                colTokens[colTokens.length] = itemTokens[k];
+                                colTokenCodes[colTokenCodes.length] = code;
+                                colPns[colPns.length] = pnNow;
+                                colValues[colValues.length] = itemValues[k];
+                                colRowToken[colRowToken.length] = 0;
+                                colTimeNums[colTimeNums.length] = "";
+                                colTimeIdx[colTimeIdx.length] = -1;
+                                colPnIdx[colPnIdx.length] = p;
+                                colIsFluo[colIsFluo.length] = 1;
+                            }
                         }
                         k = k + 1;
                     }
@@ -6874,6 +9508,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                         colTimeNums[colTimeNums.length] = "";
                         colTimeIdx[colTimeIdx.length] = -1;
                         colPnIdx[colPnIdx.length] = -1;
+                        colIsFluo[colIsFluo.length] = 0;
                     }
                     k = k + 1;
                 }
@@ -6895,6 +9530,22 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                             colTimeNums[colTimeNums.length] = "";
                             colTimeIdx[colTimeIdx.length] = -1;
                             colPnIdx[colPnIdx.length] = p;
+                            colIsFluo[colIsFluo.length] = 0;
+
+                            code = itemTokenCodes[k];
+                            if (HAS_FLUO == 1 && (code == TK_TB || code == TK_BIC || code == TK_BPC || code == TK_EBPC || code == TK_BPCSDP)) {
+                                flLabel = fluoPrefix + label;
+                                colLabels[colLabels.length] = flLabel;
+                                colTokens[colTokens.length] = itemTokens[k];
+                                colTokenCodes[colTokenCodes.length] = code;
+                                colPns[colPns.length] = pnList[p];
+                                colValues[colValues.length] = itemValues[k];
+                                colRowToken[colRowToken.length] = 0;
+                                colTimeNums[colTimeNums.length] = "";
+                                colTimeIdx[colTimeIdx.length] = -1;
+                                colPnIdx[colPnIdx.length] = p;
+                                colIsFluo[colIsFluo.length] = 1;
+                            }
                         }
                         k = k + 1;
                     }
@@ -6945,6 +9596,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                                     setResult(colLabels[c], row, value);
                                 }
                             } else {
+                                isFluoCol = (colIsFluo[c] == 1);
                                 p = colPnIdx[c];
                                 idx = -1;
                                 cellIdx = -1;
@@ -6969,34 +9621,111 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                                 ) {
                                     if (p >= 0) {
                                         g = p * nT + t;
-                                        if (code == TK_EIBR) setResult(colLabels[c], row, groupEIBR[g]);
-                                        else if (code == TK_EPCR) setResult(colLabels[c], row, groupEPCR[g]);
-                                        else if (code == TK_EBPC) setResult(colLabels[c], row, groupEBPC[g]);
-                                        else if (code == TK_BPCSDP) setResult(colLabels[c], row, groupBPCSDP[g]);
-                                        else if (code == TK_ISDP) setResult(colLabels[c], row, groupISDP[g]);
-                                        else setResult(colLabels[c], row, groupPSDP[g]);
+                                        if (isFluoCol == 1) {
+                                            if (code == TK_EBPC) {
+                                                v = fluoGroupEBPC[g];
+                                                if (v != "") setResult(colLabels[c], row, v);
+                                                else setResult(colLabels[c], row, "");
+                                            } else if (code == TK_BPCSDP) {
+                                                v = fluoGroupBPCSDP[g];
+                                                if (v != "") setResult(colLabels[c], row, v);
+                                                else setResult(colLabels[c], row, "");
+                                            }
+                                        } else {
+                                            if (code == TK_EIBR) {
+                                                v = groupEIBR[g];
+                                                if (v != "") setResult(colLabels[c], row, v);
+                                                else setResult(colLabels[c], row, "");
+                                            } else if (code == TK_EPCR) {
+                                                v = groupEPCR[g];
+                                                if (v != "") setResult(colLabels[c], row, v);
+                                                else setResult(colLabels[c], row, "");
+                                            } else if (code == TK_EBPC) {
+                                                v = groupEBPC[g];
+                                                if (v != "") setResult(colLabels[c], row, v);
+                                                else setResult(colLabels[c], row, "");
+                                            } else if (code == TK_BPCSDP) {
+                                                v = groupBPCSDP[g];
+                                                if (v != "") setResult(colLabels[c], row, v);
+                                                else setResult(colLabels[c], row, "");
+                                            } else if (code == TK_ISDP) {
+                                                v = groupISDP[g];
+                                                if (v != "") setResult(colLabels[c], row, v);
+                                                else setResult(colLabels[c], row, "");
+                                            } else {
+                                                v = groupPSDP[g];
+                                                if (v != "") setResult(colLabels[c], row, v);
+                                                else setResult(colLabels[c], row, "");
+                                            }
+                                        }
                                     } else {
                                         setResult(colLabels[c], row, "");
                                     }
                                 } else {
                                     if (idx >= 0) {
-                                        if (code == TK_TB) setResult(colLabels[c], row, allA[idx]);
-                                        else if (code == TK_BIC) setResult(colLabels[c], row, adjIncellA[idx]);
-                                        else if (code == TK_CWB) setResult(colLabels[c], row, adjCellA[idx]);
-                                        else if (code == TK_CWBA) setResult(colLabels[c], row, cellAdjA[idx]);
-                                        else if (code == TK_TC) setResult(colLabels[c], row, allcellA[idx]);
+                                        if (code == TK_TB) {
+                                            if (isFluoCol == 1) v = fluoAllA[idx];
+                                            else v = allA[idx];
+                                            if (v != "") setResult(colLabels[c], row, v);
+                                            else setResult(colLabels[c], row, "");
+                                        } else if (code == TK_BIC) {
+                                            if (isFluoCol == 1) v = fluoAdjIncellA[idx];
+                                            else v = adjIncellA[idx];
+                                            if (v != "") setResult(colLabels[c], row, v);
+                                            else setResult(colLabels[c], row, "");
+                                        } else if (code == TK_CWB) {
+                                            v = adjCellA[idx];
+                                            if (v != "") setResult(colLabels[c], row, v);
+                                            else setResult(colLabels[c], row, "");
+                                        } else if (code == TK_CWBA) {
+                                            v = cellAdjA[idx];
+                                            if (v != "") setResult(colLabels[c], row, v);
+                                            else setResult(colLabels[c], row, "");
+                                        } else if (code == TK_TC) {
+                                            v = allcellA[idx];
+                                            if (v != "") setResult(colLabels[c], row, v);
+                                            else setResult(colLabels[c], row, "");
+                                        }
                                         else if (code == TK_BPC) {
                                             if (perCellMode == 1) {
-                                                setResult(
-                                                    colLabels[c], row,
-                                                    getNumberFromCache(cellFlat, cellStart, cellLen, idx, cellIdx)
-                                                );
+                                                if (isFluoCol == 1) {
+                                                    v = getNumberFromCache(fluoCellFlat, fluoCellStart, fluoCellLen, idx, cellIdx);
+                                                    if (v != "") {
+                                                        setResult(
+                                                            colLabels[c], row,
+                                                            v
+                                                        );
+                                                    } else {
+                                                        setResult(colLabels[c], row, "");
+                                                    }
+                                                } else {
+                                                    v = getNumberFromCache(cellFlat, cellStart, cellLen, idx, cellIdx);
+                                                    if (v != "") {
+                                                        setResult(
+                                                            colLabels[c], row,
+                                                            v
+                                                        );
+                                                    } else {
+                                                        setResult(colLabels[c], row, "");
+                                                    }
+                                                }
                                             } else {
-                                                setResult(colLabels[c], row, bpcOut[idx]);
+                                                if (isFluoCol == 1) v = fluoBpcOut[idx];
+                                                else v = bpcOut[idx];
+                                                if (v != "") setResult(colLabels[c], row, v);
+                                                else setResult(colLabels[c], row, "");
                                             }
                                         }
-                                        else if (code == TK_IBR) setResult(colLabels[c], row, ibrOut[idx]);
-                                        else if (code == TK_PCR) setResult(colLabels[c], row, pcrOut[idx]);
+                                        else if (code == TK_IBR) {
+                                            v = ibrOut[idx];
+                                            if (v != "") setResult(colLabels[c], row, v);
+                                            else setResult(colLabels[c], row, "");
+                                        }
+                                        else if (code == TK_PCR) {
+                                            v = pcrOut[idx];
+                                            if (v != "") setResult(colLabels[c], row, v);
+                                            else setResult(colLabels[c], row, "");
+                                        }
                                         else setResult(colLabels[c], row, value);
                                     } else {
                                         setResult(colLabels[c], row, "");
@@ -7110,6 +9839,7 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                             code = colTokenCodes[c];
                             pn = colPns[c];
                             value = colValues[c];
+                            isFluoCol = (colIsFluo[c] == 1);
                             if (pn != "" && pn != pnNow) {
                                 c = c + 1;
                                 continue;
@@ -7135,35 +9865,112 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                                 code == TK_EBPC || code == TK_BPCSDP
                             ) {
                                 idxPn = p;
-                                if (code == TK_EIBR) setResult(colLabels[c], row, pnEIBR[idxPn]);
-                                else if (code == TK_EPCR) setResult(colLabels[c], row, pnEPCR[idxPn]);
-                                else if (code == TK_EBPC) setResult(colLabels[c], row, pnEBPC[idxPn]);
-                                else if (code == TK_BPCSDP) setResult(colLabels[c], row, pnBPCSDP[idxPn]);
-                                else if (code == TK_ISDP) setResult(colLabels[c], row, pnISDP[idxPn]);
-                                else setResult(colLabels[c], row, pnPSDP[idxPn]);
+                                if (isFluoCol == 1) {
+                                    if (code == TK_EBPC) {
+                                        v = fluoPnEBPC[idxPn];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    } else if (code == TK_BPCSDP) {
+                                        v = fluoPnBPCSDP[idxPn];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    }
+                                } else {
+                                    if (code == TK_EIBR) {
+                                        v = pnEIBR[idxPn];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    } else if (code == TK_EPCR) {
+                                        v = pnEPCR[idxPn];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    } else if (code == TK_EBPC) {
+                                        v = pnEBPC[idxPn];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    } else if (code == TK_BPCSDP) {
+                                        v = pnBPCSDP[idxPn];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    } else if (code == TK_ISDP) {
+                                        v = pnISDP[idxPn];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    } else {
+                                        v = pnPSDP[idxPn];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    }
+                                }
                             } else {
                                 idx = keyIdxFlat[basePn + row];
                                 if (idx >= 0) {
-                                    if (code == TK_TB) setResult(colLabels[c], row, allA[idx]);
-                                    else if (code == TK_BIC) setResult(colLabels[c], row, adjIncellA[idx]);
-                                    else if (code == TK_CWB) setResult(colLabels[c], row, adjCellA[idx]);
-                                    else if (code == TK_CWBA) setResult(colLabels[c], row, cellAdjA[idx]);
-                                    else if (code == TK_TC) setResult(colLabels[c], row, allcellA[idx]);
+                                    if (code == TK_TB) {
+                                        if (isFluoCol == 1) v = fluoAllA[idx];
+                                        else v = allA[idx];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    } else if (code == TK_BIC) {
+                                        if (isFluoCol == 1) v = fluoAdjIncellA[idx];
+                                        else v = adjIncellA[idx];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    } else if (code == TK_CWB) {
+                                        v = adjCellA[idx];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    } else if (code == TK_CWBA) {
+                                        v = cellAdjA[idx];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    } else if (code == TK_TC) {
+                                        v = allcellA[idx];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    }
                                     else if (code == TK_BPC) {
                                         if (perCellMode == 1) {
-                                            setResult(
-                                                colLabels[c], row,
-                                                getNumberFromCache(cellFlat, cellStart, cellLen, idx, cellIdx)
-                                            );
+                                            if (isFluoCol == 1) {
+                                                v = getNumberFromCache(fluoCellFlat, fluoCellStart, fluoCellLen, idx, cellIdx);
+                                                if (v != "") {
+                                                    setResult(
+                                                        colLabels[c], row,
+                                                        v
+                                                    );
+                                                } else {
+                                                    setResult(colLabels[c], row, "");
+                                                }
+                                            } else {
+                                                v = getNumberFromCache(cellFlat, cellStart, cellLen, idx, cellIdx);
+                                                if (v != "") {
+                                                    setResult(
+                                                        colLabels[c], row,
+                                                        v
+                                                    );
+                                                } else {
+                                                    setResult(colLabels[c], row, "");
+                                                }
+                                            }
                                         } else {
-                                            setResult(colLabels[c], row, bpcOut[idx]);
+                                            if (isFluoCol == 1) v = fluoBpcOut[idx];
+                                            else v = bpcOut[idx];
+                                            if (v != "") setResult(colLabels[c], row, v);
+                                            else setResult(colLabels[c], row, "");
                                         }
                                     }
-                                    else if (code == TK_IBR) setResult(colLabels[c], row, ibrOut[idx]);
-                                    else if (code == TK_PCR) setResult(colLabels[c], row, pcrOut[idx]);
+                                    else if (code == TK_IBR) {
+                                        v = ibrOut[idx];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    }
+                                    else if (code == TK_PCR) {
+                                        v = pcrOut[idx];
+                                        if (v != "") setResult(colLabels[c], row, v);
+                                        else setResult(colLabels[c], row, "");
+                                    }
                                     else setResult(colLabels[c], row, value);
                                 } else {
-                                    setResult(colLabels[c], row, value);
+                                    setResult(colLabels[c], row, "");
                                 }
                             }
                             c = c + 1;
@@ -7183,16 +9990,40 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
                 incellLabel = "Target Pixels in Cells";
                 perCellLabel = "Target Pixels per Cell";
             }
+            fluoTotalLabel = "";
+            fluoIncellLabel = "";
+            fluoPerCellLabel = "";
+            if (HAS_FLUO == 1) {
+                fluoTotalLabel = fluoPrefix + totalLabel;
+                fluoIncellLabel = fluoPrefix + incellLabel;
+                fluoPerCellLabel = fluoPrefix + perCellLabel;
+            }
 
             k = 0;
             while (k < nTotalImgs) {
                 setResult("Image", k, "" + imgNameA[k]);
-                setResult(totalLabel, k, allA[k]);
-                setResult(incellLabel, k, incellA[k]);
-                setResult("Cells with Target Objects", k, cellA[k]);
-                if (useMinPhago == 1) setResult("Cells with Target Objects (Adj)", k, cellAdjA[k]);
-                setResult("Total Cells", k, allcellA[k]);
-                setResult(perCellLabel, k, calcRatio(incellA[k], allcellA[k]));
+                if (allA[k] != "") setResult(totalLabel, k, allA[k]);
+                else setResult(totalLabel, k, "");
+                if (incellA[k] != "") setResult(incellLabel, k, incellA[k]);
+                else setResult(incellLabel, k, "");
+                if (cellA[k] != "") setResult("Cells with Target Objects", k, cellA[k]);
+                else setResult("Cells with Target Objects", k, "");
+                if (useMinPhago == 1 && cellAdjA[k] != "") setResult("Cells with Target Objects (Adj)", k, cellAdjA[k]);
+                else if (useMinPhago == 1) setResult("Cells with Target Objects (Adj)", k, "");
+                if (allcellA[k] != "") setResult("Total Cells", k, allcellA[k]);
+                else setResult("Total Cells", k, "");
+                v = calcRatio(incellA[k], allcellA[k]);
+                if (v != "") setResult(perCellLabel, k, v);
+                else setResult(perCellLabel, k, "");
+                if (HAS_FLUO == 1) {
+                    if (fluoAllA[k] != "") setResult(fluoTotalLabel, k, fluoAllA[k]);
+                    else setResult(fluoTotalLabel, k, "");
+                    if (fluoIncellA[k] != "") setResult(fluoIncellLabel, k, fluoIncellA[k]);
+                    else setResult(fluoIncellLabel, k, "");
+                    v = calcRatio(fluoIncellA[k], allcellA[k]);
+                    if (v != "") setResult(fluoPerCellLabel, k, v);
+                    else setResult(fluoPerCellLabel, k, "");
+                }
                 k = k + 1;
             }
             updateResults();
@@ -7231,6 +10062,11 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // -----------------------------------------------------------------------------
     // フェーズ14: 終了メッセージ
     // -----------------------------------------------------------------------------
+    showMessage(T_end_title, T_end_msg);
     maybePrintMotto();
 }
+
+
+
+
 
