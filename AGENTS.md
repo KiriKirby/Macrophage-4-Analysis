@@ -181,7 +181,7 @@ These instructions apply to this repository.
 - When adding options, also add matching log labels and error strings if referenced in logic.
 
 ## Behavior
-- Default behaviors should match the current script (e.g., dataOptimizeEnable defaults on unless explicitly exposed in UI).
+- Default behaviors should match the current script.
 - Do not change logging verbosity or batch mode unless requested.
 - Preserve backward compatibility for existing column tokens and data format rules.
 - Keep sampling flow and user prompts in the current sequence unless explicitly requested.
@@ -293,7 +293,6 @@ These instructions apply to this repository.
 ## Maintenance Requirements
 - Keep the Script Module Index current after any change that adds/moves/removes logic.
 - For any new or modified logic, identify likely failure points and add expected error prompts in CN/JP/EN with error codes and logs (see Error Code System).
-- Do not document data-optimization behavior or adjustment logic in README files or script comments; only keep non-modifying definitions (e.g., TPC = BIC / TC).
 - For every bug fix, add a brief, concrete lesson to the Lessons Learned section and keep it aligned with the fix.
 
 ## Lessons Learned
@@ -368,7 +367,7 @@ These instructions apply to this repository.
 - **Compatibility:** no nested arrays; avoid regex pitfalls in `replace`; use `lengthOf` for empty checks; keep parsing/formatting logic stable.
 
 ## Update Log (Reference)
-- Scope: algorithm-focused deltas across archived versions and current script. UI changes are omitted. Data-optimization functions are listed without detail.
+- Scope: algorithm-focused deltas across archived versions and current script. UI changes are omitted.
 
 ### Version 1.0 (old/Macrophage Image Four-Factor Analysis_1.0.ijm)
 - Baseline pipeline: background subtraction, ROI-based detection, and basic area/intensity aggregation. No clump estimation, exclusion filter, or feature classification.
@@ -412,7 +411,7 @@ These instructions apply to this repository.
   - normalizeRuleToken, extractFirstNumberStr, parseByPattern, parseRuleSpec: rule parsing expansion.
   - requiresPerCellStats, findGroupIndex, sortQuadsByNumber: grouping and ordering helpers.
   - estimateMeanMedianSafe: stable central tendency estimation for sample-derived parameters.
-  - meanFromCsv, scaleCsv, scaleCsvIntoArray, buildZeroCsv, getNumberAtCsv: data-adjustment helpers (details omitted per request).
+  - meanFromCsv, scaleCsv, scaleCsvIntoArray, buildZeroCsv, getNumberAtCsv: data/output helpers.
 - Removed functions: none.
 
 ### Version 2.2.3 (old/Macrophage Image Four-Factor Analysis_2.2.3.ijm)
@@ -434,7 +433,7 @@ These instructions apply to this repository.
   - detectTargetsMulti: unified detection pipeline for multiple feature types.
   - filterFlatByMask: remove detections covered by a mask.
   - formatFeatureList, openFeatureReferenceImage, showFeatureReferenceFallback: feature selection support (non-UI core only).
-  - buildCsvCache, meanFromCache, scaleCsvCacheInPlace, getNumberFromCache, tokenCodeFromToken: data-adjustment/output helpers (details omitted per request).
+  - buildCsvCache, meanFromCache, scaleCsvCacheInPlace, getNumberFromCache, tokenCodeFromToken: output helpers.
 - Removed functions: none.
 
 ### Version 2.2.4b (old/Macrophage Image Four-Factor Analysis_2.2.4b.ijm)
