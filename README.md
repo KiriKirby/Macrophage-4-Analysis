@@ -1,4 +1,3 @@
-Note for AI contributors: Read `AGENTS.md` in this repository before editing.
 # Macrophage Image Four-Factor Analysis
 Languages: [Chinese](README.zh-CN.md) | [English](README.en.md) | [Japanese](README.ja.md)
 

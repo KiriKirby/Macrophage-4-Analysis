@@ -287,7 +287,7 @@ These instructions apply to this repository.
 
 ## Repository Notes
 - AI contributors must read `AGENTS.md` before making any edits.
-- Keep the AI edit notice at the top of the main script and the README.* entry points.
+- Keep the AI edit notice at the top of the main script. README.* entry points do not require it.
 - License: CC0 1.0 Universal (Public Domain Dedication). Keep `LICENSE` and README license sections in sync.
  - Third-party software/fonts are included and remain under their own licenses. See `THIRD_PARTY_NOTICES.md`.
 ## Maintenance Requirements

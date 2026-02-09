@@ -1,4 +1,3 @@
-AI編集時の注意：変更前に本リポジトリの `AGENTS.md` を必ず確認してください。
 # マクロファージ画像4要素解析
 言語： [中文](README.zh-CN.md) | [English](README.en.md) | [日本語](README.ja.md)
 

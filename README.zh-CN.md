@@ -1,4 +1,3 @@
-AI 编辑提示：修改前请先阅读本仓库的 `AGENTS.md`。
 # 巨噬细胞图像四元素值分析
 语言： [中文](README.zh-CN.md) | [English](README.en.md) | [日本語](README.ja.md)
 
