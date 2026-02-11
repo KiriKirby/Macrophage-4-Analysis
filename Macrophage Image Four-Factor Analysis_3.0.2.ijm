@@ -13,10 +13,8 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // Note for AI contributors: Read AGENTS.md in this repository before editing.
 
     // -----------------------------------------------------------------------------
-    // 設定: ログ/モットー表示の制御フラグ
+    // 設定: ログ表示の制御フラグ
     // -----------------------------------------------------------------------------
-    ENABLE_MOTTO_CN = 1;
-    ENABLE_MOTTO_ENJP = 0;
     LOG_VERBOSE = 1;
     SUBSTRING_INCLUSIVE = 0;
     DEBUG_MODE = 0;
@@ -3026,26 +3024,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
             line = replaceSafe(line, "%single", "" + single);
             log(line);
             k = k + 1;
-        }
-    }
-
-    // -----------------------------------------------------------------------------
-    // 関数: maybePrintMotto
-    // 概要: 言語設定とフラグに応じてランダムなモットーを表示する。
-    // 引数: なし
-    // 戻り値: なし
-    // -----------------------------------------------------------------------------
-    function maybePrintMotto() {
-        if (
-            (lang == "中文" && ENABLE_MOTTO_CN == 1) ||
-            (lang != "中文" && ENABLE_MOTTO_ENJP == 1)
-        ) {
-            if (T_mottos.length > 0) {
-                motto_index = floor(random() * T_mottos.length);
-                log("");
-                log(T_mottos[motto_index]);
-                log("");
-            }
         }
     }
 
@@ -6241,17 +6219,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_reason_excl_size_ok = "排除对象面积范围：已基于排除样本推断。";
         T_reason_excl_size_off = "未提供足够的排除对象面积样本：默认关闭面积门控。";
 
-        T_mottos = newArray(
-            "\"实事求是\"",
-            "\"理论联系实际\"",
-            "\"实践出真知\"",
-            "\"具体问题具体分析\"",
-            "\"由浅入深\"",
-            "\"循序渐进\"",
-            "\"在实践中检验\"",
-            "\"认识来源于实践\""
-        );
-
     } else if (lang == "日本語") {
         T_choose = "画像と ROI ファイルを含むフォルダーを選択してください";
         T_exit = "フォルダーが選択されませんでした。スクリプトを終了します。";
@@ -6941,17 +6908,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_reason_excl_off = "除外フィルター無効。";
         T_reason_excl_size_ok = "除外対象の面積範囲：除外サンプルから推定しました。";
         T_reason_excl_size_off = "除外対象の面積サンプルが不足：面積ゲートは無効（既定）です。";
-
-        T_mottos = newArray(
-            "\"実事求是\"",
-            "\"理論と実践の統一\"",
-            "\"実践から真の知識を得る\"",
-            "\"具体的な問題を具体的に分析\"",
-            "\"浅いから深いへ\"",
-            "\"段階的に進む\"",
-            "\"実践で検証する\"",
-            "\"認識は実践に由来する\""
-        );
 
     } else {
         T_choose = "Select the folder containing image and ROI files";
@@ -7659,16 +7615,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         T_reason_excl_size_ok = "Exclusion size range inferred from exclusion object samples.";
         T_reason_excl_size_off = "Not enough exclusion object size samples: size gate is disabled by default.";
 
-        T_mottos = newArray(
-            "\"Seek truth from facts\"",
-            "\"Integrate theory with practice\"",
-            "\"Truth comes from practice\"",
-            "\"Analyze concrete problems concretely\"",
-            "\"Progress from shallow to deep\"",
-            "\"Advance step by step\"",
-            "\"Verify in practice\"",
-            "\"Knowledge originates from practice\""
-        );
     }
 
     // -----------------------------------------------------------------------------
@@ -7994,7 +7940,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
         // ROIのみ実行時はここで終了する
         // -----------------------------------------------------------------------------
         showMessage(T_end_title, T_end_msg);
-        maybePrintMotto();
         exit("");
     }
 
@@ -10984,7 +10929,6 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
     // フェーズ14: 終了メッセージ
     // -----------------------------------------------------------------------------
     showMessage(T_end_title, T_end_msg);
-    maybePrintMotto();
 }
 
 
