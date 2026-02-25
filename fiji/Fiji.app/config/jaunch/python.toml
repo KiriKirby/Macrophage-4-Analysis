@@ -1,0 +1,290 @@
+# Shared Jaunch configuration for Python-based programs.
+#
+# See the common.toml file for an introduction to Jaunch configuration.
+
+includes = ['common.toml']
+
+# ==============================================================================
+# Python-specific Jaunch options.
+
+supported-options = [
+    '--python-home=<path>|specify PYTHON_HOME explicitly',
+    '--print-python-home|print path to the selected Python',
+    '--print-python-info|print information about the selected Python',
+]
+
+# ==============================================================================
+# Python-specific modes:
+#
+# * LAUNCH:PYTHON - when set, PYTHON will be included in the directives.
+
+#modes = ['LAUNCH:PYTHON']
+
+# ==============================================================================
+# Python-specific directives:
+#
+# * PYTHON             - Launches the main program using the Python interpreter.
+# * print-python-home  - Print out the path to the chosen Python installation.
+# * print-python-info  - Print out all the details of the chosen Python
+#                        installation, including not only its path, but also
+#                        the libPython path, version, and installed packages.
+
+directives = [
+    'LAUNCH:PYTHON|PYTHON',
+    '--print-python-home|print-python-home,ABORT',
+    '--print-python-info|print-python-info,ABORT',
+]
+
+# ==============================================================================
+# python.enabled
+# ==============================================================================
+# Set this to true to enable searching for and launching with Python.
+
+python.enabled = true
+
+# ==============================================================================
+# python.recognized-args
+# ==============================================================================
+# The list of arguments that Jaunch will recognize as belonging to Python,
+# rather than to `sys.argv` within the Python script itself.
+#
+# These are used to guess, when the minus-minus divider (--) is absent,
+# whether each arg is a Python (runtime) one or a main one.
+#
+# The asterisk wildcard symbol (*) is allowed as a suffix,
+# if you want to match all arguments with a particular prefix.
+#
+# About main arguments: Jaunch's philosophy is to remain agnostic of the options
+# your application supports, rather than trying to constrain them in its configuration
+# and checking them itself. As such, it is your application's responsibility to emit
+# error messages as appropriate if it encounters displeasing arguments.
+#
+# For example, suppose the user invokes:
+#
+#     ./fizzbuzz 1 2 3 4 5 -i
+#
+# Because '-i' is on the python.recognized-args list out of the box,
+# Jaunch will translate this invocation to:
+#
+#     python -i fizzbuzz.py 1 2 3 4 5
+#
+# Even though the Python argument appears after the main arguments. Users can mix
+# and match to their hearts' content, being as sloppy as they want, and Jaunch will
+# sort out the mess. As long as the Python args are on the list here, of course.
+
+python.recognized-args = [
+    '-b', '-bb',
+    '-B',
+    '-c cmd',
+    '-d',
+    '-E',
+    '-?', # --help and -h are reserved for Jaunch
+    '-i',
+    '-I',
+    '-m mod',
+    '-O',
+    '-OO',
+    '-q',
+    '-s',
+    '-S',
+    '-u',
+    '-v',
+    '-V', # --version is reserved for Jaunch
+    '-W arg',
+    '-x',
+    '-X opt',
+    '--check-hash-based-pycs always|default|never',
+]
+
+# ==============================================================================
+# python.root-paths
+# ==============================================================================
+# Paths to check for Python installations.
+#
+# This is a list of directories where Jaunch might hope to find a Python installation.
+# Directories are checked sequentially until one is found that matches all criteria.
+#
+# This is also the first field where we see Jaunch's hints/rules system in action.
+# See the `modes` section of common.toml for an introduction to hints.
+#
+# The Python runtime adds hints based on the Python installation selected:
+#
+# - PYTHON:3.9 if the selected Python installation is version 3.9.
+# - PYTHON:3.9+ if the selected Python installation is version 3.9 or later.
+# - PYTHON:3.10 if the selected Python installation is version 3.10.
+# - PYTHON:3.10+ if the selected Python installation is version 3.10 or later.
+# - and so on.
+#
+# Of course, Python hints will only be set after a Python installation matches,
+# so they won't work here in python.root-paths, nor in python.lib-suffixes.
+# But they can be useful in the python.runtime-args section to ensure Jaunch
+# passes runtime args only to those versions of Python that support them,
+# such as the -P flag which was introduced in Python 3.11.
+#
+# This is also the first field where we see Jaunch's variables in use:
+#
+#     '--python-home|${python-home}'
+#
+# Thanks to the above line, when the user passes '--python-home=/best', the
+# --python-home hint will be set, and the python-home variable will be set to /best.
+# So not only will the line match, but the root path to check will become /best.
+
+python.root-paths = [
+    '--python-home|${python-home}',                                                               # user override (CLI arg)
+    '!--system|${cfg.python-dir}',                                                                # read from <app>.cfg
+    '!--system|${app-dir}/lib/runtime',                                                           # bundled
+    '!--system|${app-dir}/python',                                                                # bundled
+    '!--system|OS:LINUX|ARCH:ARM64|${app-dir}/python/linux-arm64/*',                              # bundled (Linux arm64)
+    '!--system|OS:LINUX|ARCH:X64|${app-dir}/python/linux64/*',                                    # bundled (Linux x86-64)
+    '!--system|OS:LINUX|ARCH:X86|${app-dir}/python/linux32/*',                                    # bundled (Linux x86-32)
+    '!--system|OS:MACOSX|ARCH:ARM64|${app-dir}/python/macosx-arm64/*/Contents/Home',              # bundled (macOS arm64)
+    '!--system|OS:MACOSX|ARCH:ARM64|${app-dir}/python/macosx-arm64/*',                            # bundled (macOS arm64)
+    '!--system|OS:MACOSX|ARCH:X64|${app-dir}/python/macosx/*/Contents/Home',                      # bundled (macOS x86-64)
+    '!--system|OS:MACOSX|ARCH:X64|${app-dir}/python/macosx/*',                                    # bundled (macOS x86-64)
+    '!--system|OS:WINDOWS|ARCH:X64|${app-dir}\python\win64\*',                                    # bundled (Windows x86-64)
+    '!--system|OS:WINDOWS|ARCH:X86|${app-dir}\python\win32\*',                                    # bundled (Windows x86-32)
+    '${PYTHON_HOME}',                                                                             # PYTHON_HOME environment variable
+    '${CONDA_PREFIX}',                                                                            # activated Conda/Mamba env
+    'OS:LINUX|/usr/lib/python*/*',                                                                # system (Linux)
+    'OS:LINUX|ARCH:X64|/usr/lib/x86_64-linux-gnu',                                                # system (Linux x86-64)
+    'OS:LINUX|ARCH:X86|/usr/lib/i386-linux-gnu',                                                  # system (Linux x86-32)
+    'OS:MACOSX|${HOMEBREW_PREFIX}/Caskroom/miniforge/base',                                       # miniforge from Homebrew
+    'OS:MACOSX|/opt/homebrew/Caskroom/miniforge/base',                                            # miniforge from Homebrew (arm64 default)
+    'OS:MACOSX|/usr/local/Caskroom/miniforge/base',                                               # miniforge from Homebrew (x86-64 default)
+    'OS:MACOSX|${HOMEBREW_PREFIX}/Cellar/python*/*/Frameworks/Python.framework/Versions/Current', # python from Homebrew
+    'OS:MACOSX|/opt/homebrew/Cellar/python*/*/Frameworks/Python.framework/Versions/Current',      # python from Homebrew (arm64 default)
+    'OS:MACOSX|/usr/local/Cellar/python*/*/Frameworks/Python.framework/Versions/Current',         # python from Homebrew (x86-64 default)
+    'OS:MACOSX|${HOMEBREW_PREFIX}/Cellar/python*/*/Frameworks/Python.framework/Versions/*',       # python from Homebrew
+    'OS:MACOSX|/opt/homebrew/Cellar/python*/*/Frameworks/Python.framework/Versions/*',            # python from Homebrew (arm64 default)
+    'OS:MACOSX|/usr/local/Cellar/python*/*/Frameworks/Python.framework/Versions/*',               # python from Homebrew (x86-64 default)
+    'OS:WINDOWS|${LOCALAPPDATA}\Programs\Python\*',                                               # system (Windows)
+    '${MAMBA_ROOT_PREFIX}/envs/*',                                                                # all Mamba envs
+    '${CONDA_ROOT}/envs/*',                                                                       # all Conda envs
+]
+
+# ==============================================================================
+# Developer aside: Right now, Jaunch does not utilize any programmatic ways
+# to discover Python root directories. But it could! For example, it could
+# invoke `mamba env list` to get a list of installed Conda/Mamba environments.
+#
+# We could invent schema elements for toggling use of such detection approaches.
+# But for now: YAGNI! File an issue or a pull request if you do need it.
+
+# ==============================================================================
+# python.lib-suffixes
+# ==============================================================================
+# List of places within a Python installation to look for the Python library.
+#
+# For example, if the root directory currently being considered is
+# /the-best-python, and the current lib-suffixes line is lib/libpython3.so,
+# then Jaunch will check the path /the-best-python/lib/libpython3.so for the
+# library. If found, we have a winning Python installation!
+
+# TODO: Verify this list for all platforms.
+python.lib-suffixes = [
+    'OS:LINUX|lib/libpython3.so',
+    'OS:LINUX|lib/libpython3.13.so',
+    'OS:LINUX|lib/libpython3.12.so',
+    'OS:LINUX|lib/libpython3.11.so',
+    'OS:LINUX|lib/libpython3.10.so',
+    'OS:LINUX|lib/libpython3.9.so',
+    'OS:LINUX|lib/libpython3.8.so',
+    'OS:LINUX|libpython3.so',
+    'OS:LINUX|libpython3.13.so',
+    'OS:LINUX|libpython3.12.so',
+    'OS:LINUX|libpython3.11.so',
+    'OS:LINUX|libpython3.10.so',
+    'OS:LINUX|libpython3.9.so',
+    'OS:LINUX|libpython3.8.so',
+    'OS:MACOSX|lib/libpython3.dylib',
+    'OS:MACOSX|lib/libpython3.13.dylib',
+    'OS:MACOSX|lib/libpython3.12.dylib',
+    'OS:MACOSX|lib/libpython3.11.dylib',
+    'OS:MACOSX|lib/libpython3.10.dylib',
+    'OS:MACOSX|lib/libpython3.9.dylib',
+    'OS:MACOSX|lib/libpython3.8.dylib',
+    'OS:WINDOWS|python313.dll',
+    'OS:WINDOWS|python312.dll',
+    'OS:WINDOWS|python311.dll',
+    'OS:WINDOWS|python310.dll',
+    'OS:WINDOWS|python39.dll',
+    'OS:WINDOWS|python38.dll',
+    'OS:WINDOWS|python3.dll',
+    'OS:WINDOWS|lib\python313.dll',
+    'OS:WINDOWS|lib\python312.dll',
+    'OS:WINDOWS|lib\python311.dll',
+    'OS:WINDOWS|lib\python310.dll',
+    'OS:WINDOWS|lib\python39.dll',
+    'OS:WINDOWS|lib\python38.dll',
+    'OS:WINDOWS|lib\python3.dll',
+]
+
+# ==============================================================================
+# python.version-min, python.version-max
+# ==============================================================================
+# Acceptable range of Python versions to match.
+#
+# These two fields let you constrain the minimum and maximum Python versions
+# respectively that your application supports. This information will be used when
+# searching the system for appropriate Python installations. If a Python installation
+# is successfully discovered, but then found to be outside these constraints, it is
+# discarded and the search continues.
+#
+# The most common use of these fields is to specify a major.minor version pair
+# (e.g. `python.version-min = '3.9'`), but Jaunch does compare version strings digit by
+# digit, so you could write `python.version-min = '3.8.5' if you need to be specific.
+
+python.version-min = '3.8'
+#python.version-max = '3.12'
+
+# ==============================================================================
+# python.packages
+# ==============================================================================
+# Packages that must be present in the Python installation.
+#
+# TODO The syntax is similar to requirements.txt.
+
+python.packages = []
+
+# ==============================================================================
+# python.runtime-args
+# ==============================================================================
+# Arguments to pass to Python.
+#
+# This is the magic sauce where Jaunch options and other criteria get translated
+# into Python arguments. See 'python.root-paths' above for a thorough explanation.
+
+python.runtime-args = []
+
+# ==============================================================================
+# python.script-path
+# ==============================================================================
+# A list of paths to candidate main scripts, one of which will get launched.
+#
+# Jaunch evaluates the rules attached to each candidate main script. The first
+# line with matching rules becomes the main script, with subsequent lines ignored.
+#
+# This field is useful if you want to launch a different main script depending on
+# criteria such as OS, CPU architecture, or which options are given on the CLI.
+
+#python.script-path = [
+#    '--fizzbuzz|fizzbuzz.py'
+#    '--script-path|${script-path}',
+#    'main.py', # default behavior
+#]
+
+# ==============================================================================
+# python.main-args
+# ==============================================================================
+# Arguments to pass to the main script on the Python side.
+#
+# This is the other half of the magic sauce, along with python.runtime-args above:
+# Options and other criteria get translated into main arguments here.
+# See the 'python.root-paths' section above for a thorough explanation.
+
+#python.main-args = [
+#    '!--fizz|!--buzz|--mode=number',
+#    '--fizz|!--buzz|--mode=fizz',
+#    '--buzz|!--fizz|--mode=buzz',
+#    '--fizz|--buzz|--mode=fizzbuzz',
+#]

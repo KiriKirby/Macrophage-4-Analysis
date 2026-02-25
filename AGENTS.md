@@ -93,33 +93,34 @@ These instructions apply to this repository.
 
 ### Module Index (Macrophage Image Four-Factor Analysis_4.0.0.ijm)
 - Header + settings: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:1`
-- Log + math utilities: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:48`
-- File/string/CSV helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:156`
-- Token/rule parsing + data-format validation: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:2191`
-- Grouping/sorting/ratio helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:2400`
-- Image/window safety helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:2967`
-- Data-format logging + mottos: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3031`
-- ROI annotation helper: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3125`
-- Sampling + parameter estimation: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3219`
-- Cell label mask: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3604`
-- Bead detection (fusion): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4010`
-- Bead counting + exclusion filter: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4384`
-- Main flow entry: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:5517`
+- Log + math utilities: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:61`
+- File/string/CSV helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:150`
+- Token/rule parsing + data-format validation: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:2394`
+- Grouping/sorting/ratio helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:2602`
+- Image/window safety helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3444`
+- Data-format logging + mottos: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3508`
+- ROI annotation helper: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3584`
+- Sampling + parameter estimation: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3677`
+- Cell label mask: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4063`
+- Bead detection (fusion): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4470`
+- Bead counting + exclusion filter: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4918`
+- Main flow entry: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:6314`
 - Phases:
-- Phase 1 (UI language): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:5537`
-- Phase 2 (UI text definitions): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:5546`
-- Phase 3 (mode select): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:7693`
-- Phase 4 (folder + file list): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:7708`
-- Phase 5 (ROI annotation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:7994`
-- Phase 6 (target sampling): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8020`
-- Phase 7 (exclusion sampling): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8327`
-- Phase 8 (parameter estimation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8838`
-- Phase 9 (parameter dialog): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8942`
-- Phase 10 (parameter validation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9146`
-- Phase 11 (data format): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9151`
-- Phase 12 (batch loop): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9705`
-- Phase 13 (results output): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9780`
-- Phase 14 (finish): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:11077`
+- Phase 1 (UI language): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:6334`
+- Phase 2 (UI text definitions): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:6343`
+- Phase 3 (mode select): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8616`
+- Phase 4 (folder + file list): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8636`
+- Phase 5 (ROI annotation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8925`
+- Phase 6 (auto cell-area sampling): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8950`
+- Phase 7 (target sampling): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9112`
+- Phase 8 (exclusion sampling): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9396`
+- Phase 9 (parameter estimation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9943`
+- Phase 10 (parameter dialog): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:10100`
+- Phase 11 (parameter validation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:10314`
+- Phase 12 (data format): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:10319`
+- Phase 13 (batch loop): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:10825`
+- Phase 14 (results output): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:10900`
+- Phase 15 (finish): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:12272`
 
 ## Code Style
 - Language: ImageJ macro (.ijm). Script is designed for Fiji and should be treated as Fiji-only.
@@ -204,6 +205,7 @@ These instructions apply to this repository.
   - Per-time summary columns (ETPC/TPCSEM) are computed across all images within the same PN and time, not per single image.
   - When no time rule is active, summary columns are computed across all images within the same PN.
   - Per-cell expansion mode is active when any of TPC/ETPC/TPCSEM appears in dataFormatCols; only per-cell columns vary per row, other columns repeat as needed.
+  - Exception: in AUTO_ROI mode, TPC/ETPC/TPCSEM are kept as summary columns and per-cell row expansion is forced off.
   - If per-cell mode is active, per-time summaries (ETPC/TPCSEM) still aggregate across all cells in the PN+time block.
   - "Time parsing enabled" means the filename/folder rule maps <f> to T (f="T") in either file rule or folder rule; time is extracted from subfolder names only when SUBFOLDER_KEEP_MODE is on and a folder rule is provided.
   - If SUBFOLDER_KEEP_MODE is off (flatten mode), time can only be extracted from filename rule; subfolder names are not used for T.
@@ -229,6 +231,7 @@ These instructions apply to this repository.
   - When a fluorescence image is missing, the fluorescence cells are empty strings, not 0.
 - Per-cell expansion:
   - Per-cell mode is active when any of TPC/ETPC/TPCSEM is requested.
+  - Exception: in AUTO_ROI mode, TPC/ETPC/TPCSEM remain available but rows are not expanded per cell.
   - In per-cell mode, only per-cell columns vary by row; other columns repeat as needed.
   - Time-block row counts still follow the max-per-PN rule within each time block.
 
@@ -250,6 +253,22 @@ These instructions apply to this repository.
   - With SUBFOLDER_KEEP_MODE off, time is read from the filename.
   - If time parsing fails while time is enabled, time defaults to 0 and the time label may be blank.
 - Verbose logs must include per-file parse details for both PN/F and time so failures can be diagnosed from logs alone.
+
+### Parameter Spec System
+- Parameter spec generation must emit a deterministic fixed key set that covers all parameter keys used by the macro.
+- The copyable output line must be directly pasteable and use the format `PARAM_SPEC=...`.
+- For conditionally unavailable keys (mode/feature/exclusion/fluorescence), generation must emit empty values (`key=`), not drop keys.
+- Parsing must accept both raw `key=value;...` and `PARAM_SPEC=...`.
+- Parsing must only apply keys that are enabled under the current run conditions; disabled keys are ignored.
+- Empty values mean "do not override current value"; numeric `0` is a valid explicit value and must not be treated as empty.
+- When adding/removing/renaming parameter keys, update all linked parts together:
+  - fixed key-order list
+  - key validation
+  - generation mapping
+  - conditional-enable logic
+  - parse assignment/validation
+  - copyable log output
+  - CN/JP/EN parameter-spec hint text
 
 ## Comments
 - Add brief comments only when the logic is not self-explanatory.
@@ -293,6 +312,7 @@ These instructions apply to this repository.
 ## Maintenance Requirements
 - Keep the Script Module Index current after any change that adds/moves/removes logic.
 - For any new or modified logic, identify likely failure points and add expected error prompts in CN/JP/EN with error codes and logs (see Error Code System).
+- Keep the Parameter Spec System synchronized whenever parameters change (keys/order/generation/parsing/allowed-key gating/log output/CN-JP-EN hints).
 - For every bug fix, add a brief, concrete lesson to the Lessons Learned section and keep it aligned with the fix.
 
 ## Lessons Learned
@@ -348,6 +368,18 @@ These instructions apply to this repository.
 - Debug-mode randomness can be deterministic across runs; stir the RNG with time for meaningful tuning variability.
 - Avoid using `var` as a variable name in ImageJ macros; some parsers treat it as a reserved keyword and report syntax errors.
 - When log placeholders overlap (for example `%t` and `%tol`), replace longer tokens first to avoid partial substitutions.
+- In auto-ROI mode, fluorescence in-cell counting must be mask-based (Otsu/Yen) rather than ROI-Manager based, otherwise counting silently degrades or is skipped.
+- For parameter-spec compatibility across modes, emit a fixed full key set, leave unsupported keys empty, and ignore unsupported keys during parse; only validate enabled keys with non-empty values.
+- Keep copyable parameter-spec logs directly pasteable (`PARAM_SPEC=...`) and preserve the distinction between empty values (skip) and numeric `0` (valid override).
+- In auto-ROI mode, keep single-cell area sampling as a standalone pre-target phase; showing target-sampling step prompts first leads to confusing step order.
+- In auto-ROI mode, initialize `autoCellAreaUI` as an unset sentinel (for example `0`) so inferred single-cell area can override it; starting at `1` can silently lock estimation and inflate cell counts.
+- In auto-ROI mode, cap estimated cell counts before per-cell array/string expansion to avoid stalls when sampled or manual cell area is unrealistically small.
+- In auto-ROI single-cell learning, compute ROI area by mask pixel counting (selectionContains) and filter tiny/invalid ROIs before inference; relying on direct measured Area can keep the learned value near 1 under some ROI/unit combinations.
+- In auto-ROI mode, derive default single-cell area from the arithmetic mean of all valid sampled cell areas (sum/count), and apply runtime fallback to inferred/default area if UI/spec values are invalid or too small.
+- In auto-ROI mode, keep TPC/ETPC/TPCSEM as summary columns but forcibly disable per-cell row expansion so output remains one row per image.
+- In auto-ROI mode, use `AUTO_ROI_MIN_CELL_AREA` consistently when pre-filling/rerunning dialogs; a `<1`-only guard can preserve stale tiny values and cause runtime mismatch with inferred defaults.
+- In auto-ROI mode, keep one canonical single-cell area path (`autoCellAreaUI` -> normalize -> `autoCellArea`) and synchronize before batch start; mixed read paths can hide contamination and produce UI/runtime mismatches.
+- In some Fiji macro parsers, direct comparisons like `if (trim2(x) == "")` can trigger numeric-return errors; assign `trim2(x)` to a temporary string first, then compare.
 
 ## Explanations
 - When asked to explain the script, provide structured summaries (overview -> phases -> key functions).
