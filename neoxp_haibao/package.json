@@ -1,0 +1,24 @@
+{
+  "name": "neoxp-haibao",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Desktop workflow and analysis engine migration for macrophage phagocytosis analysis.",
+  "packageManager": "pnpm@10.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  },
+  "scripts": {
+    "dev:ps": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev.ps1",
+    "dev:ps:fast": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev.ps1 -SkipInstall",
+    "build:packages": "npm run build --workspace=@neoxp/contracts && npm run build --workspace=@neoxp/parser && npm run build --workspace=@neoxp/workflow",
+    "typecheck:packages": "npm run typecheck --workspace=@neoxp/contracts && npm run typecheck --workspace=@neoxp/parser && npm run typecheck --workspace=@neoxp/workflow",
+    "dev": "npm run build:packages && npm run dev --workspace=@neoxp/desktop",
+    "typecheck": "npm run typecheck:packages && npm run typecheck --workspace=@neoxp/desktop",
+    "build": "npm run build:packages && npm run build --workspace=@neoxp/desktop",
+    "test": "npm run test --workspaces --if-present"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "@neoxp/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n RENDERER,MAIN,ELECTRON -c green,cyan,magenta \"npm:dev:renderer\" \"npm:dev:main\" \"npm:dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:main": "esbuild src/main/main.ts src/main/preload.ts --bundle --platform=node --format=cjs --outdir=dist-electron --out-extension:.js=.cjs --external:electron --external:electron/* --sourcemap --watch",
+    "dev:electron": "wait-on tcp:5173 file:dist-electron/main.cjs && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electronmon dist-electron/main.cjs",
+    "build": "npm run build:renderer && npm run build:main",
+    "build:renderer": "vite build",
+    "build:main": "esbuild src/main/main.ts src/main/preload.ts --bundle --platform=node --format=cjs --outdir=dist-electron --out-extension:.js=.cjs --external:electron --external:electron/* --minify",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "preview": "cross-env NODE_ENV=production electron dist-electron/main.cjs"
+  },
+  "dependencies": {
+    "@fluentui/react-components": "^9.72.4",
+    "@fluentui/react-icons": "^2.0.286",
+    "@neoxp/contracts": "file:../../packages/contracts",
+    "@neoxp/parser": "file:../../packages/parser",
+    "@neoxp/workflow": "file:../../packages/workflow",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "utif": "^3.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.17",
+    "@types/react": "^18.3.20",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^35.3.0",
+    "electronmon": "^2.0.3",
+    "esbuild": "^0.25.4",
+    "vite": "^5.4.18",
+    "wait-on": "^7.2.0"
+  }
+}

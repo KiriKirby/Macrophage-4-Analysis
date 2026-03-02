@@ -1,0 +1,16 @@
+{
+  "name": "@neoxp/workflow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@neoxp/contracts": "file:../contracts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --eval \"console.log('no tests in @neoxp/workflow yet')\""
+  }
+}

@@ -93,34 +93,34 @@ These instructions apply to this repository.
 
 ### Module Index (Macrophage Image Four-Factor Analysis_4.0.0.ijm)
 - Header + settings: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:1`
-- Log + math utilities: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:61`
-- File/string/CSV helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:150`
-- Token/rule parsing + data-format validation: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:2394`
-- Grouping/sorting/ratio helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:2602`
-- Image/window safety helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3444`
-- Data-format logging + mottos: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3508`
-- ROI annotation helper: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3584`
-- Sampling + parameter estimation: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3677`
-- Cell label mask: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4063`
-- Bead detection (fusion): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4470`
-- Bead counting + exclusion filter: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4918`
-- Main flow entry: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:6314`
+- Log + math utilities: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:72`
+- File/string/CSV helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:161`
+- Token/rule parsing + data-format validation: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:2504`
+- Grouping/sorting/ratio helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:3266`
+- Image/window safety helpers: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4099`
+- Data-format logging + mottos: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4163`
+- ROI annotation helper: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4240`
+- Sampling + parameter estimation: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4333`
+- Cell label mask: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:4719`
+- Bead detection (fusion): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:5129`
+- Bead counting + exclusion filter: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:5572`
+- Main flow entry: `Macrophage Image Four-Factor Analysis_4.0.0.ijm:6952`
 - Phases:
-- Phase 1 (UI language): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:6334`
-- Phase 2 (UI text definitions): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:6343`
-- Phase 3 (mode select): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8616`
-- Phase 4 (folder + file list): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8636`
-- Phase 5 (ROI annotation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8925`
-- Phase 6 (auto cell-area sampling): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:8950`
-- Phase 7 (target sampling): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9112`
-- Phase 8 (exclusion sampling): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9396`
-- Phase 9 (parameter estimation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9943`
-- Phase 10 (parameter dialog): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:10100`
-- Phase 11 (parameter validation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:10314`
-- Phase 12 (data format): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:10319`
-- Phase 13 (batch loop): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:10825`
-- Phase 14 (results output): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:10900`
-- Phase 15 (finish): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:12272`
+- Phase 1 (UI language): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:6972`
+- Phase 2 (UI text definitions): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:6981`
+- Phase 3 (mode select): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9289`
+- Phase 4 (folder + file list): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9309`
+- Phase 5 (ROI annotation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9599`
+- Phase 6 (auto cell-area sampling): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9656`
+- Phase 7 (target sampling): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:9786`
+- Phase 8 (exclusion sampling): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:10071`
+- Phase 9 (parameter estimation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:10615`
+- Phase 10 (parameter dialog): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:10798`
+- Phase 11 (parameter validation): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:11009`
+- Phase 12 (data format): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:11014`
+- Phase 13 (batch loop): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:11588`
+- Phase 14 (results output): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:11664`
+- Phase 15 (finish): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:13032`
 
 ## Code Style
 - Language: ImageJ macro (.ijm). Script is designed for Fiji and should be treated as Fiji-only.
@@ -153,6 +153,7 @@ These instructions apply to this repository.
 - Keep one blank line between function blocks; within long functions, separate logical blocks with a short Japanese comment header and a blank line.
 - For long run()/Dialog calls, break lines after commas/concats and align continued lines; close the call on its own line.
 - Multi-line strings should be built with `+` on each new line, aligned with the first line, and end with an explicit `\n` where needed.
+- Keep top-of-file global initialization orderly and deterministic: group entries into three blocks (`constants`, `default switches`, `runtime caches`) with short Japanese block headers, and add new globals to the appropriate block instead of appending ad hoc.
 
 ## Logging Style
 - Logging is structured and tree-like using `T_log_*` labels; do not inline raw log strings in logic.
@@ -380,6 +381,22 @@ These instructions apply to this repository.
 - In auto-ROI mode, use `AUTO_ROI_MIN_CELL_AREA` consistently when pre-filling/rerunning dialogs; a `<1`-only guard can preserve stale tiny values and cause runtime mismatch with inferred defaults.
 - In auto-ROI mode, keep one canonical single-cell area path (`autoCellAreaUI` -> normalize -> `autoCellArea`) and synchronize before batch start; mixed read paths can hide contamination and produce UI/runtime mismatches.
 - In some Fiji macro parsers, direct comparisons like `if (trim2(x) == "")` can trigger numeric-return errors; assign `trim2(x)` to a temporary string first, then compare.
+- For PARAM_SPEC diagnostics, map keys and displayed values through localized labels in logs so parameter-read traces stay consistent with the selected UI language.
+- In PARAM_SPEC output helpers, avoid returning string-conversion helper calls inline (for example strict/mode/preset mapping); assign helper results to temporaries before returning.
+- For error-code prefix checks (for example `"[E"`), cache `substring(...)` into a temporary string before comparison in conditionals to avoid parser-specific numeric-return issues.
+- Before applying PARAM_SPEC overrides, initialize all runtime UI/analysis variables at top level; otherwise function-local assignments may not materialize globals and later normalization can fail with "Undefined variable".
+- For Electron desktop UI in this repository, prefer a pure solid dark background over native/addon vibrancy paths when performance or visual stability regresses; keep the darkest areas at true black (`#000000`) for clear layering.
+- When implementing the preview stage-light effect, keep it as lightweight CSS gradients plus a single loading sweep animation; avoid `backdrop-filter` and platform blur dependencies to prevent input lag while dragging windows.
+- If desktop surface strategy changes (for example removing vibrancy), update main-process handlers, preload bridge, renderer types, renderer boot logic, and related i18n keys together to avoid stale IPC/type contracts.
+- For resizable Electron panes, keep pointer-driven drag resize transition-free for direct mouse tracking, and only enable short snap animations when crossing collapse/restore thresholds.
+- During OS window resize, debounce workspace layout state commits and flush on mouseup/maximize changes to reduce layout thrash while keeping top/bottom bars responsive.
+- For pane splitters, crossing collapse/restore thresholds should trigger a short snap animation plus temporary drag-lock; this prevents continuous layout churn while still preserving responsive pointer tracking.
+- For horizontally scrollable data tables with sticky headers, render a viewport-width sticky header backdrop layer separate from content-width header cells to avoid uncovered regions after horizontal scrolling.
+- For splitter-driven middle-pane collapse, preserve the opposite-side neighbor width and anchor collapse to the drag direction (left-drag anchors left, right-drag anchors right) to avoid unintuitive pane jumps.
+- For sticky table headers in dense grids, use a dedicated sticky wrapper sharing the exact column template with body rows; pseudo-element overlays can hide or clip trailing header cells.
+- For desktop startup UX, separate "boot completed" from "enter main workspace" so debug flags can pause on a startup screen without affecting production auto-entry behavior.
+- For startup-shell rendering, keep a dedicated boot top bar with only window controls and hide menu/status areas until boot is complete; this prevents premature UI exposure while preserving native window actions.
+- If boot-to-workbench should be instant after debug confirmation, pre-mount and pre-render the main workspace behind a startup overlay (opacity/pointer-events gating) so "enter" only toggles visibility, not first render.
 
 ## Explanations
 - When asked to explain the script, provide structured summaries (overview -> phases -> key functions).
