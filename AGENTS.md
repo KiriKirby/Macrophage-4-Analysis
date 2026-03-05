@@ -120,7 +120,7 @@ These instructions apply to this repository.
 - Phase 12 (data format): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:11014`
 - Phase 13 (batch loop): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:11588`
 - Phase 14 (results output): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:11664`
-- Phase 15 (finish): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:13032`
+- Phase 15 (finish): `Macrophage Image Four-Factor Analysis_4.0.0.ijm:13067`
 
 ## Code Style
 - Language: ImageJ macro (.ijm). Script is designed for Fiji and should be treated as Fiji-only.
@@ -397,6 +397,7 @@ These instructions apply to this repository.
 - For desktop startup UX, separate "boot completed" from "enter main workspace" so debug flags can pause on a startup screen without affecting production auto-entry behavior.
 - For startup-shell rendering, keep a dedicated boot top bar with only window controls and hide menu/status areas until boot is complete; this prevents premature UI exposure while preserving native window actions.
 - If boot-to-workbench should be instant after debug confirmation, pre-mount and pre-render the main workspace behind a startup overlay (opacity/pointer-events gating) so "enter" only toggles visibility, not first render.
+- Apply unit scaling for pixel-based outputs in one centralized pre-output step so TB/BIC/TPC/ETPC/TPCSEM and fluorescence counterparts remain numerically consistent.
 
 ## Explanations
 - When asked to explain the script, provide structured summaries (overview -> phases -> key functions).

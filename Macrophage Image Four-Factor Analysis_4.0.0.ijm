@@ -11766,6 +11766,42 @@ macro "巨噬細胞画像 四要素解析 / Macrophage Four-Factor Analysis / �
 
         run("Clear Results");
 
+        // 出力前にピクセル系の単位換算を統一適用する。
+        targetPixelDiv = 1;
+        if (usePixelCount == 1 && (useF4 == 1 || useF5 == 1 || useF6 == 1)) targetPixelDiv = 500;
+
+        k = 0;
+        while (k < nTotalImgs) {
+            if (targetPixelDiv > 1) {
+                if (allA[k] != "") allA[k] = allA[k] / targetPixelDiv;
+                if (incellA[k] != "") incellA[k] = incellA[k] / targetPixelDiv;
+                if (cellBeadStrA[k] != "") {
+                    vList = parseNumberList(cellBeadStrA[k]);
+                    c = 0;
+                    while (c < vList.length) {
+                        vList[c] = vList[c] / targetPixelDiv;
+                        c = c + 1;
+                    }
+                    cellBeadStrA[k] = joinNumberList(vList);
+                }
+            }
+
+            if (HAS_FLUO == 1) {
+                if (fluoAllA[k] != "") fluoAllA[k] = fluoAllA[k] / 10.0;
+                if (fluoIncellA[k] != "") fluoIncellA[k] = fluoIncellA[k] / 10.0;
+                if (fluoCellBeadStrA[k] != "") {
+                    vList = parseNumberList(fluoCellBeadStrA[k]);
+                    c = 0;
+                    while (c < vList.length) {
+                        vList[c] = vList[c] / 10.0;
+                        c = c + 1;
+                    }
+                    fluoCellBeadStrA[k] = joinNumberList(vList);
+                }
+            }
+            k = k + 1;
+        }
+
         if (dataFormatEnable == 1) {
             dataFormatRule = buildPresetRuleLabel(rulePresetChoice, SUBFOLDER_KEEP_MODE);
             colsTmp = trim2(dataFormatCols);

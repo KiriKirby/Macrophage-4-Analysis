@@ -3,6 +3,7 @@
   useMemo,
   useRef,
   useState,
+  type DragEvent as ReactDragEvent,
   type FocusEvent as ReactFocusEvent,
   type MouseEvent as ReactMouseEvent,
   type WheelEvent as ReactWheelEvent
@@ -84,6 +85,15 @@ type RgbFieldKey = "targetRgb" | "nearRgb" | "exclRgb";
 type SubfolderMode = "keep" | "flat";
 type NamingProjectRule = "filename" | "folder";
 type NamingTimeRule = "folder" | "filename";
+type TimeRegexBuilderPresetKey =
+  | "captureNumber"
+  | "optionalSpace"
+  | "hourLiteral"
+  | "anyPrefixLazy"
+  | "anySuffix"
+  | "wordBoundary"
+  | "dashLiteral"
+  | "underscoreLiteral";
 type OperationSectionKey =
   | "files"
   | "cellRoi"
@@ -183,6 +193,18 @@ interface RuntimeDebugConfig {
   runVerboseLogs: boolean;
 }
 
+interface TimeRegexBuilderPreset {
+  key: TimeRegexBuilderPresetKey;
+  labelKey: MessageKey;
+  pattern: string;
+}
+
+interface TimeRegexBuilderToken {
+  id: string;
+  kind: TimeRegexBuilderPresetKey | "literal";
+  literal?: string;
+}
+
 const RESIZER_WIDTH = 6;
 const COLLAPSED_BAR_WIDTH = 34;
 
@@ -213,7 +235,7 @@ const ALL_OPERATION_SECTIONS: OperationSectionKey[] = [
   "data",
   "debug"
 ];
-const SETTINGS_TOOLBAR_COMPACT_AT = 920;
+const SETTINGS_TOOLBAR_COMPACT_AT = 460;
 
 const FILE_SPLIT_RESIZER_HEIGHT = 5;
 const FILE_BROWSER_MIN_HEIGHT = 170;
@@ -243,6 +265,18 @@ const COLUMN_MIN_TIME = 72;
 const COLUMN_MIN_PROJECT = 100;
 const TREE_EXPAND_SLOT_WIDTH = 16;
 const SETTINGS_CONFIG_STORAGE_KEY = "neoxp.desktop.config.v2";
+const DEFAULT_TIME_REGEX_PATTERN = "(\\d+(?:\\.\\d+)?)\\s*hr";
+const TIME_REGEX_BUILDER_PRESETS: TimeRegexBuilderPreset[] = [
+  { key: "captureNumber", labelKey: "field.timeRegexTokenCaptureNumber", pattern: "(\\d+(?:\\.\\d+)?)" },
+  { key: "optionalSpace", labelKey: "field.timeRegexTokenOptionalSpace", pattern: "\\s*" },
+  { key: "hourLiteral", labelKey: "field.timeRegexTokenHour", pattern: "hr" },
+  { key: "anyPrefixLazy", labelKey: "field.timeRegexTokenAnyPrefix", pattern: ".*?" },
+  { key: "anySuffix", labelKey: "field.timeRegexTokenAnySuffix", pattern: ".*" },
+  { key: "wordBoundary", labelKey: "field.timeRegexTokenBoundary", pattern: "\\b" },
+  { key: "dashLiteral", labelKey: "field.timeRegexTokenDash", pattern: "-" },
+  { key: "underscoreLiteral", labelKey: "field.timeRegexTokenUnderscore", pattern: "_" }
+];
+const DEFAULT_TIME_REGEX_BUILDER_KEYS: TimeRegexBuilderPresetKey[] = ["captureNumber", "optionalSpace", "hourLiteral"];
 
 const ALL_NODE_ID = "__all__";
 
@@ -359,6 +393,73 @@ function parseTimeLabelFromText(source: string): { label: string; value: number 
   }
 
   return { label: "", value: 0 };
+}
+
+function getPairFolderName(pair: WorkspacePair): string {
+  const dirSegments = pair.relativeDir
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+  return dirSegments[dirSegments.length - 1] ?? "";
+}
+
+function getPairBaseName(pair: WorkspacePair): string {
+  const fileName = pair.normalName || pair.fluoName || "";
+  const dot = fileName.lastIndexOf(".");
+  return dot > 0 ? fileName.slice(0, dot) : fileName;
+}
+
+function extractTimeLabelFromSourceWithRegex(source: string, regex: RegExp | null, regexPattern: string): string {
+  const text = source.trim();
+  if (!text) return "";
+
+  const pattern = regexPattern.trim();
+  if (!pattern) {
+    return parseTimeLabelFromText(text).label;
+  }
+  if (!regex) {
+    return "";
+  }
+
+  const match = regex.exec(text);
+  if (!match) {
+    return "";
+  }
+
+  const raw = (match[1] ?? match[0] ?? "").trim();
+  if (!raw) {
+    return "";
+  }
+  if (/^\d+(?:\.\d+)?$/.test(raw)) {
+    if (/hr/i.test(text) || /hr/i.test(pattern)) {
+      return `${raw}hr`;
+    }
+    return raw;
+  }
+
+  const parsed = parseTimeLabelFromText(raw);
+  if (parsed.label) {
+    return parsed.label;
+  }
+  return raw;
+}
+
+let timeRegexBuilderTokenAutoId = 0;
+
+function createTimeRegexBuilderToken(kind: TimeRegexBuilderToken["kind"], literal?: string): TimeRegexBuilderToken {
+  const id = `time-regex-token-${timeRegexBuilderTokenAutoId}`;
+  timeRegexBuilderTokenAutoId += 1;
+  if (kind === "literal") {
+    return {
+      id,
+      kind,
+      literal: literal ?? ""
+    };
+  }
+  return {
+    id,
+    kind
+  };
 }
 
 function parseRgbText(input: string): { r: number; g: number; b: number } | null {
@@ -641,6 +742,12 @@ export function App(): JSX.Element {
   const [namingCustomEnabled, setNamingCustomEnabled] = useState<boolean>(false);
   const [projectNamingRule, setProjectNamingRule] = useState<NamingProjectRule>("filename");
   const [timeNamingRule, setTimeNamingRule] = useState<NamingTimeRule>("folder");
+  const [timeRegexPattern, setTimeRegexPattern] = useState<string>(DEFAULT_TIME_REGEX_PATTERN);
+  const [timeRegexBuilderTokens, setTimeRegexBuilderTokens] = useState<TimeRegexBuilderToken[]>(() => {
+    return DEFAULT_TIME_REGEX_BUILDER_KEYS.map((key) => createTimeRegexBuilderToken(key));
+  });
+  const [timeRegexBuilderLiteral, setTimeRegexBuilderLiteral] = useState<string>("");
+  const [timeRegexDraggingTokenId, setTimeRegexDraggingTokenId] = useState<string>("");
   const [minArea, setMinArea] = useState<string>("15");
   const [maxArea, setMaxArea] = useState<string>("300");
   const [circularity, setCircularity] = useState<string>("0.35");
@@ -1852,6 +1959,7 @@ export function App(): JSX.Element {
       namingCustomEnabled ? "1" : "0",
       projectNamingRule,
       timeNamingRule,
+      timeRegexPattern.trim(),
       stableSerializeIdSet(ignoredNodeIds),
       stableSerializeNodeRoleOverrides(nodeRoleOverrides)
     ].join("||");
@@ -1862,6 +1970,7 @@ export function App(): JSX.Element {
     namingCustomEnabled,
     projectNamingRule,
     timeNamingRule,
+    timeRegexPattern,
     ignoredNodeIds,
     nodeRoleOverrides
   ]);
@@ -2007,6 +2116,7 @@ export function App(): JSX.Element {
         namingCustomEnabled,
         projectNamingRule,
         timeNamingRule,
+        timeRegexPattern,
         minArea,
         maxArea,
         circularity,
@@ -2059,6 +2169,7 @@ export function App(): JSX.Element {
         namingCustomEnabled: boolean;
         projectNamingRule: NamingProjectRule;
         timeNamingRule: NamingTimeRule;
+        timeRegexPattern: string;
         minArea: string;
         maxArea: string;
         circularity: string;
@@ -2098,6 +2209,9 @@ export function App(): JSX.Element {
       }
       if (parsed.timeNamingRule === "folder" || parsed.timeNamingRule === "filename") {
         setTimeNamingRule(parsed.timeNamingRule);
+      }
+      if (typeof parsed.timeRegexPattern === "string") {
+        setTimeRegexPattern(parsed.timeRegexPattern);
       }
       if (typeof parsed.minArea === "string") setMinArea(parsed.minArea);
       if (typeof parsed.maxArea === "string") setMaxArea(parsed.maxArea);
@@ -2573,6 +2687,48 @@ export function App(): JSX.Element {
     });
   }, [allNodes, selectedTreeId, treeNodeMap]);
 
+  const timeRegexPresetMap = useMemo(() => {
+    const map = new Map<TimeRegexBuilderPresetKey, { label: string; pattern: string }>();
+    for (const presetItem of TIME_REGEX_BUILDER_PRESETS) {
+      map.set(presetItem.key, {
+        label: t(presetItem.labelKey),
+        pattern: presetItem.pattern
+      });
+    }
+    return map;
+  }, [t]);
+
+  const timeRegexBuilderPattern = useMemo(() => {
+    const patterns = timeRegexBuilderTokens.map((token) => {
+      if (token.kind === "literal") {
+        return token.literal ?? "";
+      }
+      return timeRegexPresetMap.get(token.kind)?.pattern ?? "";
+    });
+    return patterns.join("");
+  }, [timeRegexBuilderTokens, timeRegexPresetMap]);
+
+  const timeRegexState = useMemo(() => {
+    const pattern = timeRegexPattern.trim();
+    if (!pattern) {
+      return {
+        regex: null as RegExp | null,
+        invalid: false
+      };
+    }
+    try {
+      return {
+        regex: new RegExp(pattern, "i"),
+        invalid: false
+      };
+    } catch {
+      return {
+        regex: null as RegExp | null,
+        invalid: true
+      };
+    }
+  }, [timeRegexPattern]);
+
   const pairDerivedMetaMap = useMemo(() => {
     const out = new Map<
       string,
@@ -2586,36 +2742,25 @@ export function App(): JSX.Element {
 
     for (const pair of pairs) {
       const path = pairNodePathMap.get(pair.id) ?? [];
+      const folderName = getPairFolderName(pair);
+      const baseName = getPairBaseName(pair);
       let ignoredByTag = false;
       let projectLabel = "";
       if (projectNamingRule === "filename") {
         projectLabel = pair.project || "";
       } else {
-        const dirSegments = pair.relativeDir
-          .split("/")
-          .map((segment) => segment.trim())
-          .filter((segment) => segment.length > 0);
-        projectLabel = dirSegments[dirSegments.length - 1] ?? pair.project ?? "";
+        projectLabel = folderName || pair.project || "";
       }
 
       let timeLabel = "";
       if (timeNamingRule === "folder") {
-        const fromTimeLabel = parseTimeLabelFromText(pair.timeLabel || "");
-        if (fromTimeLabel.label) {
-          timeLabel = fromTimeLabel.label;
-        } else {
-          const dirSegments = pair.relativeDir
-            .split("/")
-            .map((segment) => segment.trim())
-            .filter((segment) => segment.length > 0);
-          const folderName = dirSegments[dirSegments.length - 1] ?? "";
-          timeLabel = parseTimeLabelFromText(folderName).label;
+        const source = folderName || pair.timeLabel || "";
+        timeLabel = extractTimeLabelFromSourceWithRegex(source, timeRegexState.regex, timeRegexPattern);
+        if (!timeLabel && source !== (pair.timeLabel || "")) {
+          timeLabel = extractTimeLabelFromSourceWithRegex(pair.timeLabel || "", timeRegexState.regex, timeRegexPattern);
         }
       } else {
-        const fileName = pair.normalName || pair.fluoName || "";
-        const dot = fileName.lastIndexOf(".");
-        const baseName = dot > 0 ? fileName.slice(0, dot) : fileName;
-        timeLabel = parseTimeLabelFromText(baseName).label;
+        timeLabel = extractTimeLabelFromSourceWithRegex(baseName, timeRegexState.regex, timeRegexPattern);
       }
 
       for (const nodeId of path) {
@@ -2653,7 +2798,9 @@ export function App(): JSX.Element {
     treeNodeMap,
     namingCustomEnabled,
     projectNamingRule,
-    timeNamingRule
+    timeNamingRule,
+    timeRegexState.regex,
+    timeRegexPattern
   ]);
 
   const namingStats = useMemo(() => {
@@ -2696,6 +2843,74 @@ export function App(): JSX.Element {
     }
     return ["example project 1.tif", "example project 2.tif", "example project 3.tif"];
   }, [preset]);
+
+  const timeRegexPreviewSources = useMemo(() => {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    const pairs = workspaceScan?.pairs ?? [];
+    for (const pair of pairs) {
+      const source = timeNamingRule === "folder" ? (getPairFolderName(pair) || pair.timeLabel || "") : getPairBaseName(pair);
+      const text = source.trim();
+      if (!text || seen.has(text)) continue;
+      seen.add(text);
+      out.push(text);
+      if (out.length >= 5) break;
+    }
+    if (out.length > 0) {
+      return out;
+    }
+    if (timeNamingRule === "folder") {
+      return ["24hr", "GroupA_48hr", "T72hr", "sample day7"];
+    }
+    return ["sample_24hr_01", "project-48hr-2", "control72hr", "test 96hr"];
+  }, [workspaceScan, timeNamingRule]);
+
+  const timeRegexPreviewRows = useMemo(() => {
+    return timeRegexPreviewSources.map((source) => {
+      return {
+        source,
+        time: extractTimeLabelFromSourceWithRegex(source, timeRegexState.regex, timeRegexPattern)
+      };
+    });
+  }, [timeRegexPreviewSources, timeRegexState.regex, timeRegexPattern]);
+
+  const appendTimeRegexPresetToken = (presetKey: TimeRegexBuilderPresetKey): void => {
+    setTimeRegexBuilderTokens((prev) => [...prev, createTimeRegexBuilderToken(presetKey)]);
+  };
+
+  const appendTimeRegexLiteralToken = (): void => {
+    const literal = timeRegexBuilderLiteral.trim();
+    if (!literal) return;
+    setTimeRegexBuilderTokens((prev) => [...prev, createTimeRegexBuilderToken("literal", literal)]);
+    setTimeRegexBuilderLiteral("");
+  };
+
+  const removeTimeRegexBuilderToken = (tokenId: string): void => {
+    setTimeRegexBuilderTokens((prev) => prev.filter((token) => token.id !== tokenId));
+  };
+
+  const reorderTimeRegexBuilderToken = (dragId: string, dropId: string): void => {
+    if (!dragId || !dropId || dragId === dropId) return;
+    setTimeRegexBuilderTokens((prev) => {
+      const from = prev.findIndex((token) => token.id === dragId);
+      const to = prev.findIndex((token) => token.id === dropId);
+      if (from < 0 || to < 0) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  };
+
+  const clearTimeRegexBuilder = (): void => {
+    setTimeRegexBuilderTokens([]);
+    setTimeRegexDraggingTokenId("");
+  };
+
+  const resetTimeRegexBuilderDefault = (): void => {
+    setTimeRegexBuilderTokens(DEFAULT_TIME_REGEX_BUILDER_KEYS.map((key) => createTimeRegexBuilderToken(key)));
+    setTimeRegexDraggingTokenId("");
+  };
 
   const dataFormatTokens = useMemo(() => {
     return dataDraft.formatColumns
@@ -2774,14 +2989,28 @@ export function App(): JSX.Element {
     const smallRatio = clamp(Number(smallAreaRatio) || 0, 0, 1);
     const clumpRatio = clamp(Number(clumpMinRatio) || 1, 1, 3);
     const contrast = clamp(Number(targetMinContrast) || 0, 0, 1);
+    const rolling = clamp(Number(rollingRadius) || 30, 0, 120);
     return {
       centerDiff,
       bgDiff,
       smallRatio,
       clumpRatio,
-      contrast
+      contrast,
+      rolling
     };
-  }, [centerDiffThreshold, bgDiffThreshold, smallAreaRatio, clumpMinRatio, targetMinContrast]);
+  }, [centerDiffThreshold, bgDiffThreshold, smallAreaRatio, clumpMinRatio, targetMinContrast, rollingRadius]);
+
+  const defaultTargetPreviewModel = useMemo(
+    () => ({
+      centerDiff: 16,
+      bgDiff: 12,
+      smallRatio: 0.38,
+      clumpRatio: 1.65,
+      contrast: 0.15,
+      rolling: 30
+    }),
+    []
+  );
 
   const setFeatureChecked = (key: FeatureKey, checked?: boolean): void => {
     setFeatureFlags((prev) => {
@@ -2817,78 +3046,191 @@ export function App(): JSX.Element {
   }, [featureFlags.f1, featureFlags.f5]);
 
   const renderFeatureIllustration = (key: FeatureKey): JSX.Element => {
+    const model = featureFlags[key] ? targetPreviewModel : defaultTargetPreviewModel;
+    const centerGain = clamp(model.centerDiff / 40, 0, 1);
+    const bgGain = clamp(model.bgDiff / 40, 0, 1);
+    const smallGain = clamp(model.smallRatio, 0, 1);
+    const clumpGain = clamp((model.clumpRatio - 1) / 2, 0, 1);
+    const contrastGain = clamp(model.contrast, 0, 1);
+    const rollingGain = clamp(model.rolling / 120, 0, 1);
+
     if (key === "f1") {
+      const rOuter = 7 + (smallGain * 4.8);
+      const rMid = rOuter * (0.65 + (bgGain * 0.08));
+      const rInner = rOuter * (0.34 + (centerGain * 0.18));
+      const points = [
+        { x: 34, y: 30 },
+        { x: 46, y: 22 },
+        { x: 50, y: 36 },
+        { x: 62, y: 29 }
+      ];
       return (
         <svg viewBox="0 0 96 72" className="feature-preview-svg" role="img" aria-label={t("field.feature1")}>
-          <defs>
-            <radialGradient id="feature-f1-gradient" cx="50%" cy="50%" r="52%">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.92)" />
-              <stop offset={`${48 + targetPreviewModel.centerDiff}%`} stopColor="rgba(178,205,255,0.34)" />
-              <stop offset="100%" stopColor="rgba(30,44,66,0.92)" />
-            </radialGradient>
-          </defs>
-          <circle cx="48" cy="36" r={16 + (targetPreviewModel.smallRatio * 10)} fill="url(#feature-f1-gradient)" />
+          <rect x="0" y="0" width="96" height="72" fill="rgba(156,170,192,0.24)" />
+          <g>
+            {points.map((pt, idx) => (
+              <g key={`f1-${idx}`}>
+                <circle cx={pt.x} cy={pt.y} r={rOuter} fill="rgba(34,44,58,0.86)" />
+                <circle cx={pt.x} cy={pt.y} r={rMid} fill={`rgba(118,138,172,${0.30 + (bgGain * 0.34)})`} />
+                <circle cx={pt.x} cy={pt.y} r={rInner} fill={`rgba(233,240,250,${0.74 + (centerGain * 0.22)})`} />
+                <circle cx={pt.x - (rInner * 0.24)} cy={pt.y - (rInner * 0.22)} r={rInner * 0.22} fill="rgba(255,255,255,0.58)" />
+              </g>
+            ))}
+          </g>
         </svg>
       );
     }
 
     if (key === "f2") {
+      const blurId = `feature-f2-blur-${key}`;
+      const rOuter = 8 + (smallGain * 3.6);
+      const midRatio = 0.74 - (contrastGain * 0.08);
+      const coreRatio = 0.35 + (contrastGain * 0.10);
+      const rCore = rOuter * coreRatio;
+      const points = [
+        { x: 35, y: 31, s: 1.0 },
+        { x: 46, y: 23, s: 1.12 },
+        { x: 52, y: 35, s: 0.94 },
+        { x: 43, y: 41, s: 0.88 }
+      ];
       return (
         <svg viewBox="0 0 96 72" className="feature-preview-svg" role="img" aria-label={t("field.feature2")}>
-          <circle
-            cx="48"
-            cy="36"
-            r="20"
-            fill={`rgba(176,182,188,${0.35 + targetPreviewModel.contrast})`}
-            stroke="rgba(218,224,230,0.66)"
-            strokeWidth={2}
-          />
+          <defs>
+            <filter id={blurId}>
+              <feGaussianBlur stdDeviation={0.5 + (rollingGain * 1.1)} />
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="96" height="72" fill="rgba(158,167,184,0.22)" />
+          <g filter={`url(#${blurId})`}>
+            {points.map((pt, idx) => {
+              const radius = rOuter * pt.s;
+              const midRadius = radius * midRatio;
+              const coreRadius = rCore * pt.s;
+              return (
+                <g key={`f2-${idx}`}>
+                  <circle cx={pt.x} cy={pt.y} r={radius} fill="rgba(101,112,128,0.82)" />
+                  <circle cx={pt.x} cy={pt.y} r={midRadius} fill="rgba(151,162,179,0.78)" />
+                  <circle cx={pt.x} cy={pt.y} r={coreRadius} fill="rgba(111,121,138,0.82)" />
+                  <circle cx={pt.x} cy={pt.y} r={radius} fill="none" stroke="rgba(205,214,228,0.22)" strokeWidth={1} />
+                </g>
+              );
+            })}
+          </g>
         </svg>
       );
     }
 
     if (key === "f3") {
+      const cx = 48;
+      const cy = 36;
+      const rx = 20 + (clumpGain * 12);
+      const ry = 14 + (clumpGain * 8);
+      const blurId = `feature-f3-blur-${key}`;
       return (
         <svg viewBox="0 0 96 72" className="feature-preview-svg" role="img" aria-label={t("field.feature3")}>
+          <defs>
+            <filter id={blurId}>
+              <feGaussianBlur stdDeviation={0.45 + (rollingGain * 0.9)} />
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="96" height="72" fill="rgba(158,171,188,0.22)" />
+          <g opacity={0.55} filter={`url(#${blurId})`}>
+            <circle cx="18" cy="14" r="8" fill="rgba(214,222,235,0.22)" />
+            <circle cx="29" cy="24" r="7" fill="rgba(120,132,148,0.26)" />
+            <circle cx="70" cy="18" r="9" fill="rgba(206,216,230,0.18)" />
+            <circle cx="74" cy="47" r="10" fill="rgba(176,189,210,0.20)" />
+            <circle cx="60" cy="58" r="6" fill="rgba(130,142,162,0.24)" />
+          </g>
           <path
-            d={`M${22 - (targetPreviewModel.clumpRatio * 1.6)} 20
-                C36 8, 65 8, 78 22
-                C90 ${31 + (targetPreviewModel.clumpRatio * 2.4)}, 88 51, 72 60
-                C55 69, 30 67, 20 54
-                C10 42, 12 28, ${22 - (targetPreviewModel.clumpRatio * 1.6)} 20Z`}
-            fill="rgba(16,18,22,0.96)"
-            stroke="rgba(72,80,92,0.44)"
+            d={`M${cx - rx} ${cy - (ry * 0.66)}
+                C${cx - (rx * 0.58)} ${cy - (ry * 1.34)}, ${cx + (rx * 0.48)} ${cy - (ry * 1.26)}, ${cx + (rx * 0.92)} ${cy - (ry * 0.44)}
+                C${cx + (rx * 1.16)} ${cy + (ry * 0.12)}, ${cx + (rx * 0.82)} ${cy + (ry * 0.94)}, ${cx + (rx * 0.22)} ${cy + (ry * 1.26)}
+                C${cx - (rx * 0.52)} ${cy + (ry * 1.38)}, ${cx - (rx * 1.06)} ${cy + (ry * 0.62)}, ${cx - (rx * 1.08)} ${cy - (ry * 0.14)}
+                C${cx - (rx * 1.02)} ${cy - (ry * 0.54)}, ${cx - (rx * 0.86)} ${cy - (ry * 0.62)}, ${cx - rx} ${cy - (ry * 0.66)} Z`}
+            fill="rgba(15,18,24,0.96)"
+            stroke="rgba(66,74,88,0.52)"
             strokeWidth={1.2}
           />
+          <ellipse cx={cx - (rx * 0.16)} cy={cy - (ry * 0.12)} rx={rx * 0.26} ry={ry * 0.18} fill="rgba(55,62,76,0.32)" />
+          <ellipse cx={cx + (rx * 0.26)} cy={cy + (ry * 0.16)} rx={rx * 0.2} ry={ry * 0.14} fill="rgba(28,34,44,0.42)" />
         </svg>
       );
     }
 
     if (key === "f5") {
+      const rOuter = 5.2 + (smallGain * 3.8);
+      const ringSoft = 0.26 + (bgGain * 0.24);
+      const coreDark = 0.58 + (centerGain * 0.26);
+      const points = [
+        { x: 30, y: 25 },
+        { x: 39, y: 19 },
+        { x: 48, y: 23 },
+        { x: 36, y: 33 },
+        { x: 47, y: 34 },
+        { x: 58, y: 27 },
+        { x: 57, y: 38 },
+        { x: 68, y: 31 }
+      ];
       return (
         <svg viewBox="0 0 96 72" className="feature-preview-svg" role="img" aria-label={t("field.feature5")}>
-          <defs>
-            <radialGradient id="feature-f5-gradient" cx="50%" cy="50%" r="58%">
-              <stop offset="0%" stopColor="rgba(22,26,34,0.9)" />
-              <stop offset={`${42 + targetPreviewModel.bgDiff}%`} stopColor="rgba(94,116,160,0.38)" />
-              <stop offset="100%" stopColor="rgba(230,236,248,0.9)" />
-            </radialGradient>
-          </defs>
-          <circle cx="48" cy="36" r={18 + (targetPreviewModel.smallRatio * 6)} fill="url(#feature-f5-gradient)" />
+          <rect x="0" y="0" width="96" height="72" fill="rgba(162,174,194,0.22)" />
+          <g>
+            {points.map((pt, idx) => (
+              <g key={`f5-${idx}`}>
+                <circle cx={pt.x} cy={pt.y} r={rOuter} fill={`rgba(210,218,232,${ringSoft + 0.22})`} />
+                <circle cx={pt.x} cy={pt.y} r={rOuter * 0.68} fill={`rgba(120,136,164,${ringSoft + 0.16})`} />
+                <circle cx={pt.x} cy={pt.y} r={rOuter * 0.34} fill={`rgba(26,30,38,${coreDark})`} />
+              </g>
+            ))}
+          </g>
         </svg>
       );
     }
 
+    const blurId = `feature-f6-blur-${key}`;
+    const dotRadius = 3.8 + (smallGain * 3.2);
+    const haze = 0.18 + (contrastGain * 0.18);
+    const dots = [
+      { x: 27, y: 24, s: 0.9 },
+      { x: 38, y: 18, s: 1.1 },
+      { x: 49, y: 24, s: 0.95 },
+      { x: 61, y: 20, s: 1.0 },
+      { x: 33, y: 37, s: 1.05 },
+      { x: 46, y: 40, s: 0.98 },
+      { x: 58, y: 35, s: 0.9 }
+    ];
     return (
       <svg viewBox="0 0 96 72" className="feature-preview-svg" role="img" aria-label={t("field.feature6")}>
-        <circle
-          cx="48"
-          cy="36"
-          r={12 + (targetPreviewModel.smallRatio * 8)}
-          fill="rgba(168,176,188,0.5)"
-          stroke="rgba(222,226,234,0.6)"
-          strokeWidth="2"
-        />
+        <defs>
+          <filter id={blurId}>
+            <feGaussianBlur stdDeviation={1.2 + (rollingGain * 2.0)} />
+          </filter>
+        </defs>
+        <rect x="0" y="0" width="96" height="72" fill="rgba(165,177,197,0.2)" />
+        <g filter={`url(#${blurId})`}>
+          {dots.map((pt, idx) => (
+            <circle
+              key={`f6-${idx}`}
+              cx={pt.x}
+              cy={pt.y}
+              r={dotRadius * pt.s}
+              fill={`rgba(170,180,198,${haze + 0.1})`}
+            />
+          ))}
+        </g>
+        <g opacity={0.4}>
+          {dots.map((pt, idx) => (
+            <circle
+              key={`f6-edge-${idx}`}
+              cx={pt.x}
+              cy={pt.y}
+              r={(dotRadius * pt.s) * 0.7}
+              fill="none"
+              stroke={`rgba(200,210,226,${0.14 + (contrastGain * 0.12)})`}
+              strokeWidth={1}
+            />
+          ))}
+        </g>
       </svg>
     );
   };
@@ -4714,7 +5056,7 @@ export function App(): JSX.Element {
                         <span className="operation-header-title-text">{t("op.section.files")}</span>
                         {operationOpenSections.includes("files") ? (
                           <Button
-                                                        appearance={filesDirty ? "primary" : "secondary"}
+                            appearance={filesDirty ? "primary" : "secondary"}
                             className="operation-header-apply-btn"
                             onClick={(event) => {
                               event.preventDefault();
@@ -4744,6 +5086,24 @@ export function App(): JSX.Element {
                               data-help={t("help.folderAddress")}
                             />
                           </Field>
+                          <Field label={t("field.subfolderMode")} size="small">
+                            <Dropdown
+                              value={subfolderModeLabel}
+                              selectedOptions={[subfolderMode]}
+                              onOptionSelect={(_, data) => {
+                                const next = data.optionValue;
+                                if (next === "keep" || next === "flat") {
+                                  setSubfolderMode(next);
+                                }
+                              }}
+                            >
+                              <Option value="keep">{t("field.subfolderKeep")}</Option>
+                              <Option value="flat">{t("field.subfolderFlat")}</Option>
+                            </Dropdown>
+                          </Field>
+                          <div className="inline-note">
+                            {subfolderMode === "keep" ? t("field.subfolderKeepDesc") : t("field.subfolderFlatDesc")}
+                          </div>
                           <div className="button-row button-row-adaptive">
                             <Button appearance="secondary" onClick={() => void handleSelectFolder()} data-help={t("help.selectFolder")}>
                               {t("button.selectFolder")}
@@ -4785,24 +5145,6 @@ export function App(): JSX.Element {
                               ))}
                             </div>
                           </div>
-                          <Field label={t("field.subfolderMode")} size="small">
-                            <Dropdown
-                              value={subfolderModeLabel}
-                              selectedOptions={[subfolderMode]}
-                              onOptionSelect={(_, data) => {
-                                const next = data.optionValue;
-                                if (next === "keep" || next === "flat") {
-                                  setSubfolderMode(next);
-                                }
-                              }}
-                            >
-                              <Option value="keep">{t("field.subfolderKeep")}</Option>
-                              <Option value="flat">{t("field.subfolderFlat")}</Option>
-                            </Dropdown>
-                          </Field>
-                          <div className="inline-note">
-                            {subfolderMode === "keep" ? t("field.subfolderKeepDesc") : t("field.subfolderFlatDesc")}
-                          </div>
                           <div className="meta-line">
                             {t("op.fileStats", {
                               images: workspaceScan?.totalImages ?? 0,
@@ -4821,47 +5163,199 @@ export function App(): JSX.Element {
                               onChange={(_, data) => setNamingCustomEnabled(data.checked)}
                             />
                           </div>
-                          <div className="settings-grid settings-grid-flow">
-                            <Field label={t("field.projectNamingRule")} size="small">
-                              <Dropdown
-                                value={
-                                  projectNamingRule === "filename"
-                                    ? t("field.projectNamingRuleFilename")
-                                    : t("field.projectNamingRuleFolder")
-                                }
-                                selectedOptions={[projectNamingRule]}
-                                disabled={namingCustomEnabled}
-                                onOptionSelect={(_, data) => {
-                                  const next = data.optionValue;
-                                  if (next === "filename" || next === "folder") {
-                                    setProjectNamingRule(next);
+                          <div className={`naming-rules-grid${namingCustomEnabled ? " is-disabled" : ""}`}>
+                            <div className="naming-rule-panel">
+                              <div className="naming-rule-panel-title">{t("field.projectRulePanelTitle")}</div>
+                              <Field label={t("field.projectNamingSource")} size="small">
+                                <Dropdown
+                                  value={
+                                    projectNamingRule === "filename"
+                                      ? t("field.projectNamingRuleFilename")
+                                      : t("field.projectNamingRuleFolder")
                                   }
-                                }}
-                              >
-                                <Option value="filename">{t("field.projectNamingRuleFilename")}</Option>
-                                <Option value="folder">{t("field.projectNamingRuleFolder")}</Option>
-                              </Dropdown>
-                            </Field>
-                            <Field label={t("field.timeNamingRule")} size="small">
-                              <Dropdown
-                                value={
-                                  timeNamingRule === "folder"
-                                    ? t("field.timeNamingRuleFolder")
-                                    : t("field.timeNamingRuleFilename")
-                                }
-                                selectedOptions={[timeNamingRule]}
-                                disabled={namingCustomEnabled}
-                                onOptionSelect={(_, data) => {
-                                  const next = data.optionValue;
-                                  if (next === "folder" || next === "filename") {
-                                    setTimeNamingRule(next);
+                                  selectedOptions={[projectNamingRule]}
+                                  disabled={namingCustomEnabled}
+                                  onOptionSelect={(_, data) => {
+                                    const next = data.optionValue;
+                                    if (next === "filename" || next === "folder") {
+                                      setProjectNamingRule(next);
+                                    }
+                                  }}
+                                >
+                                  <Option value="filename">{t("field.projectNamingRuleFilename")}</Option>
+                                  <Option value="folder">{t("field.projectNamingRuleFolder")}</Option>
+                                </Dropdown>
+                              </Field>
+                              <div className="inline-note">
+                                {projectNamingRule === "filename"
+                                  ? t("field.projectNamingRuleFilenameDesc")
+                                  : t("field.projectNamingRuleFolderDesc")}
+                              </div>
+                            </div>
+
+                            <div className="naming-rule-panel">
+                              <div className="naming-rule-panel-title">{t("field.timeRulePanelTitle")}</div>
+                              <Field label={t("field.timeNamingSource")} size="small">
+                                <Dropdown
+                                  value={
+                                    timeNamingRule === "folder"
+                                      ? t("field.timeNamingRuleFolder")
+                                      : t("field.timeNamingRuleFilename")
                                   }
-                                }}
-                              >
-                                <Option value="folder">{t("field.timeNamingRuleFolder")}</Option>
-                                <Option value="filename">{t("field.timeNamingRuleFilename")}</Option>
-                              </Dropdown>
-                            </Field>
+                                  selectedOptions={[timeNamingRule]}
+                                  disabled={namingCustomEnabled}
+                                  onOptionSelect={(_, data) => {
+                                    const next = data.optionValue;
+                                    if (next === "folder" || next === "filename") {
+                                      setTimeNamingRule(next);
+                                    }
+                                  }}
+                                >
+                                  <Option value="folder">{t("field.timeNamingRuleFolder")}</Option>
+                                  <Option value="filename">{t("field.timeNamingRuleFilename")}</Option>
+                                </Dropdown>
+                              </Field>
+                              <Field label={t("field.timeRegexPattern")} size="small">
+                                <Input
+                                  value={timeRegexPattern}
+                                  disabled={namingCustomEnabled}
+                                  placeholder={t("field.timeRegexPatternPlaceholder")}
+                                  onChange={(_, data) => setTimeRegexPattern(data.value)}
+                                />
+                              </Field>
+                              <div className="inline-note">{t("field.timeRegexHint")}</div>
+                              <div className="regex-builder-wrap">
+                                <div className="regex-builder-title">{t("field.timeRegexBuilderTitle")}</div>
+                                <div className="regex-builder-note">{t("field.timeRegexBuilderHint")}</div>
+                                <div className="regex-builder-palette">
+                                  {TIME_REGEX_BUILDER_PRESETS.map((presetItem) => (
+                                    <Button
+                                      key={presetItem.key}
+                                      size="small"
+                                      appearance="secondary"
+                                      disabled={namingCustomEnabled}
+                                      onClick={() => appendTimeRegexPresetToken(presetItem.key)}
+                                    >
+                                      {t(presetItem.labelKey)}
+                                    </Button>
+                                  ))}
+                                </div>
+                                <div className="regex-builder-custom-row">
+                                  <Input
+                                    value={timeRegexBuilderLiteral}
+                                    disabled={namingCustomEnabled}
+                                    placeholder={t("field.timeRegexBuilderCustomPlaceholder")}
+                                    onChange={(_, data) => setTimeRegexBuilderLiteral(data.value)}
+                                    onKeyDown={(event) => {
+                                      if (event.key === "Enter") {
+                                        event.preventDefault();
+                                        appendTimeRegexLiteralToken();
+                                      }
+                                    }}
+                                  />
+                                  <Button
+                                    size="small"
+                                    appearance="secondary"
+                                    disabled={namingCustomEnabled || timeRegexBuilderLiteral.trim().length === 0}
+                                    onClick={appendTimeRegexLiteralToken}
+                                  >
+                                    {t("button.addRegexToken")}
+                                  </Button>
+                                </div>
+                                <div className="regex-builder-token-list">
+                                  {timeRegexBuilderTokens.length === 0 ? (
+                                    <div className="meta-line">{t("field.timeRegexBuilderEmpty")}</div>
+                                  ) : (
+                                    timeRegexBuilderTokens.map((token) => {
+                                      const presetInfo =
+                                        token.kind === "literal" ? null : timeRegexPresetMap.get(token.kind);
+                                      const tokenLabel =
+                                        token.kind === "literal" ? t("field.timeRegexTokenLiteral") : (presetInfo?.label ?? token.kind);
+                                      const tokenPattern = token.kind === "literal" ? (token.literal ?? "") : (presetInfo?.pattern ?? "");
+                                      return (
+                                        <div
+                                          key={token.id}
+                                          className={`regex-builder-token${timeRegexDraggingTokenId === token.id ? " is-dragging" : ""}`}
+                                          draggable={!namingCustomEnabled}
+                                          onDragStart={(event: ReactDragEvent<HTMLDivElement>) => {
+                                            if (namingCustomEnabled) return;
+                                            setTimeRegexDraggingTokenId(token.id);
+                                            event.dataTransfer.effectAllowed = "move";
+                                          }}
+                                          onDragOver={(event: ReactDragEvent<HTMLDivElement>) => {
+                                            if (namingCustomEnabled) return;
+                                            event.preventDefault();
+                                            event.dataTransfer.dropEffect = "move";
+                                          }}
+                                          onDrop={(event: ReactDragEvent<HTMLDivElement>) => {
+                                            if (namingCustomEnabled) return;
+                                            event.preventDefault();
+                                            reorderTimeRegexBuilderToken(timeRegexDraggingTokenId, token.id);
+                                            setTimeRegexDraggingTokenId("");
+                                          }}
+                                          onDragEnd={() => setTimeRegexDraggingTokenId("")}
+                                        >
+                                          <span className="regex-builder-token-label">{tokenLabel}</span>
+                                          <code className="regex-builder-token-pattern">{tokenPattern || "..."}</code>
+                                          <Button
+                                            size="small"
+                                            appearance="subtle"
+                                            disabled={namingCustomEnabled}
+                                            onClick={() => removeTimeRegexBuilderToken(token.id)}
+                                          >
+                                            {t("button.removeRegexToken")}
+                                          </Button>
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                                <div className="button-row regex-builder-actions">
+                                  <Button
+                                    size="small"
+                                    appearance="secondary"
+                                    disabled={namingCustomEnabled || timeRegexBuilderPattern.trim().length === 0}
+                                    onClick={() => setTimeRegexPattern(timeRegexBuilderPattern)}
+                                  >
+                                    {t("button.applyBuilderRegex")}
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    appearance="secondary"
+                                    disabled={namingCustomEnabled || timeRegexBuilderTokens.length === 0}
+                                    onClick={clearTimeRegexBuilder}
+                                  >
+                                    {t("button.clearBuilder")}
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    appearance="secondary"
+                                    disabled={namingCustomEnabled}
+                                    onClick={resetTimeRegexBuilderDefault}
+                                  >
+                                    {t("button.resetBuilder")}
+                                  </Button>
+                                </div>
+                                <div className="meta-line regex-builder-preview">
+                                  {t("field.timeRegexBuilderPreview", {
+                                    pattern: timeRegexBuilderPattern || "-"
+                                  })}
+                                </div>
+                                {timeRegexState.invalid ? <div className="meta-line meta-line-warn">{t("field.timeRegexInvalid")}</div> : null}
+                                <div className="regex-preview-list">
+                                  <div className="regex-preview-title">{t("field.timeRegexPreviewTitle")}</div>
+                                  {timeRegexPreviewRows.map((row) => (
+                                    <div key={row.source} className="regex-preview-row">
+                                      <code className="regex-preview-source">{row.source}</code>
+                                      <span className="regex-preview-arrow">{"->"}</span>
+                                      <span className={`regex-preview-result${row.time ? "" : " is-empty"}`}>
+                                        {row.time || t("field.timeRegexPreviewNoMatch")}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
                           </div>
                           <div className="meta-line">
                             {t("op.namingStats", {
@@ -4887,7 +5381,7 @@ export function App(): JSX.Element {
                         <span className="operation-header-title-text">{t("op.section.cellRoi")}</span>
                         {operationOpenSections.includes("cellRoi") ? (
                           <Button
-                                                        appearance={cellRoiDirty ? "primary" : "secondary"}
+                            appearance={cellRoiDirty ? "primary" : "secondary"}
                             className="operation-header-apply-btn"
                             onClick={(event) => {
                               event.preventDefault();
@@ -5497,7 +5991,7 @@ export function App(): JSX.Element {
                         <span className="operation-header-title-text">{t("op.section.data")}</span>
                         {operationOpenSections.includes("data") ? (
                           <Button
-                                                        appearance={dataDirty ? "primary" : "secondary"}
+                            appearance={dataDirty ? "primary" : "secondary"}
                             className="operation-header-apply-btn"
                             onClick={(event) => {
                               event.preventDefault();
@@ -5613,7 +6107,7 @@ export function App(): JSX.Element {
                         <span className="operation-header-title-text">{t("op.section.debug")}</span>
                         {operationOpenSections.includes("debug") ? (
                           <Button
-                                                        appearance={debugDirty ? "primary" : "secondary"}
+                            appearance={debugDirty ? "primary" : "secondary"}
                             className="operation-header-apply-btn"
                             onClick={(event) => {
                               event.preventDefault();
@@ -5931,6 +6425,8 @@ export function App(): JSX.Element {
     </div>
   );
 }
+
+
 
 
 
