@@ -1,16 +1,8 @@
-﻿# Macrophage Image Four-Factor Analysis (v4.0.0)
+# Macrophage Image Four-Factor Analysis (v4.0.0)
 Languages: [English](README.md) | [中文](README.zh-CN.md) | [日本語](README.ja.md)
 
 > AI Edit Notice
 > This README is maintained with AI-assisted edits. Verify parameters and outputs in your own lab environment before production use.
-
-> Haibao Plan Notice (Ongoing)
-> The `neoxp_haibao/` workspace is an active softwareization effort for this macro workflow.
-> It introduces a desktop visual experience (Electron + React), non-linear phase navigation, and stronger state management while keeping scientific output parity with the Fiji macro as the top priority.
-> Current experience highlights include:
-> - clearer phase-oriented UI flow (instead of a single long macro run)
-> - parser/workflow modules prepared for reusable validation and automation
-> - an incremental migration path so results stay comparable to the current macro
 
 Fiji-only ImageJ macro for macrophage phagocytosis analysis with interactive ROI annotation, target/exclusion sampling, feature-based detection, optional fluorescence quantification, and structured tabular output.
 
@@ -135,9 +127,13 @@ Per-cell expansion:
 - `Macrophage Image Four-Factor Analysis_4.0.0.ijm`: active macro
 - `Macrophage Image Four-Factor Analysis_3.0.2.ijm`: locked reference version
 - `old/`: archived old macro versions (reference only)
-- `neoxp_haibao/`: desktop softwareization workspace (active migration)
 
-## 13. Reproducibility Checklist
+## 13. Desktop Project
+The Electron desktop/softwareization project now lives in a separate repository:
+
+- `https://github.com/KiriKirby/neoxp-haibao`
+
+## 14. Reproducibility Checklist
 Before comparing experiment runs:
 1. Use the same Fiji version and plugin environment.
 2. Use the same mode and feature selections.
@@ -145,20 +141,6 @@ Before comparing experiment runs:
 4. Keep ROI suffix and folder mode consistent.
 5. Confirm whether time parsing is enabled and from where (filename vs subfolder).
 6. Confirm fluorescence prefix and color tolerance settings.
-
-## 14. Current Migration Status (`neoxp_haibao`)
-The softwareized path is in progress and currently focuses on controlled migration rather than replacing the macro immediately.
-
-Current scope includes:
-- contracts for shared error/phase/parameter keys
-- parser package aligned with macro naming presets
-- workflow package for phase model/state transitions
-- desktop shell for phase navigation and future batch UX
-
-Next targets:
-- Fiji headless adapter for parity checks
-- native image engine modules after metric-level regression validation
-- persisted project state and richer desktop execution UX
 
 ## 15. License
 This macro script is released under CC0 1.0 Universal (Public Domain Dedication). See `LICENSE`.
