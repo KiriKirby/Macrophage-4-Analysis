@@ -8,6 +8,10 @@
 > デスクトップ/UI の企画と実装用リポジトリは独立プロジェクトとして分離されました: [KiriKirby/neoxp-haibao](https://github.com/KiriKirby/neoxp-haibao)。
 > Electron ベースの Haibao アプリを探している場合は、この Fiji マクロ用リポジトリではなく、そちらを利用してください。
 
+> Haibao ベースライン同期について
+> このリポジトリは Fiji マクロ挙動の正本です。Haibao リポジトリでは neoxp-haibao 側で npm run sync:fiji-ref を実行し、このリポジトリ直下にある最新の Macrophage Image Four-Factor Analysis_X.Y.Z.ijm を 3.0.2 を除外してコピーします。
+> ここで現行 Fiji マクロ版を更新した場合は、挙動整合性に関わるデスクトップ側作業の前に、Haibao リポジトリ側のコピー基線を更新してください。
+
 本プロジェクトは Fiji 専用の ImageJ マクロです。ROI 注釈、対象物/除外サンプル学習、特徴ベース検出、蛍光解析（任意）、構造化された結果出力を一つのフローで実行します。
 
 ## 1. プロジェクトの位置づけ

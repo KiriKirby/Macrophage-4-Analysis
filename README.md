@@ -8,6 +8,10 @@ Languages: [English](README.md) | [中文](README.zh-CN.md) | [日本語](README
 > The desktop/UI planning and implementation repository has been split into a standalone project: [KiriKirby/neoxp-haibao](https://github.com/KiriKirby/neoxp-haibao).
 > If you are looking for the Electron-based Haibao application, use that repository instead of this Fiji macro repository.
 
+> Haibao Baseline Sync
+> This repository is the source of truth for Fiji macro behavior. The Haibao repository copies the latest root-level Macrophage Image Four-Factor Analysis_X.Y.Z.ijm file, excluding 3.0.2, by running npm run sync:fiji-ref inside neoxp-haibao.
+> After changing the active Fiji macro version here, refresh the copied baseline in the Haibao repository before behavior-sensitive desktop work.
+
 Fiji-only ImageJ macro for macrophage phagocytosis analysis with interactive ROI annotation, target/exclusion sampling, feature-based detection, optional fluorescence quantification, and structured tabular output.
 
 ## 1. What This Project Is

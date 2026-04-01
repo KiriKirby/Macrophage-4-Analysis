@@ -8,6 +8,10 @@
 > 桌面端/UI 规划与实现仓库已经拆分为独立项目：[KiriKirby/neoxp-haibao](https://github.com/KiriKirby/neoxp-haibao)。
 > 如果你要找的是基于 Electron 的 Haibao 程序，请前往该仓库，而不是当前这个 Fiji 宏仓库。
 
+> Haibao 基线同步说明
+> 当前仓库是 Fiji 宏行为的真源。Haibao 仓库会通过在 neoxp-haibao 中运行 npm run sync:fiji-ref，复制这里根目录下最新的 Macrophage Image Four-Factor Analysis_X.Y.Z.ijm，并始终排除 3.0.2。
+> 如果你在这里更新了当前使用的 Fiji 宏版本，请先去 Haibao 仓库刷新对照基线，再继续做和行为一致性相关的桌面端开发。
+
 这是一个仅面向 Fiji 的 ImageJ 宏，用于巨噬细胞吞噬分析：包含 ROI 标注、目标物/排除样本学习、特征检测、可选荧光统计、以及结构化结果输出。
 
 ## 1. 项目定位
