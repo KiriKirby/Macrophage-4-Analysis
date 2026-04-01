@@ -14,9 +14,11 @@
   "scripts": {
     "dev:ps": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev.ps1",
     "dev:ps:fast": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev.ps1 -SkipInstall",
+    "dev:ps:inspect-main": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev.ps1 -SkipInstall -InspectMain",
     "build:packages": "npm run build --workspace=@neoxp/contracts && npm run build --workspace=@neoxp/parser && npm run build --workspace=@neoxp/workflow",
     "typecheck:packages": "npm run typecheck --workspace=@neoxp/contracts && npm run typecheck --workspace=@neoxp/parser && npm run typecheck --workspace=@neoxp/workflow",
     "dev": "npm run build:packages && npm run dev --workspace=@neoxp/desktop",
+    "dev:inspect-main": "npm run build:packages && npm run dev:inspect-main --workspace=@neoxp/desktop",
     "typecheck": "npm run typecheck:packages && npm run typecheck --workspace=@neoxp/desktop",
     "build": "npm run build:packages && npm run build --workspace=@neoxp/desktop",
     "test": "npm run test --workspaces --if-present"

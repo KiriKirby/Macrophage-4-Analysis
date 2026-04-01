@@ -1,5 +1,6 @@
 param(
-    [switch]$SkipInstall
+    [switch]$SkipInstall,
+    [switch]$InspectMain
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,5 +21,10 @@ if (-not $SkipInstall) {
     npm install
 }
 
-Write-Host "[dev] npm run dev"
-npm run dev
+$devScript = "dev"
+if ($InspectMain) {
+    $devScript = "dev:inspect-main"
+}
+
+Write-Host "[dev] npm run $devScript"
+npm run $devScript
