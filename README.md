@@ -4,6 +4,10 @@ Languages: [English](README.md) | [中文](README.zh-CN.md) | [日本語](README
 > AI Edit Notice
 > This README is maintained with AI-assisted edits. Verify parameters and outputs in your own lab environment before production use.
 
+> Haibao Desktop Project
+> The desktop/UI planning and implementation repository has been split into a standalone project: [KiriKirby/neoxp-haibao](https://github.com/KiriKirby/neoxp-haibao).
+> If you are looking for the Electron-based Haibao application, use that repository instead of this Fiji macro repository.
+
 Fiji-only ImageJ macro for macrophage phagocytosis analysis with interactive ROI annotation, target/exclusion sampling, feature-based detection, optional fluorescence quantification, and structured tabular output.
 
 ## 1. What This Project Is

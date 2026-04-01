@@ -4,6 +4,10 @@
 > AI 编辑提示
 > 本文档由 AI 辅助维护。用于正式实验前，请在你的实验环境中复核参数与输出。
 
+> Haibao 桌面项目说明
+> 桌面端/UI 规划与实现仓库已经拆分为独立项目：[KiriKirby/neoxp-haibao](https://github.com/KiriKirby/neoxp-haibao)。
+> 如果你要找的是基于 Electron 的 Haibao 程序，请前往该仓库，而不是当前这个 Fiji 宏仓库。
+
 这是一个仅面向 Fiji 的 ImageJ 宏，用于巨噬细胞吞噬分析：包含 ROI 标注、目标物/排除样本学习、特征检测、可选荧光统计、以及结构化结果输出。
 
 ## 1. 项目定位
