@@ -1,5 +1,5 @@
 # 巨噬细胞图像四要素分析（v4.0.0）
-语言： [English](README.md) | [中文](README.zh-CN.md) | [日本語](README.ja.md)
+语言：[English](README.md) | [中文](README.zh-CN.md) | [日本語](README.ja.md)
 
 > AI 编辑提示
 > 本文档由 AI 辅助维护。用于正式实验前，请在你的实验环境中复核参数与输出。
@@ -12,7 +12,7 @@
 > 当前仓库是 Fiji 宏行为的真源。Haibao 仓库会通过在 neoxp-haibao 中运行 npm run sync:fiji-ref，复制这里根目录下最新的 Macrophage Image Four-Factor Analysis_X.Y.Z.ijm，并始终排除 3.0.2。
 > 如果你在这里更新了当前使用的 Fiji 宏版本，请先去 Haibao 仓库刷新对照基线，再继续做和行为一致性相关的桌面端开发。
 
-这是一个仅面向 Fiji 的 ImageJ 宏，用于巨噬细胞吞噬分析：包含 ROI 标注、目标物/排除样本学习、特征检测、可选荧光统计、以及结构化结果输出。
+这是一个仅面向 Fiji 的 ImageJ 宏，用于巨噬细胞吞噬分析，包含 ROI 标注、目标物/排除样本学习、特征检测、可选荧光统计，以及结构化结果输出。
 
 ## 1. 项目定位
 - 主脚本：`Macrophage Image Four-Factor Analysis_4.0.0.ijm`
@@ -87,7 +87,7 @@
 
 ## 7. 荧光分析
 - 按前缀匹配对应荧光图
-- 支持目标色/近似色/排除色与容差设置
+- 支持目标色、近似色、排除色与容差设置
 - 荧光缺失时输出空字符串，不强制写 0
 - 荧光结果与主表共用 PN/时间分组布局
 
